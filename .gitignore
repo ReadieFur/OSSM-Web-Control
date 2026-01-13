@@ -1,0 +1,7 @@
+.DS_Store
+node_modules/
+src/*.map
+src/*.js
+src/*.css
+tsconfig.tsbuildinfo
+.vscode/
