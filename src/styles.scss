@@ -8,83 +8,52 @@
 // #endregion
 
 // #region Theme variables
-$theme-colors: (
-    accent-primary:   hsl(225, 85%, 50%),
-    accent-secondary: hsl(275, 100%, 50%),
-    light-background: #ffffff,
-    light-foreground: #000000,
-    dark-background:  #020817,
-    dark-foreground:  #ffffff,
-);
-
 $theme-constants: (
     radius: 8px
 );
 
 $theme-rules: (
     accent-primary: (
-        base: accent-primary,
-        lightness: (light: 60%, dark: -80%)
+        light: hsl(275, 100%, 50%),
+        dark: hsl(275, 100%, 20%),
     ),
     accent-secondary: (
-        base: accent-secondary,
-        lightness: (light: 60%, dark: -80%)
+        light: hsl(234, 100%, 74%),
+        dark: hsl(225, 85%, 20%),
     ),
     foreground-primary: (
-        base: (light: light-foreground, dark: dark-foreground)
+        light: #000000,
+        dark: #ffffff,
     ),
     foreground-secondary: (
-        base: (light: light-foreground, dark: dark-foreground),
-        lightness: (light: 35%, dark: -35%)
+        light: #333333,
+        dark: #cccccc,
     ),
     foreground-tertiary: (
-        base: (light: light-foreground, dark: dark-foreground),
-        lightness: (light: 55%, dark: -55%)
+        light: #666666,
+        dark: #999999,
     ),
     background-primary: (
-        base: (light: light-background, dark: dark-background)
+        light: #ffffff,
+        dark: #020817,
     ),
     background-secondary: (
-        base: (light: light-background, dark: dark-background),
-        lightness: (light: -4%, dark: 8%)
+        light: #f0f0f0,
+        dark: #121212,
     ),
     background-tertiary: (
-        base: (light: light-background, dark: dark-background),
-        lightness: (light: -8%, dark: 14%)
+        light: #e0e0e0,
+        dark: #1a1a1a,
     ),
 );
 
 @function generate-theme($mode) {
     $result: ();
 
-    @each $token, $rule in $theme-rules {
-        $base-key: map.get($rule, base);
-
-        $base-color: if(
-            meta.type-of($base-key) == map,
-            map.get($theme-colors, map.get($base-key, $mode)),
-            map.get($theme-colors, $base-key)
-        );
-
-        $value: $base-color;
-
-        // Loop over each entry of the rule
-        @each $channel, $modes in $rule {
-            // Skip if $modes is not a map (e.g., base)
-            @if meta.type-of($modes) == map and map.has-key($modes, $mode) {
-                $delta: map.get($modes, $mode);
-
-                @if $channel == lightness {
-                    $value: color.scale($value, $lightness: $delta);
-                } @else if $channel == saturation {
-                    $value: color.scale($value, $saturation: $delta);
-                } @else if $channel == alpha {
-                    $value: color.scale($value, $alpha: $delta);
-                }
-            }
+    @each $key, $colors in $theme-rules {
+        @if map.has-key($colors, $mode) {
+            $result: map.merge($result, ($key: map.get($colors, $mode)));
         }
-
-        $result: map.set($result, $token, $value);
     }
 
     @return $result;
@@ -122,22 +91,26 @@ $light-theme: generate-theme(light);
 }
 
 body {
-    width: 100vw;
-    height: 100vh;
+    // top: 0;
+    // left: 0;
+    // width: 100vw;
+    // height: 100vh;
     color: var(--foreground-primary);
     background:
         radial-gradient(
             circle at bottom left,
-            var(--accent-primary),
+            color-mix(in srgb, var(--accent-secondary) 50%, transparent),
             transparent 20%
         ),
         radial-gradient(
             circle at bottom right,
-            var(--accent-secondary),
+            color-mix(in srgb, var(--accent-primary) 50%, transparent),
             transparent 40%
         ),
         var(--background-primary)
     ;
+    background-size: cover;
+    background-attachment: fixed;
 }
 
 button {
@@ -172,7 +145,7 @@ input {
         transition: background-color 0.2s ease, border-color 0.2s ease;
 
         &::selection {
-            background-color: var(--accent-secondary);
+            background-color: var(--accent-primary);
         }
 
         &:focus {
@@ -202,8 +175,8 @@ input {
         }
 
         @mixin checked {
-            background-color: var(--accent-secondary);
-            border-color: var(--accent-secondary);
+            background-color: var(--accent-primary);
+            border-color: var(--accent-primary);
             background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='white'%3E%3Cpath d='M20.285 6.709l-11.025 11.025-5.285-5.285 1.414-1.414 3.871 3.871 9.611-9.611z'/%3E%3C/svg%3E");
             background-repeat: no-repeat;
             background-position: center;
@@ -293,7 +266,7 @@ input {
         }
 
         &:checked {
-            border-color: var(--accent-secondary);
+            border-color: var(--accent-primary);
 
             &::after {
                 transform: translate(-50%, -50%) scale(1);
@@ -359,8 +332,8 @@ input {
                 background:
                     linear-gradient(
                         to right,
-                        var(--accent-primary) 0%,
-                        var(--accent-primary) var(--range-value),
+                        var(--accent-secondary) 0%,
+                        var(--accent-secondary) var(--range-value),
                         var(--background-tertiary) var(--range-value),
                         var(--background-tertiary) 100%
                     ) center / 100% var(--range-track-thickness) no-repeat;
@@ -371,8 +344,8 @@ input {
                 height: var(--range-real-height);
                 //Emulate a background image using gradients, then use the same trick as above to center it
                 background: linear-gradient(
-                    var(--accent-secondary),
-                    var(--accent-secondary)
+                    var(--accent-primary),
+                    var(--accent-primary)
                 ) center / 100% var(--range-thumb-size) no-repeat;
             }
 
@@ -407,8 +380,8 @@ input {
                 background:
                     linear-gradient(
                         to top,
-                        var(--accent-primary) 0%,
-                        var(--accent-primary) var(--range-value),
+                        var(--accent-secondary) 0%,
+                        var(--accent-secondary) var(--range-value),
                         var(--background-tertiary) var(--range-value),
                         var(--background-tertiary) 100%
                     ) center / var(--range-track-thickness) 100% no-repeat;
@@ -418,8 +391,8 @@ input {
                 width: var(--range-real-width);
                 height: var(--range-thumb-size);
                 background: linear-gradient(
-                    var(--accent-secondary),
-                    var(--accent-secondary)
+                    var(--accent-primary),
+                    var(--accent-primary)
                 ) center / var(--range-thumb-size) 100% no-repeat;
             }
 
