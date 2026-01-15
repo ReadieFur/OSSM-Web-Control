@@ -5,11 +5,27 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Document</title>
     <link rel="stylesheet" href="styles.css">
+    <script src="styles.js" type="module" defer></script>
     <script src="script.js" type="module" defer></script>
     <script>
         console.log(`👁️🦌👁️! What are you doing here?`); // This is cursed lmao
     </script>
 </head>
 <body>
+    <div id="main-content">
+        <section id="pair-screen" class="backdrop-blur">
+            <h1>OSSM Web Control</h1>
+            <button id="pair-device-button">Connect OSSM</button>
+        </section>
+
+        <section id="control-screen" class="hidden">
+            <h1>Control Panel</h1>
+            <p>Welcome to the OSSM Web Control Panel!</p>
+        </section>
+
+        <footer>
+            <p>Made with ❤️ by ChloeDoe 🦌!</p>
+        </footer>
+    </div>
 </body>
 </html>

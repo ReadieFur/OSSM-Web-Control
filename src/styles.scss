@@ -8,6 +8,8 @@
 // #endregion
 
 // #region Theme variables
+$mobile-media-query: "(max-width: 500px), (max-height: 1000px)";
+
 $theme-constants: (
     radius: 8px
 );
@@ -87,15 +89,23 @@ $light-theme: generate-theme(light);
     padding: 0;
     box-sizing: border-box;
     color: inherit;
-    font-family: "Inter", sans-serif;
 }
 
 body {
-    // top: 0;
-    // left: 0;
-    // width: 100vw;
-    // height: 100vh;
+    // Position
+    margin: 0;
+    height: 100vh;
+
+    // Layout
+    display: flex;
+    justify-content: center;
+    align-items: center;
+
+    // Font settings
     color: var(--foreground-primary);
+    font-family: "Inter", sans-serif;
+
+    // Background
     background:
         radial-gradient(
             circle at bottom left,
@@ -414,6 +424,13 @@ input {
         }
     }
 }
+
+section {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    padding: 1.5rem;
+}
 // #endregion
 
 // #region Reusable classes
@@ -501,43 +518,106 @@ span.range-input-container {
     }
 }
 
+.transition-bounds {
+    transition: width 0.5s ease, height 0.5s ease;
+    // https://www.youtube.com/watch?v=JN-nme9oF10
+    // I would program this in script but I can't be arsed and given that this app requires WebBLE it will only run on chrome anyway.
+    interpolate-size: allow-keywords;
+}
+
+.transition-fade {
+    // Set in script
+    --transition-fade-duration: 0.5s;
+
+    transition: opacity var(--transition-fade-duration) ease, transform var(--transition-fade-duration) ease;
+
+    &[data-transition-fade="in"] {
+        opacity: inherit;
+        transform: scale(inherit);
+    }
+
+    &[data-transition-fade="out"] {
+        opacity: 0;
+        transform: scale(0.9); //TODO: Get inherited value * 0.9
+        pointer-events: none;
+    }
+}
+
+.backdrop-blur {
+    border: 1px solid color-mix(in srgb, var(--foreground-primary) 30%, transparent);
+    border-radius: var(--radius);
+    background: color-mix(in srgb, var(--foreground-primary) 5%, transparent);
+    backdrop-filter: blur(10px);
+}
+
+.hidden {
+    display: none !important;
+}
 // #endregion
 
 // #region ID specific styles
-body#styleguide {
-    // Container styling
-    padding: 20px 15px;
-
-    // Content layout
+#center-wrapper {
     display: flex;
     flex-direction: column;
-    gap: 20px;
+    justify-content: center; /* vertical centering */
+    align-items: center;     /* horizontal centering */
+    flex: 1;                 /* take all remaining space */
+}
 
-    // Content styling
-    box-sizing: border-box;
-    overflow-wrap: break-word;
-    word-wrap: break-word;
+#main-content {
+    // Position
+    $page-offset: 100px;
+    position: relative;
 
-    #dbg {
-        // position: relative;
-        // display: block;
-        // width: 100px;
-        // height: 100px;
-        // background-color: red;
+    // Layout
+    text-align: center;
+    max-width: 100vh;
+    max-height: 100vh;
 
-        --cond-a: 100px;
-        --cond-b: 50px;
-        --out-a: 10px;
-        --out-b: 0px;
-        // --calc-res: calc(
-        //     var(--out-b) +
-        //     clamp(0, (var(--cond-a) - var(--cond-b)) * 9999, 1)
-        //     * (var(--out-a) - var(--out-b))
-        // );
+    &:not(.fill-page) {
+        width: fit-content;
+        height: fit-content;
+        padding: calc(#{$page-offset} / 2);
 
-        &::after {
-            content: "dbg: " var(--calc-res);
-            outline: calc(var(--calc-res) * 1px) solid red;
+        > footer {
+            top: calc(100% - (#{$page-offset} / 2)); // Positions it starting at the bottom of main
+            margin-top: 1rem;
+        }
+    }
+
+    &.fill-page {
+        width: calc(100vw - $page-offset);
+        height: calc(100vh - $page-offset);
+
+        > footer {
+            // Position equally between bottom of main and bottom of viewport
+            top: calc(100% + (#{$page-offset} / 4));
+            transform: translateY(-50%);
+        }
+    }
+
+    > footer {
+        // Position
+        position: absolute; //Makes sure it doesn't affect main content size
+        left: 0;
+        right: 0;
+
+        // Layout
+        text-align: center;
+        font-size: 0.75rem;
+        color: var(--foreground-tertiary);
+
+        transition: opacity 0.2s ease;
+    }
+
+    @media #{$mobile-media-query} {
+        &.fill-page {
+            width: 100vw;
+            height: 100vh;
+
+            > footer {
+                display: none;
+            }
         }
     }
 }
