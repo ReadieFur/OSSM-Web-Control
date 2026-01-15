@@ -3,9 +3,10 @@
     // Language settings
     "target": "esnext",
     "lib": [
-      "esnext",
-      "dom",
-      "webworker"
+      "ESNext",
+      "DOM",
+      "DOM.Iterable",
+      "WebWorker"
     ],
     "module": "esnext",
     "moduleResolution": "bundler",

@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Styles testing</title>
+    <link rel="stylesheet" href="styles.css">
+    <script src="styles.js" type="module" defer></script>
+</head>
+<body id="styleguide">
+    <section>
+        <h1>Buttons</h1>
+
+        <button>Regular</button>
+
+        <button class="no-border">No Border</button>
+        <button>
+            <span>
+                <span>With</span>
+                <p>Content</p>
+            </span>
+        </button>
+    </section>
+
+    <section>
+        <h1>Inputs</h1>
+        <input type="text" placeholder="Text input">
+        <br>
+
+        <input type="password" placeholder="Password input">
+        <br>
+
+        <input type="number" placeholder="Number input">
+        <br>
+        <input type="number" placeholder="Number input (spin-left)" class="spin-left">
+        <br>
+        <input type="number" placeholder="Number input (spin-right)" class="spin-right">
+        <br>
+        <input type="number" placeholder="Number input (spin-split)" class="spin-split">
+        <br>
+        <input type="number" placeholder="Number input (no spin)">
+        <br>
+        <input type="number" placeholder="Number input (default)" data-no_style>
+        <br>
+
+        <input type="checkbox" id="checkbox1">
+        <label for="checkbox1">Checkbox</label>
+        <br>
+        <input type="checkbox" id="checkbox2" checked>
+        <label for="checkbox2">Checkbox <small>(checked)</small></label>
+        <br>
+        <input type="checkbox" id="checkbox3" class="after-label">
+        <label for="checkbox3">Checkbox <small>(right)</small></label>
+        <br>
+        <input type="checkbox" id="checkbox4" class="after-label" checked>
+        <label for="checkbox4">Checkbox <small>(checked right)</small></label>
+        <br>
+        <input type="checkbox" id="checkbox5">
+        <br>
+
+        <input type="radio" id="radio1" name="radio-group">
+        <label for="radio1">Radio</label>
+        <br>
+        <input type="radio" id="radio2" name="radio-group" checked>
+        <label for="radio2">Radio <small>(checked)</small></label>
+        <br>
+        <input type="radio" id="radio3" class="after-label" name="radio-group-2">
+        <label for="radio3">Radio <small>(right)</small></label>
+        <br>
+        <input type="radio" id="radio4" class="after-label" name="radio-group-2" checked>
+        <label for="radio4">Radio <small>(checked right)</small></label>
+        <br>
+
+        <input type="range" id="range1" min="0" max="100" value="25">
+        <br>
+        <input type="range" orientation="vertical" id="range2" min="0" max="100" value="75">
+        <span id="dbg"></p>
+    </section>
+</body>
+</html>

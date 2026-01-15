@@ -1,0 +1,571 @@
+// #region Imports
+@use "sass:map";
+@use "sass:color";
+@use "sass:math";
+@use "sass:meta";
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap');
+// #endregion
+
+// #region Theme variables
+$theme-colors: (
+    accent-primary:   hsl(225, 85%, 50%),
+    accent-secondary: hsl(275, 100%, 50%),
+    light-background: #ffffff,
+    light-foreground: #000000,
+    dark-background:  #020817,
+    dark-foreground:  #ffffff,
+);
+
+$theme-constants: (
+    radius: 8px
+);
+
+$theme-rules: (
+    accent-primary: (
+        base: accent-primary,
+        lightness: (light: 60%, dark: -80%)
+    ),
+    accent-secondary: (
+        base: accent-secondary,
+        lightness: (light: 60%, dark: -80%)
+    ),
+    foreground-primary: (
+        base: (light: light-foreground, dark: dark-foreground)
+    ),
+    foreground-secondary: (
+        base: (light: light-foreground, dark: dark-foreground),
+        lightness: (light: 35%, dark: -35%)
+    ),
+    foreground-tertiary: (
+        base: (light: light-foreground, dark: dark-foreground),
+        lightness: (light: 55%, dark: -55%)
+    ),
+    background-primary: (
+        base: (light: light-background, dark: dark-background)
+    ),
+    background-secondary: (
+        base: (light: light-background, dark: dark-background),
+        lightness: (light: -4%, dark: 8%)
+    ),
+    background-tertiary: (
+        base: (light: light-background, dark: dark-background),
+        lightness: (light: -8%, dark: 14%)
+    ),
+);
+
+@function generate-theme($mode) {
+    $result: ();
+
+    @each $token, $rule in $theme-rules {
+        $base-key: map.get($rule, base);
+
+        $base-color: if(
+            meta.type-of($base-key) == map,
+            map.get($theme-colors, map.get($base-key, $mode)),
+            map.get($theme-colors, $base-key)
+        );
+
+        $value: $base-color;
+
+        // Loop over each entry of the rule
+        @each $channel, $modes in $rule {
+            // Skip if $modes is not a map (e.g., base)
+            @if meta.type-of($modes) == map and map.has-key($modes, $mode) {
+                $delta: map.get($modes, $mode);
+
+                @if $channel == lightness {
+                    $value: color.scale($value, $lightness: $delta);
+                } @else if $channel == saturation {
+                    $value: color.scale($value, $saturation: $delta);
+                } @else if $channel == alpha {
+                    $value: color.scale($value, $alpha: $delta);
+                }
+            }
+        }
+
+        $result: map.set($result, $token, $value);
+    }
+
+    @return $result;
+}
+
+$dark-theme: generate-theme(dark);
+$light-theme: generate-theme(light);
+
+:root {
+    // Define SASS variables as CSS variables for light and dark themes
+    @each $name, $value in $theme-constants {
+        --#{$name}: #{$value};
+    }
+
+    @each $name, $value in $light-theme {
+        --#{$name}: #{$value};
+    }
+
+    @media (prefers-color-scheme: dark) {
+        @each $name, $value in $dark-theme {
+            --#{$name}: #{$value};
+        }
+    }
+}
+// #endregion
+
+// #region Element defaults
+// Reset base styles
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    color: inherit;
+    font-family: "Inter", sans-serif;
+}
+
+body {
+    width: 100vw;
+    height: 100vh;
+    color: var(--foreground-primary);
+    background:
+        radial-gradient(
+            circle at bottom left,
+            var(--accent-primary),
+            transparent 20%
+        ),
+        radial-gradient(
+            circle at bottom right,
+            var(--accent-secondary),
+            transparent 40%
+        ),
+        var(--background-primary)
+    ;
+}
+
+button {
+    background: transparent;
+    padding: 1rem;
+    border: none;
+    border: 1px solid var(--background-tertiary);
+    border-radius: var(--radius);
+    transition: background 0.2s ease;
+
+    &:hover {
+        background: var(--background-secondary);
+        cursor: pointer;
+    }
+}
+
+input {
+
+    &:focus {
+        outline: none;
+    }
+
+    &[type="text"],
+    &[type="password"],
+    &[type="email"],
+    &[type="number"] {
+        background-color: transparent;
+        border: none;
+        border-bottom: 1px solid var(--foreground-secondary);
+        padding: 0.5rem;
+        border-radius: 0 0 2px 2px;
+        transition: background-color 0.2s ease, border-color 0.2s ease;
+
+        &::selection {
+            background-color: var(--accent-secondary);
+        }
+
+        &:focus {
+            border-color: var(--foreground-primary);
+        }
+    }
+
+    &[type="checkbox"] {
+        $cursor: pointer;
+        cursor: $cursor;
+
+        @mixin checkbox {
+            content: "";
+            display: inline-block;
+            width: 1rem;
+            height: 1rem;
+            border: 1px solid var(--foreground-secondary);
+            border-radius: calc(var(--radius) / 2);
+            background-color: var(--background-primary);
+            vertical-align: middle;
+            transition: background-color 0.2s ease, border-color 0.2s ease;
+        }
+
+        @mixin hover {
+            background-color: var(--background-secondary);
+            // cursor: $cursor;
+        }
+
+        @mixin checked {
+            background-color: var(--accent-secondary);
+            border-color: var(--accent-secondary);
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='white'%3E%3Cpath d='M20.285 6.709l-11.025 11.025-5.285-5.285 1.414-1.414 3.871 3.871 9.611-9.611z'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: center;
+        }
+
+        &:has(+label)+label {
+            cursor: $cursor;
+            vertical-align: middle;
+        }
+
+        // Standalone checkbox & checkbox with label after
+        &:not(.after-label:has(+label)) {
+            // Keep the original checkbox visible but visually hidden, required to still display the custom checkbox and receive click events
+            // SCSS automatically handles the other browser appearance properties (webkit, moz)
+            appearance: none;
+
+            &:after {
+                @include checkbox;
+            }
+
+            &:hover:after {
+                @include hover;
+            }
+
+            &:checked:after {
+                @include checked;
+            }
+
+            &:has(+label)+label {
+                margin-left: 4px;
+            }
+        }
+
+        // Checkbox with label
+        &.after-label:has(+label) {
+            // Hide the original checkbox entirely, the click events are tied to the attached label
+            display: none;
+
+            +label:after {
+                @include checkbox;
+                margin-left: 8px;
+            }
+
+            &:hover+label:after {
+                @include hover;
+            }
+
+            &:checked+label:after {
+                @include checked;
+            }
+        }
+    }
+
+    &[type="radio"] {
+        // Simple for now (no after-label option)
+        appearance: none;
+        width: 1rem;
+        height: 1rem;
+        border: 1px solid var(--foreground-secondary);
+        border-radius: 50%;
+        background-color: var(--background-primary);
+        vertical-align: middle;
+        transition: background-color 0.2s ease, border-color 0.2s ease;
+        position: relative;
+
+        @mixin radio {
+            content: "";
+            display: block;
+            width: 0.5rem;
+            height: 0.5rem;
+            border-radius: 50%;
+            background-color: white;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) scale(0);
+            transition: transform 0.2s ease;
+        }
+
+        &::after {
+            @include radio;
+        }
+
+        &:hover {
+            background-color: var(--background-secondary);
+            cursor: pointer;
+        }
+
+        &:checked {
+            border-color: var(--accent-secondary);
+
+            &::after {
+                transform: translate(-50%, -50%) scale(1);
+            }
+        }
+    }
+
+    &[type="range"] {
+        // Set in script
+        --range-value: 50%;
+        --range-thumb-size: 1.5rem;
+        --range-track-thickness: 0.4rem;
+
+        appearance: none;
+        background: transparent;
+        width: auto;
+        height: auto;
+        cursor: pointer;
+
+        @mixin track {
+            // TODO: Fix this not working if the track is smaller than the thumb (cause: gradient hack)
+            border-radius: var(--radius);
+        }
+
+        @mixin thumb {
+            border-radius: 100%;
+            border: none;
+        }
+
+        &:active {
+            cursor: grabbing;
+        }
+
+        // These must be separate for some reason
+        &::-webkit-slider-runnable-track {
+            @include track;
+        }
+
+        &::-moz-range-track {
+            @include track;
+        }
+
+        &::-webkit-slider-thumb {
+            @include thumb;
+            appearance: none;
+        }
+
+        &::-moz-range-thumb {
+            @include thumb;
+        }
+
+        &:not([orientation="vertical"]) {
+            // In order to set the proper bounding box, we set the height to the larger of the track thickness or thumb size
+            --range-real-height: calc(max(var(--range-track-thickness), var(--range-thumb-size)));
+
+            // width: 100%;
+            // height: 100%;
+
+            @mixin track-rtl {
+                // In order to set the proper bounding box, we set the height to the larger of the track thickness or thumb size
+                height: var(--range-real-height);
+                // We then set the background to a gradient that is centered vertically, with the height of the desired track thickness
+                background:
+                    linear-gradient(
+                        to right,
+                        var(--accent-primary) 0%,
+                        var(--accent-primary) var(--range-value),
+                        var(--background-tertiary) var(--range-value),
+                        var(--background-tertiary) 100%
+                    ) center / 100% var(--range-track-thickness) no-repeat;
+            }
+
+            @mixin thumb-rtl {
+                width: var(--range-thumb-size);
+                height: var(--range-real-height);
+                //Emulate a background image using gradients, then use the same trick as above to center it
+                background: linear-gradient(
+                    var(--accent-secondary),
+                    var(--accent-secondary)
+                ) center / 100% var(--range-thumb-size) no-repeat;
+            }
+
+            &::-webkit-slider-runnable-track {
+                @include track-rtl;
+            }
+
+            &::-moz-range-track {
+                @include track-rtl;
+            }
+
+            &::-webkit-slider-thumb {
+                @include thumb-rtl;
+            }
+
+            &::-moz-range-thumb {
+                @include thumb-rtl;
+            }
+        }
+
+        &[orientation="vertical"] {
+            // https://stackoverflow.com/questions/15935837/how-to-display-a-range-input-slider-vertically
+            writing-mode: vertical-lr;
+            direction: rtl;
+            // width: 100%;
+            // height: 100%;
+
+            --range-real-width: calc(max(var(--range-track-thickness), var(--range-thumb-size)));
+
+            @mixin track-rtl {
+                width: var(--range-real-width);
+                background:
+                    linear-gradient(
+                        to top,
+                        var(--accent-primary) 0%,
+                        var(--accent-primary) var(--range-value),
+                        var(--background-tertiary) var(--range-value),
+                        var(--background-tertiary) 100%
+                    ) center / var(--range-track-thickness) 100% no-repeat;
+            }
+
+            @mixin thumb-rtl {
+                width: var(--range-real-width);
+                height: var(--range-thumb-size);
+                background: linear-gradient(
+                    var(--accent-secondary),
+                    var(--accent-secondary)
+                ) center / var(--range-thumb-size) 100% no-repeat;
+            }
+
+            &::-webkit-slider-runnable-track {
+                @include track-rtl;
+            }
+
+            &::-moz-range-track {
+                @include track-rtl;
+            }
+
+            &::-webkit-slider-thumb {
+                @include thumb-rtl;
+            }
+
+            &::-moz-range-thumb {
+                @include thumb-rtl;
+            }
+        }
+    }
+}
+// #endregion
+
+// #region Reusable classes
+.no-border {
+    border: none !important;
+}
+
+// See styles.ts for functionality of this dynamically built component
+span.number-input-container {
+    [type="number"] {
+        appearance: textfield;
+
+        &::-webkit-inner-spin-button,
+        &::-webkit-outer-spin-button {
+            -webkit-appearance: none;
+        }
+    }
+
+    >button {
+        padding: 0.5rem;
+        border: none;
+        border-bottom: 1px solid var(--foreground-secondary);
+        border-radius: 0;
+        transition: border-color 0.2s ease;
+
+        &:hover {
+            background-color: transparent;
+        }
+    }
+
+    &:has(>input[type="number"]:focus) > button {
+        border-color: var(--foreground-primary);
+    }
+
+    &:has(>input[type="number"].spin-left) {
+        >input[type="number"] {
+            margin-left: -1px;
+            border-radius: 0 0 2px 0;
+        }
+
+        >button {
+            &:first-of-type {
+                border-radius: 0 0 0 2px;
+            }
+        }
+    }
+
+    &:has(>input[type="number"].spin-right) {
+        >input[type="number"] {
+            margin-right: -1px;
+            border-radius: 0 0 0 2px;
+        }
+
+        >button {
+            &:last-of-type {
+                border-radius: 0 0 2px 0;
+            }
+        }
+    }
+
+    &:has(>input[type="number"].spin-split) {
+        >input[type="number"] {
+            margin: 0 -1px;
+            border-radius: 0;
+        }
+
+        >button {
+            &:first-of-type {
+                border-radius: 0 0 0 2px;
+            }
+
+            &:last-of-type {
+                border-radius: 0 0 2px 0;
+            }
+        }
+    }
+}
+
+span.range-input-container {
+    display: inline-flex;
+    align-items: center;
+
+    >input[type="range"] {
+        flex-grow: 1;
+    }
+}
+
+// #endregion
+
+// #region ID specific styles
+body#styleguide {
+    // Container styling
+    padding: 20px 15px;
+
+    // Content layout
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+
+    // Content styling
+    box-sizing: border-box;
+    overflow-wrap: break-word;
+    word-wrap: break-word;
+
+    #dbg {
+        // position: relative;
+        // display: block;
+        // width: 100px;
+        // height: 100px;
+        // background-color: red;
+
+        --cond-a: 100px;
+        --cond-b: 50px;
+        --out-a: 10px;
+        --out-b: 0px;
+        // --calc-res: calc(
+        //     var(--out-b) +
+        //     clamp(0, (var(--cond-a) - var(--cond-b)) * 9999, 1)
+        //     * (var(--out-a) - var(--out-b))
+        // );
+
+        &::after {
+            content: "dbg: " var(--calc-res);
+            outline: calc(var(--calc-res) * 1px) solid red;
+        }
+    }
+}
+// #endregion
