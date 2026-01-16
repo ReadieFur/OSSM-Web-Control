@@ -15,10 +15,16 @@
     <div id="main-content">
         <section id="pair-screen" class="backdrop-blur">
             <h1>OSSM Web Control</h1>
-            <button id="pair-device-button">Connect OSSM</button>
+            <button id="pair-device-button" class="hidden">Connect OSSM</button>
+            <noscript>
+                <div class="info-container" data-state="error">
+                    <p><strong>JavaScript is required</strong></p>
+                    <p>Please enable JavaScript in your browser to continue</p>
+                </div>
+            </noscript>
         </section>
 
-        <section id="control-screen" class="hidden">
+        <section id="control-screen" class="backdrop-blur hidden">
             <h1>Control Panel</h1>
             <p>Welcome to the OSSM Web Control Panel!</p>
         </section>

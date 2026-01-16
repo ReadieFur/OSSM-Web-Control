@@ -127,13 +127,18 @@ button {
     background: transparent;
     padding: 1rem;
     border: none;
-    border: 1px solid var(--background-tertiary);
+    border: 1px solid color-mix(in srgb, var(--foreground-primary) 30%, transparent);
     border-radius: var(--radius);
     transition: background 0.2s ease;
 
-    &:hover {
-        background: var(--background-secondary);
+    &:hover:not([disabled]) {
+        background: color-mix(in srgb, var(--foreground-primary) 5%, transparent);
         cursor: pointer;
+    }
+
+    &[disabled] {
+        opacity: 0.5;
+        cursor: not-allowed;
     }
 }
 
@@ -431,6 +436,10 @@ section {
     gap: 1rem;
     padding: 1.5rem;
 }
+
+p {
+    line-height: 1.5;
+}
 // #endregion
 
 // #region Reusable classes
@@ -553,17 +562,54 @@ span.range-input-container {
 .hidden {
     display: none !important;
 }
+
+.info-container {
+    // Container styling
+    @extend .backdrop-blur;
+    border: none;
+    border-left: calc(var(--radius) - 1px) solid color-mix(in srgb, var(--foreground-primary) 30%, transparent);
+
+    // Content layout
+    display: flex;
+    flex-direction: column;
+    text-align: center;
+    gap: 1rem;
+    padding: 1rem;
+
+    // State-based styling
+    $states: (
+        success: #30d158,
+        error:   #ff3751,
+        warning: #ffcc00
+    );
+    @each $state, $color in $states {
+        &[data-state="#{$state}"] {
+            border-left-color: color-mix(in srgb, $color 90%, transparent);
+            background: color-mix(in srgb, $color 5%, transparent);
+
+            &::before {
+                //h2
+                font-size: 1.5rem;
+                font-weight: bold;
+            }
+        }
+    }
+
+    &[data-state="success"]::before {
+        content: "✅ Success!";
+    }
+
+    &[data-state="error"]::before {
+        content: "❌ Error!";
+    }
+
+    &[data-state="warning"]::before {
+        content: "⚠️ Warning!";
+    }
+}
 // #endregion
 
 // #region ID specific styles
-#center-wrapper {
-    display: flex;
-    flex-direction: column;
-    justify-content: center; /* vertical centering */
-    align-items: center;     /* horizontal centering */
-    flex: 1;                 /* take all remaining space */
-}
-
 #main-content {
     // Position
     $page-offset: 100px;

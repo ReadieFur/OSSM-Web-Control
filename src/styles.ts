@@ -3,6 +3,18 @@ type WindowWithStyles = Window & typeof globalThis & {
     StylesScript?: typeof StylesScript;
 };
 
+export enum TransitionDirection {
+    In = "in",
+    Out = "out",
+    Both = "both",
+}
+
+export enum InfoContainerState {
+    Success = "success",
+    Error = "error",
+    Warning = "warning",
+}
+
 export class StylesScript {
     static wrapElement(element: HTMLElement, container: HTMLElement, movedCallback?: () => void): MutationObserver {
         if (element.parentNode === null)
@@ -75,8 +87,8 @@ export class StylesScript {
 
     static async transitionFade(data: {
         element: HTMLElement;
-        direction: "in" | "out" | "both";
-        duration: number | {
+        direction: TransitionDirection;
+        durationMs: number | {
             in?: number;
             out?: number;
             delay?: number;
@@ -84,18 +96,18 @@ export class StylesScript {
         addedClasses?: string[];
         removedClasses?: string[];
     }): Promise<void> {
-        const isDirectionBoth = data.direction === "both";
+        const isDirectionBoth = data.direction === TransitionDirection.Both;
 
         let parsedDuration: { in?: number; out?: number; delay?: number; };
-        if (typeof data.duration === "number") {
-            const durationTemp = isDirectionBoth ? data.duration / 2 : data.duration;
+        if (typeof data.durationMs === "number") {
+            const durationTemp = isDirectionBoth ? data.durationMs / 2 : data.durationMs;
             parsedDuration = {
                 in: durationTemp,
                 out: durationTemp,
             };
         }
         else {
-            parsedDuration = data.duration;
+            parsedDuration = data.durationMs;
         }
 
         const modifyClasses = () => {
@@ -111,7 +123,7 @@ export class StylesScript {
                 throw new Error("Transition out duration is not defined.");
 
             data.element.classList.add("transition-fade");
-            data.element.dataset.transitionFade = "out";
+            data.element.dataset.transitionFade = TransitionDirection.Out;
             data.element.style.setProperty("--transition-fade-duration", `${parsedDuration.out}ms`);
 
             await new Promise<void>((resolve) => {
@@ -127,7 +139,7 @@ export class StylesScript {
                 throw new Error("Transition in duration is not defined.");
 
             data.element.classList.add("transition-fade");
-            data.element.dataset.transitionFade = "in";
+            data.element.dataset.transitionFade = TransitionDirection.In;
             data.element.style.setProperty("--transition-fade-duration", `${parsedDuration.in}ms`);
 
             await new Promise<void>((resolve) => {
@@ -142,12 +154,12 @@ export class StylesScript {
             });
         };
 
-        if (data.direction === "in") {
+        if (data.direction === TransitionDirection.In) {
             modifyClasses();
             await transitionIn();
-        } else if (data.direction === "out") {
-            modifyClasses();
+        } else if (data.direction === TransitionDirection.Out) {
             await transitionOut();
+            modifyClasses();
         } else if (isDirectionBoth) {
             // transitionend event is not reliable in this context since the events fire eso close together they can trigger the animation to end prematurely
             // Using setTimeout instead and setting the duration property in script
@@ -157,6 +169,44 @@ export class StylesScript {
                 await new Promise<void>((resolve) => setTimeout(() => resolve(), parsedDuration.delay));
             await transitionIn();
         }
+    }
+
+    static createInfoContainer(data?: {
+        state?: InfoContainerState,
+        title?: string,
+        message?: string,
+        extraContent?: HTMLElement | string,
+    }): HTMLElement {
+        const container = document.createElement("div");
+        container.classList.add("info-container");
+        if (data?.state)
+            container.dataset.state = data.state;
+
+        if (data?.title) {
+            const titleElement = document.createElement("p");
+            const strongElement = document.createElement("strong");
+            strongElement.textContent = data.title;
+            titleElement.appendChild(strongElement);
+            container.appendChild(titleElement);
+        }
+
+        if (data?.message) {
+            const messageElement = document.createElement("p");
+            messageElement.textContent = data.message;
+            container.appendChild(messageElement);
+        }
+
+        if (data?.extraContent instanceof HTMLElement) {
+            container.appendChild(data.extraContent);
+        }
+        else if (typeof data?.extraContent === "string") {
+            // Assume HTML string
+            const extraContentElement = document.createElement("span");
+            extraContentElement.innerHTML = data.extraContent;
+            container.appendChild(extraContentElement);
+        }
+
+        return container;
     }
 }
 
