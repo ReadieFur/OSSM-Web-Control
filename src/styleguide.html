@@ -8,8 +8,8 @@
     <script src="styles.js" type="module" defer></script>
 </head>
 <body>
-    <div id="main-content">
-        <section>
+    <div id="styleguide">
+        <div>
             <h1>Buttons</h1>
 
             <button>Regular</button>
@@ -21,9 +21,9 @@
                     <p>Content</p>
                 </span>
             </button>
-        </section>
+        </div>
 
-        <section>
+        <div>
             <h1>Inputs</h1>
             <input type="text" placeholder="Text input">
             <br>
@@ -75,10 +75,17 @@
             <input type="range" id="range1" min="0" max="100" value="25">
             <br>
             <input type="range" orientation="vertical" id="range2" min="0" max="100" value="75">
-        </section>
+        </div>
+
+        <div>
+            <h1>Double sided slider</h1>
+            <span class="input-container-range-double" from="20" to="80"></span>
+            <span class="input-container-range-double" orientation="vertical" from="20" to="80"></span>
+        </div>
+
+        <footer>
+            <p>Made with ❤️ by ChloeDoe 🦌!</p>
+        </footer>
     </div>
-    <footer>
-        <p>OSSM Web Control - Styleguide Test Page</p>
-    </footer>
 </body>
 </html>

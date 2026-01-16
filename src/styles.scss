@@ -82,6 +82,51 @@ $light-theme: generate-theme(light);
 }
 // #endregion
 
+// #region Helpers
+@mixin range-track($properties) {
+    // These must be separate for some reason, comma separated browser selectors don't seem to work.
+    &::-webkit-slider-runnable-track {
+        @each $property, $value in $properties {
+            #{$property}: #{$value};
+        }
+    }
+
+    &::-moz-range-track {
+        @each $property, $value in $properties {
+            #{$property}: #{$value};
+        }
+    }
+
+    &::-ms-track {
+        @each $property, $value in $properties {
+            #{$property}: #{$value};
+        }
+    }
+}
+
+@mixin range-thumb($properties) {
+    &::-webkit-slider-thumb {
+        appearance: none;
+
+        @each $property, $value in $properties {
+            #{$property}: #{$value};
+        }
+    }
+
+    &::-moz-range-thumb {
+        @each $property, $value in $properties {
+            #{$property}: #{$value};
+        }
+    }
+
+    &::-ms-thumb {
+        @each $property, $value in $properties {
+            #{$property}: #{$value};
+        }
+    }
+}
+// #endregion
+
 // #region Element defaults
 // Reset base styles
 * {
@@ -292,7 +337,7 @@ input {
     &[type="range"] {
         // Set in script
         --range-value: 50%;
-        --range-thumb-size: 1.5rem;
+        --range-thumb-size: 1rem;
         --range-track-thickness: 0.4rem;
 
         appearance: none;
@@ -301,36 +346,18 @@ input {
         height: auto;
         cursor: pointer;
 
-        @mixin track {
+        @include range-track((
             // TODO: Fix this not working if the track is smaller than the thumb (cause: gradient hack)
-            border-radius: var(--radius);
-        }
+            border-radius: var(--radius),
+        ));
 
-        @mixin thumb {
-            border-radius: 100%;
-            border: none;
-        }
-
+        @include range-thumb((
+            border-radius: 100%,
+            border: none,
+        ));
+        
         &:active {
             cursor: grabbing;
-        }
-
-        // These must be separate for some reason
-        &::-webkit-slider-runnable-track {
-            @include track;
-        }
-
-        &::-moz-range-track {
-            @include track;
-        }
-
-        &::-webkit-slider-thumb {
-            @include thumb;
-            appearance: none;
-        }
-
-        &::-moz-range-thumb {
-            @include thumb;
         }
 
         &:not([orientation="vertical"]) {
@@ -340,9 +367,9 @@ input {
             // width: 100%;
             // height: 100%;
 
-            @mixin track-rtl {
+            @include range-track((
                 // In order to set the proper bounding box, we set the height to the larger of the track thickness or thumb size
-                height: var(--range-real-height);
+                height: var(--range-real-height),
                 // We then set the background to a gradient that is centered vertically, with the height of the desired track thickness
                 background:
                     linear-gradient(
@@ -351,34 +378,18 @@ input {
                         var(--accent-secondary) var(--range-value),
                         var(--background-tertiary) var(--range-value),
                         var(--background-tertiary) 100%
-                    ) center / 100% var(--range-track-thickness) no-repeat;
-            }
+                    ) center / 100% var(--range-track-thickness) no-repeat,
+            ));
 
-            @mixin thumb-rtl {
-                width: var(--range-thumb-size);
-                height: var(--range-real-height);
+            @include range-thumb((
+                width: var(--range-thumb-size),
+                height: var(--range-real-height),
                 //Emulate a background image using gradients, then use the same trick as above to center it
                 background: linear-gradient(
                     var(--accent-primary),
                     var(--accent-primary)
-                ) center / 100% var(--range-thumb-size) no-repeat;
-            }
-
-            &::-webkit-slider-runnable-track {
-                @include track-rtl;
-            }
-
-            &::-moz-range-track {
-                @include track-rtl;
-            }
-
-            &::-webkit-slider-thumb {
-                @include thumb-rtl;
-            }
-
-            &::-moz-range-thumb {
-                @include thumb-rtl;
-            }
+                ) center / 100% var(--range-thumb-size) no-repeat,
+            ));
         }
 
         &[orientation="vertical"] {
@@ -390,7 +401,7 @@ input {
 
             --range-real-width: calc(max(var(--range-track-thickness), var(--range-thumb-size)));
 
-            @mixin track-rtl {
+            @mixin track-bottom-to-top {
                 width: var(--range-real-width);
                 background:
                     linear-gradient(
@@ -402,7 +413,7 @@ input {
                     ) center / var(--range-track-thickness) 100% no-repeat;
             }
 
-            @mixin thumb-rtl {
+            @mixin thumb-bottom-to-top {
                 width: var(--range-real-width);
                 height: var(--range-thumb-size);
                 background: linear-gradient(
@@ -412,19 +423,19 @@ input {
             }
 
             &::-webkit-slider-runnable-track {
-                @include track-rtl;
+                @include track-bottom-to-top;
             }
 
             &::-moz-range-track {
-                @include track-rtl;
+                @include track-bottom-to-top;
             }
 
             &::-webkit-slider-thumb {
-                @include thumb-rtl;
+                @include thumb-bottom-to-top;
             }
 
             &::-moz-range-thumb {
-                @include thumb-rtl;
+                @include thumb-bottom-to-top;
             }
         }
     }
@@ -448,7 +459,7 @@ p {
 }
 
 // See styles.ts for functionality of this dynamically built component
-span.number-input-container {
+.input-container-number {
     [type="number"] {
         appearance: textfield;
 
@@ -518,12 +529,62 @@ span.number-input-container {
     }
 }
 
-span.range-input-container {
-    display: inline-flex;
-    align-items: center;
+.input-container-range-double {
+    // Set in script
+    --range-from-value: 20%;
+    --range-to-value: 80%;
 
-    >input[type="range"] {
-        flex-grow: 1;
+    position: relative;
+    display: flex;
+    flex-wrap: wrap;
+    /* 8rem seems to be the default width of a slider
+     * So set that here so the container doesn't expand to full width by default (due to the 100% below)
+     */
+    width: 8rem;
+
+    > input[type="range"] {
+        position: relative;
+        flex: 100%;
+
+        // Left side
+        &[data-component="from"] {
+            position: absolute;
+            top: 0;
+            right: 0;
+            bottom: 0;
+            left: 0;
+            z-index: 1;
+
+            $offset: calc(100% - var(--range-to-value) + ((var(--range-to-value) - var(--range-from-value)) / 2));
+            $handle-offset: calc(var(--range-thumb-size) * -1);
+            $left-offset: $offset; //These two would be flipped if direction was rtl
+            $right-offset: 0;
+            clip-path: inset($handle-offset $left-offset $handle-offset $right-offset);
+
+            @include range-track((
+                background: transparent,
+            ));
+        }
+
+        // Right side
+        &[data-component="to"] {
+            &:not(:disabled) {
+                &:not([orientation="vertical"]) {
+                    @include range-track((
+                        background:
+                            linear-gradient(
+                                to right,
+                                var(--background-tertiary) 0%,
+                                var(--background-tertiary) var(--range-from-value),
+                                var(--accent-secondary) var(--range-from-value),
+                                var(--accent-secondary) var(--range-to-value),
+                                var(--background-tertiary) var(--range-to-value),
+                                var(--background-tertiary) 100%
+                            ) center / 100% var(--range-track-thickness) no-repeat,
+                    ));
+                }
+            }
+        }
     }
 }
 
@@ -610,6 +671,12 @@ span.range-input-container {
 // #endregion
 
 // #region ID specific styles
+#styleguide {
+    padding: 15px 20px;
+    width: 100%;
+    height: 100%;
+}
+
 #main-content {
     // Position
     $page-offset: 100px;
@@ -665,6 +732,16 @@ span.range-input-container {
                 display: none;
             }
         }
+    }
+}
+
+#control-screen {
+    width: 100%;
+    height: 100%;
+
+    @media #{$mobile-media-query} {
+        border: none !important;
+        border-radius: 0 !important;
     }
 }
 // #endregion
