@@ -755,3 +755,4 @@ var OssmBle = class OssmBle {
 
 //#endregion
 export { KnownPattern, OssmBle, OssmEventType, OssmPage, OssmStatus, PatternHelper, mapRational };
+//# sourceMappingURL=ossmBle.js.map

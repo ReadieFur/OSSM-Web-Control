@@ -1,5 +1,7 @@
 import {
     OssmBle,
+    OssmEventType,
+    type OssmEventCallbackParameters,
 } from "./ossm-ble/ossmBle.js";
 import {
     StylesScript,
@@ -41,6 +43,14 @@ class OssmWebControl {
     ossmBle?: OssmBle;
 
     private constructor() {
+        if (isDevMode && new URLSearchParams(window.location.search).has("control-screen")) {
+            // Disable connection functionality and show control screen directly (for development of the UI)
+            this.pairScreenElement.classList.add("hidden");
+            this.controlScreenElement.classList.remove("hidden");
+            this.mainContentElement.classList.add("fill-page");
+            return;
+        }
+
         if (!OssmBle.isClientSupported()) {
             const errorContainer = StylesScript.createInfoContainer({
                 state: InfoContainerState.Error,
@@ -152,6 +162,10 @@ class OssmWebControl {
             }),
             this.pairScreenElement
         );
+
+        this.ossmBle.addEventListener(OssmEventType.Connected, this.onConnected.bind(this));
+        this.ossmBle.addEventListener(OssmEventType.Disconnected, this.onDisconnected.bind(this));
+        this.ossmBle.addEventListener(OssmEventType.StateChanged, this.onStateChanged.bind(this));
         //#endregion
 
         //#region Setup control screen
@@ -176,6 +190,15 @@ class OssmWebControl {
         this.pairDeviceButton.disabled = false;
         this.pairDeviceButton.classList.remove("hidden");
         //#endregion
+    }
+
+    private async onConnected(data: OssmEventCallbackParameters): Promise<void> {
+    }
+
+    private async onDisconnected(data: OssmEventCallbackParameters): Promise<void> {
+    }
+
+    private async onStateChanged(data: OssmEventCallbackParameters): Promise<void> {
     }
 }
 

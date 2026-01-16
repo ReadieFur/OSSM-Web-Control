@@ -14,14 +14,14 @@ declare enum OssmEventType {
   */
   StateChanged = 2,
 }
-type OSSMEventCallbackParameters = {
+type OssmEventCallbackParameters = {
   event: OssmEventType;
   [OssmEventType.StateChanged]?: {
     newState: OssmState;
     oldState: OssmState | null;
   };
 };
-type OssmEventCallback = (data: OSSMEventCallbackParameters) => Promise<any> | any;
+type OssmEventCallback = (data: OssmEventCallbackParameters) => Promise<any> | any;
 declare enum OssmStatus {
   /** Initializing */
   Idle = "idle",
@@ -361,4 +361,5 @@ declare class OssmBle implements Disposable {
   private debugLogTableIf;
 }
 //#endregion
-export { KnownPattern, OssmBle, type OssmEventCallback, OssmEventType, OssmPage, type OssmPattern, type OssmState, OssmStatus, PatternHelper, mapRational };
+export { KnownPattern, OssmBle, type OssmEventCallback, type OssmEventCallbackParameters, OssmEventType, OssmPage, type OssmPattern, type OssmState, OssmStatus, PatternHelper, mapRational };
+//# sourceMappingURL=ossmBle.d.ts.map
