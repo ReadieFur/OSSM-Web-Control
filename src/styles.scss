@@ -30,24 +30,12 @@ $theme-rules: (
         dark: #ffffff,
     ),
     foreground-secondary: (
-        light: #333333,
-        dark: #cccccc,
-    ),
-    foreground-tertiary: (
         light: #666666,
         dark: #999999,
     ),
     background-primary: (
         light: #ffffff,
         dark: #020817,
-    ),
-    background-secondary: (
-        light: #f0f0f0,
-        dark: #121212,
-    ),
-    background-tertiary: (
-        light: #e0e0e0,
-        dark: #1a1a1a,
     ),
 );
 
@@ -82,6 +70,14 @@ $light-theme: generate-theme(light);
         }
     }
 }
+
+$foreground-100: var(--foreground-primary);
+$foreground-30: color-mix(in srgb, var(--foreground-primary) 30%, transparent);
+$foreground-5: color-mix(in srgb, var(--foreground-primary) 5%, transparent);
+$background-primary: var(--background-primary);
+$accent-primary: var(--accent-primary);
+$accent-secondary: var(--accent-secondary);
+$radius: var(--radius);
 // #endregion
 
 // #region Helpers
@@ -126,8 +122,6 @@ $light-theme: generate-theme(light);
     // https://stackoverflow.com/questions/15935837/how-to-display-a-range-input-slider-vertically
     writing-mode: vertical-lr;
     direction: rtl;
-    // width: 100%;
-    // height: 100%;
 
     --range-real-width: calc(max(var(--range-track-thickness), var(--range-thumb-size)));
 
@@ -136,27 +130,29 @@ $light-theme: generate-theme(light);
         background:
             linear-gradient(
                 to top,
-                var(--accent-secondary) 0%,
-                var(--accent-secondary) var(--range-value),
-                var(--background-tertiary) var(--range-value),
-                var(--background-tertiary) 100%
+                $accent-secondary 0%,
+                $accent-secondary var(--range-value),
+                $foreground-5 var(--range-value),
+                $foreground-5 100%
             ) center / var(--range-track-thickness) 100% no-repeat;
+        backdrop-filter: blur(10px);
     }
 
     @include range-thumb {
         width: var(--range-real-width);
         height: var(--range-thumb-size);
         background: linear-gradient(
-            var(--accent-primary),
-            var(--accent-primary)
+            $accent-primary,
+            $accent-primary
         ) center / var(--range-thumb-size) 100% no-repeat;
     }
 }
 
 @mixin input-container-field {
     display: inline-flex;
-    background: color-mix(in srgb, var(--foreground-primary) 5%, transparent);
-    border-radius: var(--radius);
+    background: $foreground-5;
+    backdrop-filter: blur(10px);
+    border-radius: $radius;
     padding: 0.5rem;
 
     @media #{$mobile-media-query} {
@@ -170,21 +166,23 @@ $light-theme: generate-theme(light);
     display: inline-block;
     width: 1rem;
     height: 1rem;
-    border: 1px solid var(--foreground-secondary);
+    border: 1px solid $foreground-30;
     vertical-align: middle;
-    background-color: var(--background-primary);
+    background-color: $foreground-5;
+    backdrop-filter: blur(10px);
     transition: background-color 0.2s ease, border-color 0.2s ease;
 }
 
 @mixin input-checkbox-radio-checked {
-    background-color: var(--accent-primary);
-    border-color: var(--accent-primary);
+    background-color: $accent-primary;
+    border-color: $accent-primary;
     background-repeat: no-repeat;
     background-position: center;
 }
 
 @mixin input-checkbox-radio-hover {
-    background-color: var(--background-secondary);
+    background-color: $foreground-5;
+    border-color: $accent-primary;
 }
 
 @mixin input-checkbox-radio {
@@ -291,37 +289,40 @@ body {
     align-items: center;
 
     // Font settings
-    color: var(--foreground-primary);
+    color: $foreground-100;
     font-family: "Inter", sans-serif;
 
     // Background
     background:
         radial-gradient(
             circle at bottom left,
-            color-mix(in srgb, var(--accent-secondary) 50%, transparent),
+            color-mix(in srgb, $accent-secondary 50%, transparent),
             transparent 20%
         ),
         radial-gradient(
             circle at bottom right,
-            color-mix(in srgb, var(--accent-primary) 50%, transparent),
+            color-mix(in srgb, $accent-primary 50%, transparent),
             transparent 40%
         ),
-        var(--background-primary)
+        $background-primary
     ;
     background-size: cover;
     background-attachment: fixed;
 }
 
 button {
+    // background: $foreground-5;
     background: transparent;
+    backdrop-filter: blur(10px);
     padding: 1rem;
     border: none;
-    border: 1px solid color-mix(in srgb, var(--foreground-primary) 30%, transparent);
-    border-radius: var(--radius);
+    border: 1px solid $foreground-30;
+    border-radius: $radius;
     transition: background 0.2s ease;
 
     &:hover:not([disabled]) {
-        background: color-mix(in srgb, var(--foreground-primary) 5%, transparent);
+        // background: $foreground-30;
+        background: $foreground-5;
         cursor: pointer;
     }
 
@@ -345,7 +346,7 @@ input {
         transition: background-color 0.2s ease, border-color 0.2s ease;
 
         // Bottom border style
-        // border-bottom: 1px solid var(--foreground-secondary);
+        // border-bottom: 1px solid $foreground-30;
         // border-radius: 0 0 2px 2px;
         // padding: 0.2rem 0.25rem 0.5rem 0.25rem;
 
@@ -353,18 +354,18 @@ input {
         padding: 0.2rem;
 
         &::selection {
-            background-color: var(--accent-primary);
+            background-color: $accent-primary;
         }
 
         &:focus {
-            border-color: var(--foreground-primary);
+            border-color: $foreground-100;
         }
     }
 
     &[type="checkbox"] {
         @include input-checkbox-radio using ($content) {
             @if $content == "box" {
-                border-radius: calc(var(--radius) / 2);
+                border-radius: calc($radius / 2);
             }
 
             @if $content == "checked" {
@@ -399,7 +400,7 @@ input {
 
         @include range-track {
             // TODO: Fix this not working if the track is smaller than the thumb (cause: gradient hack)
-            border-radius: var(--radius);
+            border-radius: $radius;
         }
 
         @include range-thumb {
@@ -426,11 +427,12 @@ input {
                 background:
                     linear-gradient(
                         to right,
-                        var(--accent-secondary) 0%,
-                        var(--accent-secondary) var(--range-value),
-                        var(--background-tertiary) var(--range-value),
-                        var(--background-tertiary) 100%
+                        $accent-secondary 0%,
+                        $accent-secondary var(--range-value),
+                        $foreground-5 var(--range-value),
+                        $foreground-5 100%
                     ) center / 100% var(--range-track-thickness) no-repeat;
+                backdrop-filter: blur(10px);
             }
 
             @include range-thumb {
@@ -438,8 +440,8 @@ input {
                 height: var(--range-real-height);
                 //Emulate a background image using gradients, then use the same trick as above to center it
                 background: linear-gradient(
-                    var(--accent-primary),
-                    var(--accent-primary)
+                    $accent-primary,
+                    $accent-primary
                 ) center / 100% var(--range-thumb-size) no-repeat;
             }
         }
@@ -499,9 +501,10 @@ footer {
     >button {
         padding: 0.2rem;
         border: none;
-        // border-bottom: 1px solid var(--foreground-secondary);
+        // border-bottom: 1px solid $foreground-30;
         border-radius: 0;
         transition: border-color 0.2s ease;
+        backdrop-filter: none;
 
         &:hover {
             background-color: transparent;
@@ -509,7 +512,7 @@ footer {
     }
 
     &:has(>input[type="number"]:focus) > button {
-        border-color: var(--foreground-primary);
+        border-color: $foreground-100;
     }
 
     &:has(>input[type="number"].spin-left) {
@@ -605,13 +608,14 @@ footer {
                     background:
                         linear-gradient(
                             to right,
-                            var(--background-tertiary) 0%,
-                            var(--background-tertiary) var(--range-from-value),
-                            var(--accent-secondary) var(--range-from-value),
-                            var(--accent-secondary) var(--range-to-value),
-                            var(--background-tertiary) var(--range-to-value),
-                            var(--background-tertiary) 100%
+                            $foreground-5 0%,
+                            $foreground-5 var(--range-from-value),
+                            $accent-secondary var(--range-from-value),
+                            $accent-secondary var(--range-to-value),
+                            $foreground-5 var(--range-to-value),
+                            $foreground-5 100%
                         ) center / 100% var(--range-track-thickness) no-repeat;
+                    backdrop-filter: blur(10px);
                 }
             }
         }
@@ -640,13 +644,14 @@ footer {
                     background:
                         linear-gradient(
                             to top,
-                            var(--background-tertiary) 0%,
-                            var(--background-tertiary) var(--range-from-value),
-                            var(--accent-secondary) var(--range-from-value),
-                            var(--accent-secondary) var(--range-to-value),
-                            var(--background-tertiary) var(--range-to-value),
-                            var(--background-tertiary) 100%
-                        ) center / var(--range-track-thickness) 100% no-repeat,
+                            $foreground-5 0%,
+                            $foreground-5 var(--range-from-value),
+                            $accent-secondary var(--range-from-value),
+                            $accent-secondary var(--range-to-value),
+                            $foreground-5 var(--range-to-value),
+                            $foreground-5 100%
+                        ) center / var(--range-track-thickness) 100% no-repeat;
+                    backdrop-filter: blur(10px);
                 }
             }
         }
@@ -687,9 +692,9 @@ footer {
 }
 
 .backdrop-blur {
-    border: 1px solid color-mix(in srgb, var(--foreground-primary) 30%, transparent);
-    border-radius: var(--radius);
-    background: color-mix(in srgb, var(--foreground-primary) 5%, transparent);
+    border: 1px solid $foreground-30;
+    border-radius: $radius;
+    background: $foreground-5;
     backdrop-filter: blur(10px);
 }
 
@@ -701,7 +706,7 @@ footer {
     // Container styling
     @extend .backdrop-blur;
     border: none;
-    border-left: calc(var(--radius) - 1px) solid color-mix(in srgb, var(--foreground-primary) 30%, transparent);
+    border-left: calc($radius - 1px) solid $foreground-30;
 
     // Content layout
     display: flex;
