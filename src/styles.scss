@@ -83,6 +83,13 @@ $light-theme: generate-theme(light);
 // #endregion
 
 // #region Helpers
+@mixin border-debug($color: null) {
+    @if $color == null {
+        $color: hsl(math.random(360), 100%, 50%);
+    }
+    border: 1px solid $color !important;
+}
+
 @mixin range-track($properties) {
     // These must be separate for some reason, comma separated browser selectors don't seem to work.
     &::-webkit-slider-runnable-track {
@@ -124,6 +131,37 @@ $light-theme: generate-theme(light);
             #{$property}: #{$value};
         }
     }
+}
+
+@mixin range-vertical {
+    // https://stackoverflow.com/questions/15935837/how-to-display-a-range-input-slider-vertically
+    writing-mode: vertical-lr;
+    direction: rtl;
+    // width: 100%;
+    // height: 100%;
+
+    --range-real-width: calc(max(var(--range-track-thickness), var(--range-thumb-size)));
+
+    @include range-track((
+        width: var(--range-real-width),
+        background:
+            linear-gradient(
+                to top,
+                var(--accent-secondary) 0%,
+                var(--accent-secondary) var(--range-value),
+                var(--background-tertiary) var(--range-value),
+                var(--background-tertiary) 100%
+            ) center / var(--range-track-thickness) 100% no-repeat,
+    ));
+
+    @include range-thumb((
+        width: var(--range-real-width),
+        height: var(--range-thumb-size),
+        background: linear-gradient(
+            var(--accent-primary),
+            var(--accent-primary)
+        ) center / var(--range-thumb-size) 100% no-repeat,
+    ));
 }
 // #endregion
 
@@ -360,6 +398,7 @@ input {
             cursor: grabbing;
         }
 
+        // Horizontal
         &:not([orientation="vertical"]) {
             // In order to set the proper bounding box, we set the height to the larger of the track thickness or thumb size
             --range-real-height: calc(max(var(--range-track-thickness), var(--range-thumb-size)));
@@ -392,51 +431,9 @@ input {
             ));
         }
 
+        // Vertical in a mixin because it needs to be repeated elsewhere
         &[orientation="vertical"] {
-            // https://stackoverflow.com/questions/15935837/how-to-display-a-range-input-slider-vertically
-            writing-mode: vertical-lr;
-            direction: rtl;
-            // width: 100%;
-            // height: 100%;
-
-            --range-real-width: calc(max(var(--range-track-thickness), var(--range-thumb-size)));
-
-            @mixin track-bottom-to-top {
-                width: var(--range-real-width);
-                background:
-                    linear-gradient(
-                        to top,
-                        var(--accent-secondary) 0%,
-                        var(--accent-secondary) var(--range-value),
-                        var(--background-tertiary) var(--range-value),
-                        var(--background-tertiary) 100%
-                    ) center / var(--range-track-thickness) 100% no-repeat;
-            }
-
-            @mixin thumb-bottom-to-top {
-                width: var(--range-real-width);
-                height: var(--range-thumb-size);
-                background: linear-gradient(
-                    var(--accent-primary),
-                    var(--accent-primary)
-                ) center / var(--range-thumb-size) 100% no-repeat;
-            }
-
-            &::-webkit-slider-runnable-track {
-                @include track-bottom-to-top;
-            }
-
-            &::-moz-range-track {
-                @include track-bottom-to-top;
-            }
-
-            &::-webkit-slider-thumb {
-                @include thumb-bottom-to-top;
-            }
-
-            &::-moz-range-thumb {
-                @include thumb-bottom-to-top;
-            }
+            @include range-vertical;
         }
     }
 }
@@ -537,16 +534,11 @@ p {
     position: relative;
     display: flex;
     flex-wrap: wrap;
-    /* 8rem seems to be the default width of a slider
-     * So set that here so the container doesn't expand to full width by default (due to the 100% below)
-     */
-    width: 8rem;
 
     > input[type="range"] {
         position: relative;
         flex: 100%;
 
-        // Left side
         &[data-component="from"] {
             position: absolute;
             top: 0;
@@ -554,34 +546,87 @@ p {
             bottom: 0;
             left: 0;
             z-index: 1;
-
-            $offset: calc(100% - var(--range-to-value) + ((var(--range-to-value) - var(--range-from-value)) / 2));
-            $handle-offset: calc(var(--range-thumb-size) * -1);
-            $left-offset: $offset; //These two would be flipped if direction was rtl
-            $right-offset: 0;
-            clip-path: inset($handle-offset $left-offset $handle-offset $right-offset);
-
-            @include range-track((
-                background: transparent,
-            ));
         }
+    }
 
-        // Right side
-        &[data-component="to"] {
-            &:not(:disabled) {
-                &:not([orientation="vertical"]) {
-                    @include range-track((
-                        background:
-                            linear-gradient(
-                                to right,
-                                var(--background-tertiary) 0%,
-                                var(--background-tertiary) var(--range-from-value),
-                                var(--accent-secondary) var(--range-from-value),
-                                var(--accent-secondary) var(--range-to-value),
-                                var(--background-tertiary) var(--range-to-value),
-                                var(--background-tertiary) 100%
-                            ) center / 100% var(--range-track-thickness) no-repeat,
-                    ));
+    &:not([orientation="vertical"]) {
+        /* 8rem seems to be the default width of a slider
+        * So set that here so the container doesn't expand to full width by default (due to the 100% below)
+        */
+        width: 8rem;
+
+        > input[type="range"] {
+            // Left side
+            &[data-component="from"] {
+                $offset: calc(100% - var(--range-to-value) + ((var(--range-to-value) - var(--range-from-value)) / 2));
+                $handle-offset: calc(var(--range-thumb-size) * -1);
+                $left-offset: $offset; //These two would be flipped if direction was right-to-left
+                $right-offset: 0;
+                clip-path: inset($handle-offset $left-offset $handle-offset $right-offset);
+
+                @include range-track((
+                    background: transparent,
+                ));
+            }
+
+            // Right side
+            &[data-component="to"] {
+                &:not(:disabled) {
+                    &:not([orientation="vertical"]) {
+                        @include range-track((
+                            background:
+                                linear-gradient(
+                                    to right,
+                                    var(--background-tertiary) 0%,
+                                    var(--background-tertiary) var(--range-from-value),
+                                    var(--accent-secondary) var(--range-from-value),
+                                    var(--accent-secondary) var(--range-to-value),
+                                    var(--background-tertiary) var(--range-to-value),
+                                    var(--background-tertiary) 100%
+                                ) center / 100% var(--range-track-thickness) no-repeat,
+                        ));
+                    }
+                }
+            }
+        }
+    }
+
+    &[orientation="vertical"] {
+        @include range-vertical;
+
+        height: 8rem;
+
+        > input[type="range"] {
+            // Bottom side
+            &[data-component="from"] {
+                $offset: calc(100% - var(--range-to-value) + ((var(--range-to-value) - var(--range-from-value)) / 2));
+                $handle-offset: calc(var(--range-thumb-size) * -1);
+                $top-offset: 0; //These two would be flipped if direction was top-to-bottom
+                $bottom-offset: $offset;
+                clip-path: inset($bottom-offset $handle-offset $top-offset $handle-offset);
+
+                @include range-track((
+                    background: transparent,
+                ));
+            }
+
+            // Top side
+            &[data-component="to"] {
+                &:not(:disabled) {
+                    &:not([orientation="vertical"]) {
+                        @include range-track((
+                            background:
+                                linear-gradient(
+                                    to top,
+                                    var(--background-tertiary) 0%,
+                                    var(--background-tertiary) var(--range-from-value),
+                                    var(--accent-secondary) var(--range-from-value),
+                                    var(--accent-secondary) var(--range-to-value),
+                                    var(--background-tertiary) var(--range-to-value),
+                                    var(--background-tertiary) 100%
+                                ) center / var(--range-track-thickness) 100% no-repeat,
+                        ));
+                    }
                 }
             }
         }
