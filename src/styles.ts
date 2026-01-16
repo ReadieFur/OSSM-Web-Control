@@ -468,6 +468,11 @@ class StylesScriptAuto {
                 case "range":
                     StylesScriptAuto.inputTypeRange(input);
                     break;
+                case "text":
+                case "password":
+                case "email":
+                    StylesScriptAuto.inputTypeText(input);
+                    break;
                 default:
                     break;
             }
@@ -585,6 +590,13 @@ class StylesScriptAuto {
         } catch (error) {
             console.error(error);
         }
+    }
+
+    static inputTypeText(textElement: HTMLInputElement): void {
+        textElement.dataset.styled = "true";
+        const container = document.createElement("div");
+        container.classList.add("input-container-text");
+        StylesScript.wrapElement(textElement, container);
     }
 }
 

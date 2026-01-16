@@ -1,3 +1,5 @@
+// Some components are dynamically built, see styles.ts for functionality of these components
+
 // #region Imports
 @use "sass:map";
 @use "sass:color";
@@ -90,46 +92,33 @@ $light-theme: generate-theme(light);
     border: 1px solid $color !important;
 }
 
-@mixin range-track($properties) {
+@mixin range-track {
     // These must be separate for some reason, comma separated browser selectors don't seem to work.
     &::-webkit-slider-runnable-track {
-        @each $property, $value in $properties {
-            #{$property}: #{$value};
-        }
+        @content;
     }
 
     &::-moz-range-track {
-        @each $property, $value in $properties {
-            #{$property}: #{$value};
-        }
+        @content;
     }
 
     &::-ms-track {
-        @each $property, $value in $properties {
-            #{$property}: #{$value};
-        }
+        @content;
     }
 }
 
-@mixin range-thumb($properties) {
+@mixin range-thumb {
     &::-webkit-slider-thumb {
         appearance: none;
-
-        @each $property, $value in $properties {
-            #{$property}: #{$value};
-        }
+        @content;
     }
 
     &::-moz-range-thumb {
-        @each $property, $value in $properties {
-            #{$property}: #{$value};
-        }
+        @content;
     }
 
     &::-ms-thumb {
-        @each $property, $value in $properties {
-            #{$property}: #{$value};
-        }
+        @content;
     }
 }
 
@@ -142,8 +131,8 @@ $light-theme: generate-theme(light);
 
     --range-real-width: calc(max(var(--range-track-thickness), var(--range-thumb-size)));
 
-    @include range-track((
-        width: var(--range-real-width),
+    @include range-track {
+        width: var(--range-real-width);
         background:
             linear-gradient(
                 to top,
@@ -151,17 +140,134 @@ $light-theme: generate-theme(light);
                 var(--accent-secondary) var(--range-value),
                 var(--background-tertiary) var(--range-value),
                 var(--background-tertiary) 100%
-            ) center / var(--range-track-thickness) 100% no-repeat,
-    ));
+            ) center / var(--range-track-thickness) 100% no-repeat;
+    }
 
-    @include range-thumb((
-        width: var(--range-real-width),
-        height: var(--range-thumb-size),
+    @include range-thumb {
+        width: var(--range-real-width);
+        height: var(--range-thumb-size);
         background: linear-gradient(
             var(--accent-primary),
             var(--accent-primary)
-        ) center / var(--range-thumb-size) 100% no-repeat,
-    ));
+        ) center / var(--range-thumb-size) 100% no-repeat;
+    }
+}
+
+@mixin input-container-field {
+    display: inline-flex;
+    background: color-mix(in srgb, var(--foreground-primary) 5%, transparent);
+    border-radius: var(--radius);
+    padding: 0.5rem;
+
+    @media #{$mobile-media-query} {
+        padding: unset;
+        background: unset;
+    }
+}
+
+@mixin input-checkbox-radio-box {
+    content: "";
+    display: inline-block;
+    width: 1rem;
+    height: 1rem;
+    border: 1px solid var(--foreground-secondary);
+    vertical-align: middle;
+    background-color: var(--background-primary);
+    transition: background-color 0.2s ease, border-color 0.2s ease;
+}
+
+@mixin input-checkbox-radio-checked {
+    background-color: var(--accent-primary);
+    border-color: var(--accent-primary);
+    background-repeat: no-repeat;
+    background-position: center;
+}
+
+@mixin input-checkbox-radio-hover {
+    background-color: var(--background-secondary);
+}
+
+@mixin input-checkbox-radio {
+    $cursor: pointer;
+    cursor: $cursor;
+
+    &:has(+label) {
+        display: inline;
+
+        +label {
+            cursor: $cursor;
+            vertical-align: middle;
+        }
+    }
+
+    // Standalone input
+    &:not(:has(+label)) {
+        // Keep the original input visible but visually hidden, required to still display the custom input and receive click events
+        // SCSS automatically handles the other browser appearance properties (webkit, moz)
+        appearance: none;
+        
+        &:has(+label)+label {
+            margin-left: calc(1rem / 4);
+        }
+
+        &:after {
+            @include input-checkbox-radio-box;
+            @content("box");
+        }
+
+        &:checked:after {
+            @include input-checkbox-radio-checked;
+            @content("checked");
+        }
+
+        &:hover:after {
+            @include input-checkbox-radio-hover;
+            @content("hover");
+        }
+    }
+
+    &:has(+label) {
+        // Hide the original input entirely, the click events are tied to the attached label
+        display: none;
+
+        // Input (left) with label (right)
+        &:not(.after-label) {
+            +label:before {
+                @include input-checkbox-radio-box;
+                margin-right: calc(1rem / 2);
+                @content("box");
+            }
+
+            &:checked+label:before {
+                @include input-checkbox-radio-checked;
+                @content("checked");
+            }
+
+            &:hover+label:before {
+                @include input-checkbox-radio-hover;
+                @content("hover");
+            }
+        }
+    }
+
+    // Input (right) with label (left)
+    &.after-label {
+        +label:after {
+            @include input-checkbox-radio-box;
+            margin-left: calc(1rem / 2);
+            @content("box");
+        }
+
+        &:checked+label:after {
+            @include input-checkbox-radio-checked;
+            @content("checked");
+        }
+        
+        &:hover+label:after {
+            @include input-checkbox-radio-hover;
+            @content("hover");
+        }
+    }
 }
 // #endregion
 
@@ -226,7 +332,6 @@ button {
 }
 
 input {
-
     &:focus {
         outline: none;
     }
@@ -237,10 +342,15 @@ input {
     &[type="number"] {
         background-color: transparent;
         border: none;
-        border-bottom: 1px solid var(--foreground-secondary);
-        padding: 0.5rem;
-        border-radius: 0 0 2px 2px;
         transition: background-color 0.2s ease, border-color 0.2s ease;
+
+        // Bottom border style
+        // border-bottom: 1px solid var(--foreground-secondary);
+        // border-radius: 0 0 2px 2px;
+        // padding: 0.2rem 0.25rem 0.5rem 0.25rem;
+
+        // No border style
+        padding: 0.2rem;
 
         &::selection {
             background-color: var(--accent-primary);
@@ -252,122 +362,25 @@ input {
     }
 
     &[type="checkbox"] {
-        $cursor: pointer;
-        cursor: $cursor;
-
-        @mixin checkbox {
-            content: "";
-            display: inline-block;
-            width: 1rem;
-            height: 1rem;
-            border: 1px solid var(--foreground-secondary);
-            border-radius: calc(var(--radius) / 2);
-            background-color: var(--background-primary);
-            vertical-align: middle;
-            transition: background-color 0.2s ease, border-color 0.2s ease;
-        }
-
-        @mixin hover {
-            background-color: var(--background-secondary);
-            // cursor: $cursor;
-        }
-
-        @mixin checked {
-            background-color: var(--accent-primary);
-            border-color: var(--accent-primary);
-            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='white'%3E%3Cpath d='M20.285 6.709l-11.025 11.025-5.285-5.285 1.414-1.414 3.871 3.871 9.611-9.611z'/%3E%3C/svg%3E");
-            background-repeat: no-repeat;
-            background-position: center;
-        }
-
-        &:has(+label)+label {
-            cursor: $cursor;
-            vertical-align: middle;
-        }
-
-        // Standalone checkbox & checkbox with label after
-        &:not(.after-label:has(+label)) {
-            // Keep the original checkbox visible but visually hidden, required to still display the custom checkbox and receive click events
-            // SCSS automatically handles the other browser appearance properties (webkit, moz)
-            appearance: none;
-
-            &:after {
-                @include checkbox;
+        @include input-checkbox-radio using ($content) {
+            @if $content == "box" {
+                border-radius: calc(var(--radius) / 2);
             }
 
-            &:hover:after {
-                @include hover;
-            }
-
-            &:checked:after {
-                @include checked;
-            }
-
-            &:has(+label)+label {
-                margin-left: 4px;
-            }
-        }
-
-        // Checkbox with label
-        &.after-label:has(+label) {
-            // Hide the original checkbox entirely, the click events are tied to the attached label
-            display: none;
-
-            +label:after {
-                @include checkbox;
-                margin-left: 8px;
-            }
-
-            &:hover+label:after {
-                @include hover;
-            }
-
-            &:checked+label:after {
-                @include checked;
+            @if $content == "checked" {
+                background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='white'%3E%3Cpath d='M20.285 6.709l-11.025 11.025-5.285-5.285 1.414-1.414 3.871 3.871 9.611-9.611z'/%3E%3C/svg%3E");
             }
         }
     }
 
     &[type="radio"] {
-        // Simple for now (no after-label option)
-        appearance: none;
-        width: 1rem;
-        height: 1rem;
-        border: 1px solid var(--foreground-secondary);
-        border-radius: 50%;
-        background-color: var(--background-primary);
-        vertical-align: middle;
-        transition: background-color 0.2s ease, border-color 0.2s ease;
-        position: relative;
+        @include input-checkbox-radio using ($content) {
+            @if $content == "box" {
+                border-radius: 100%;
+            }
 
-        @mixin radio {
-            content: "";
-            display: block;
-            width: 0.5rem;
-            height: 0.5rem;
-            border-radius: 50%;
-            background-color: white;
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%) scale(0);
-            transition: transform 0.2s ease;
-        }
-
-        &::after {
-            @include radio;
-        }
-
-        &:hover {
-            background-color: var(--background-secondary);
-            cursor: pointer;
-        }
-
-        &:checked {
-            border-color: var(--accent-primary);
-
-            &::after {
-                transform: translate(-50%, -50%) scale(1);
+            @if $content == "checked" {
+                background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='white'%3E%3Ccircle cx='12' cy='12' r='6'/%3E%3C/svg%3E");
             }
         }
     }
@@ -384,15 +397,15 @@ input {
         height: auto;
         cursor: pointer;
 
-        @include range-track((
+        @include range-track {
             // TODO: Fix this not working if the track is smaller than the thumb (cause: gradient hack)
-            border-radius: var(--radius),
-        ));
+            border-radius: var(--radius);
+        }
 
-        @include range-thumb((
-            border-radius: 100%,
-            border: none,
-        ));
+        @include range-thumb {
+            border-radius: 100%;
+            border: none;
+        }
         
         &:active {
             cursor: grabbing;
@@ -406,9 +419,9 @@ input {
             // width: 100%;
             // height: 100%;
 
-            @include range-track((
+            @include range-track {
                 // In order to set the proper bounding box, we set the height to the larger of the track thickness or thumb size
-                height: var(--range-real-height),
+                height: var(--range-real-height);
                 // We then set the background to a gradient that is centered vertically, with the height of the desired track thickness
                 background:
                     linear-gradient(
@@ -417,18 +430,18 @@ input {
                         var(--accent-secondary) var(--range-value),
                         var(--background-tertiary) var(--range-value),
                         var(--background-tertiary) 100%
-                    ) center / 100% var(--range-track-thickness) no-repeat,
-            ));
+                    ) center / 100% var(--range-track-thickness) no-repeat;
+            }
 
-            @include range-thumb((
-                width: var(--range-thumb-size),
-                height: var(--range-real-height),
+            @include range-thumb {
+                width: var(--range-thumb-size);
+                height: var(--range-real-height);
                 //Emulate a background image using gradients, then use the same trick as above to center it
                 background: linear-gradient(
                     var(--accent-primary),
                     var(--accent-primary)
-                ) center / 100% var(--range-thumb-size) no-repeat,
-            ));
+                ) center / 100% var(--range-thumb-size) no-repeat;
+            }
         }
 
         // Vertical in a mixin because it needs to be repeated elsewhere
@@ -455,8 +468,11 @@ p {
     border: none !important;
 }
 
-// See styles.ts for functionality of this dynamically built component
 .input-container-number {
+    // @include input-container-field; // TODO: Fix having to move this to the bottom due to deprecation warning.
+    display: inline-flex;
+    gap: 0.5rem;
+
     [type="number"] {
         appearance: textfield;
 
@@ -467,9 +483,9 @@ p {
     }
 
     >button {
-        padding: 0.5rem;
+        padding: 0.2rem;
         border: none;
-        border-bottom: 1px solid var(--foreground-secondary);
+        // border-bottom: 1px solid var(--foreground-secondary);
         border-radius: 0;
         transition: border-color 0.2s ease;
 
@@ -484,6 +500,7 @@ p {
 
     &:has(>input[type="number"].spin-left) {
         >input[type="number"] {
+            text-align: left;
             margin-left: -1px;
             border-radius: 0 0 2px 0;
         }
@@ -497,6 +514,7 @@ p {
 
     &:has(>input[type="number"].spin-right) {
         >input[type="number"] {
+            text-align: right;
             margin-right: -1px;
             border-radius: 0 0 0 2px;
         }
@@ -510,6 +528,7 @@ p {
 
     &:has(>input[type="number"].spin-split) {
         >input[type="number"] {
+            text-align: center;
             margin: 0 -1px;
             border-radius: 0;
         }
@@ -524,6 +543,8 @@ p {
             }
         }
     }
+
+    @include input-container-field;
 }
 
 .input-container-range-double {
@@ -532,7 +553,7 @@ p {
     --range-to-value: 80%;
 
     position: relative;
-    display: flex;
+    display: inline-flex;
     flex-wrap: wrap;
 
     > input[type="range"] {
@@ -555,7 +576,7 @@ p {
         */
         width: 8rem;
 
-        > input[type="range"] {
+        >input[type="range"] {
             // Left side
             &[data-component="from"] {
                 $offset: calc(100% - var(--range-to-value) + ((var(--range-to-value) - var(--range-from-value)) / 2));
@@ -564,28 +585,24 @@ p {
                 $right-offset: 0;
                 clip-path: inset($handle-offset $left-offset $handle-offset $right-offset);
 
-                @include range-track((
-                    background: transparent,
-                ));
+                @include range-track {
+                    background: transparent;
+                }
             }
 
             // Right side
-            &[data-component="to"] {
-                &:not(:disabled) {
-                    &:not([orientation="vertical"]) {
-                        @include range-track((
-                            background:
-                                linear-gradient(
-                                    to right,
-                                    var(--background-tertiary) 0%,
-                                    var(--background-tertiary) var(--range-from-value),
-                                    var(--accent-secondary) var(--range-from-value),
-                                    var(--accent-secondary) var(--range-to-value),
-                                    var(--background-tertiary) var(--range-to-value),
-                                    var(--background-tertiary) 100%
-                                ) center / 100% var(--range-track-thickness) no-repeat,
-                        ));
-                    }
+            &[data-component="to"]:not(:disabled[orientation="vertical"]) {
+                @include range-track {
+                    background:
+                        linear-gradient(
+                            to right,
+                            var(--background-tertiary) 0%,
+                            var(--background-tertiary) var(--range-from-value),
+                            var(--accent-secondary) var(--range-from-value),
+                            var(--accent-secondary) var(--range-to-value),
+                            var(--background-tertiary) var(--range-to-value),
+                            var(--background-tertiary) 100%
+                        ) center / 100% var(--range-track-thickness) no-repeat;
                 }
             }
         }
@@ -596,7 +613,7 @@ p {
 
         height: 8rem;
 
-        > input[type="range"] {
+        >input[type="range"] {
             // Bottom side
             &[data-component="from"] {
                 $offset: calc(100% - var(--range-to-value) + ((var(--range-to-value) - var(--range-from-value)) / 2));
@@ -605,32 +622,36 @@ p {
                 $bottom-offset: $offset;
                 clip-path: inset($bottom-offset $handle-offset $top-offset $handle-offset);
 
-                @include range-track((
-                    background: transparent,
-                ));
+                @include range-track {
+                    background: transparent;
+                }
             }
 
             // Top side
-            &[data-component="to"] {
-                &:not(:disabled) {
-                    &:not([orientation="vertical"]) {
-                        @include range-track((
-                            background:
-                                linear-gradient(
-                                    to top,
-                                    var(--background-tertiary) 0%,
-                                    var(--background-tertiary) var(--range-from-value),
-                                    var(--accent-secondary) var(--range-from-value),
-                                    var(--accent-secondary) var(--range-to-value),
-                                    var(--background-tertiary) var(--range-to-value),
-                                    var(--background-tertiary) 100%
-                                ) center / var(--range-track-thickness) 100% no-repeat,
-                        ));
-                    }
+            &[data-component="to"]:not(:disabled[orientation="vertical"]) {
+                @include range-track {
+                    background:
+                        linear-gradient(
+                            to top,
+                            var(--background-tertiary) 0%,
+                            var(--background-tertiary) var(--range-from-value),
+                            var(--accent-secondary) var(--range-from-value),
+                            var(--accent-secondary) var(--range-to-value),
+                            var(--background-tertiary) var(--range-to-value),
+                            var(--background-tertiary) 100%
+                        ) center / var(--range-track-thickness) 100% no-repeat,
                 }
             }
         }
     }
+}
+
+.input-container-text {
+    @include input-container-field;
+
+    // >input {
+    //     border-radius: 0 !important;
+    // }
 }
 
 .transition-bounds {
@@ -720,6 +741,16 @@ p {
     padding: 15px 20px;
     width: 100%;
     height: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+
+    > div {
+        display: inline-flex;
+        flex-direction: column;
+        gap: 0.5rem;
+        width: fit-content;
+    }
 }
 
 #main-content {
