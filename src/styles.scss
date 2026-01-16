@@ -135,7 +135,6 @@ $radius: var(--radius);
                 $foreground-5 var(--range-value),
                 $foreground-5 100%
             ) center / var(--range-track-thickness) 100% no-repeat;
-        backdrop-filter: blur(10px);
     }
 
     @include range-thumb {
@@ -432,7 +431,6 @@ input {
                         $foreground-5 var(--range-value),
                         $foreground-5 100%
                     ) center / 100% var(--range-track-thickness) no-repeat;
-                backdrop-filter: blur(10px);
             }
 
             @include range-thumb {
@@ -615,7 +613,6 @@ footer {
                             $foreground-5 var(--range-to-value),
                             $foreground-5 100%
                         ) center / 100% var(--range-track-thickness) no-repeat;
-                    backdrop-filter: blur(10px);
                 }
             }
         }
@@ -651,7 +648,6 @@ footer {
                             $foreground-5 var(--range-to-value),
                             $foreground-5 100%
                         ) center / var(--range-track-thickness) 100% no-repeat;
-                    backdrop-filter: blur(10px);
                 }
             }
         }
@@ -714,6 +710,7 @@ footer {
     text-align: center;
     gap: 1rem;
     padding: 1rem;
+    backdrop-filter: blur(10px);
 
     // State-based styling
     $states: (
