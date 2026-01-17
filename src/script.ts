@@ -12,10 +12,8 @@ import type {
     BeforeInstallPromptEvent
 } from "./pwa.js"
 
-const isDevMode = window.location.hostname === "localhost"
-    || window.location.hostname === "127.0.0.1"
-    || new URLSearchParams(window.location.search).has("dev");
-console.log("Dev Mode:", isDevMode);
+const isDevMode = window.location.hostname === "localhost" || /^(?:[0-9]{1,3}\.){3}[0-9]{1,3}$/.test(window.location.hostname);
+if (isDevMode) console.log("Dev Mode:", isDevMode);
 
 enum DOMExceptionError {
     InvalidState = "InvalidStateError",

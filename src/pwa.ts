@@ -52,6 +52,8 @@ export interface BeforeInstallPromptEvent extends Event {
     }>;
 }
 
+const isDevMode = new URL(import.meta.url).hostname === "localhost" || /^(?:[0-9]{1,3}\.){3}[0-9]{1,3}$/.test(new URL(import.meta.url).hostname);
+
 // If we aren't a service worker then re-register as a service worker
 if (!(typeof WorkerGlobalScope !== 'undefined' && self instanceof ServiceWorkerGlobalScope)) {
     if ("serviceWorker" in navigator) {
@@ -142,18 +144,51 @@ if (!(typeof WorkerGlobalScope !== 'undefined' && self instanceof ServiceWorkerG
                 const fallbackResponse = await fetch(fallbackUrl);
                 putInCache(request, fallbackResponse.clone());
                 return fallbackResponse;
-            } catch (error) {
-                // Attempt to get the fallback response from the cache.
-                const fallbackResponseFromCache = await caches.match(fallbackUrl);
-                if (fallbackResponseFromCache)
-                    return fallbackResponseFromCache;
+            } catch (error) {}
 
-                // When even the fallback response is not available,
-                return new Response("Network error", {
-                    status: 408,
-                    headers: { "Content-Type": "text/plain" },
-                });
-            }
+            // Attempt to get the fallback response from the cache.
+            const fallbackResponseFromCache = await caches.match(fallbackUrl);
+            if (fallbackResponseFromCache)
+                return fallbackResponseFromCache;
+
+            // When even the fallback response is not available,
+            return new Response("Network error", {
+                status: 408,
+                headers: { "Content-Type": "text/plain" },
+            });
+        };
+
+        const cacheFirst = async (request: Request, fallbackUrl: string) => {
+            // Try to get the resource from the cache.
+            const responseFromCache = await caches.match(request);
+            if (responseFromCache)
+                return responseFromCache;
+
+            // If the cache lookup failed, try to get the resource from the network.
+            try {
+                const responseFromNetwork = await fetch(request);
+                if (shouldCache(request))
+                    putInCache(request, responseFromNetwork.clone());
+                return responseFromNetwork;
+            } catch (error) {}
+
+            // If both the cache lookup and the network request failed, get the fallback response from the cache.
+            const fallbackResponseFromCache = await caches.match(fallbackUrl);
+            if (fallbackResponseFromCache)
+                return fallbackResponseFromCache;
+
+            // If that failed, try to get the fallback response from the network.
+            try {
+                const fallbackResponse = await fetch(fallbackUrl);
+                putInCache(request, fallbackResponse.clone());
+                return fallbackResponse;
+            } catch (error) {}
+
+            // When even the fallback response is not available,
+            return new Response("Network error", {
+                status: 408,
+                headers: { "Content-Type": "text/plain" },
+            });
         };
 
         self.addEventListener("install", (e) => {
@@ -168,12 +203,7 @@ if (!(typeof WorkerGlobalScope !== 'undefined' && self instanceof ServiceWorkerG
 
         self.addEventListener("fetch", (e) => {
             const event = e as FetchEvent;
-            event.respondWith(
-                networkFirst(
-                    event.request,
-                    "./offline.html",
-                ),
-            );
+            event.respondWith((isDevMode ? networkFirst : cacheFirst)(event.request, "./offline.html"));
         });
 
         console.log("[PWA] Initialized.");
