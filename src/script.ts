@@ -7,6 +7,7 @@ import {
     StylesScript,
     InfoContainerState,
     TransitionDirection,
+    InputRangeDouble,
 } from "./styles.js";
 import type {
     BeforeInstallPromptEvent
@@ -37,6 +38,7 @@ const __elements = {
     
     //#region Control Screen
     controlScreen: HTMLElement,
+    relativeRangeSlider: HTMLDivElement,
     //#endregion
 } as const satisfies Record<string, typeof HTMLElement>;
 type Elements = {
@@ -71,6 +73,164 @@ const initializeComponent = () => {
     return elements as Elements;
 };
 
+class Helpers {
+    static isMobileUI(): boolean {
+        return window.getComputedStyle(document.documentElement).getPropertyValue("--is-mobile-ui") === "true";
+    }
+
+    static isPortrait(): boolean {
+        return window.getComputedStyle(document.documentElement).getPropertyValue("--is-portrait") === "true";
+    }
+
+    static async delay(ms: number): Promise<void> {
+        return new Promise(resolve => setTimeout(resolve, ms));
+    }
+}
+
+class SliderComponent {
+    static createFromExisting(container: HTMLElement): SliderComponent {
+        const numberInputs = container.querySelectorAll("input[type='number']");
+        if (numberInputs.length < 2)
+            throw new Error("SliderComponent: Could not find required number input elements");
+
+        const rangeContainer = container.querySelector(".input-container-range-double");
+        if (!rangeContainer || !(rangeContainer instanceof HTMLElement))
+            throw new Error("SliderComponent: Could not find required range input container element");
+
+        return new SliderComponent(
+            numberInputs[0] as HTMLInputElement,
+            numberInputs[1] as HTMLInputElement,
+            rangeContainer,
+            InputRangeDouble.getOrCreateInstance(rangeContainer)
+        );
+    }
+
+    private readonly externalCallbacks: Map<string, Array<(sender: any) => void>> = new Map();
+
+    private constructor(
+        private readonly numberInputA: HTMLInputElement,
+        private readonly numberInputB: HTMLInputElement,
+        private readonly rangeContainer: HTMLElement,
+        private readonly rangeInput: InputRangeDouble,
+    ){
+        window.addEventListener("resize", this.onWindowResize.bind(this));
+
+        rangeInput.addEventListener("input", (sender) => {
+            this.refreshNumberInputs();
+            this.dispatchEvent("input", sender);
+        });
+
+        rangeInput.addEventListener("change", (sender) => {
+            // No need to refresh numbers as this will have been done when the input event fires which always comes first.
+            this.dispatchEvent("change", sender);
+        });
+
+        numberInputA.addEventListener("change", () => {
+            let from: number | undefined = undefined;
+            let to: number | undefined = undefined;
+
+            if (Helpers.isPortrait())
+                to = parseFloat(numberInputA.value);
+            else
+                from = parseFloat(numberInputA.value);
+
+            this.rangeInput.setValues({ from, to });
+
+            // No need to dispatch event here as the rangeInput will do that when its value changes.
+        });
+
+        numberInputB.addEventListener("change", () => {
+            let from: number | undefined = undefined;
+            let to: number | undefined = undefined;
+
+            if (Helpers.isPortrait())
+                from = parseFloat(numberInputB.value);
+            else
+                to = parseFloat(numberInputB.value);
+
+            this.rangeInput.setValues({ from, to });
+        });
+
+        this.refreshNumberInputs();
+        this.onWindowResize();
+    }
+
+    private dispatchEvent(event: "input" | "change", sender?: any): void {
+        const callbacks = this.externalCallbacks.get(event);
+        if (!callbacks)
+            return;
+        for (const callback of callbacks)
+            callback(sender);
+    }
+
+    private onWindowResize(): void {
+        const wasPortrait = this.rangeContainer.getAttribute("orientation") === "vertical";
+        const isPortrait = Helpers.isPortrait();
+
+        if (wasPortrait === isPortrait)
+            return;
+
+        if (isPortrait)
+            this.rangeContainer.setAttribute("orientation", "vertical");
+        else
+            this.rangeContainer.removeAttribute("orientation");
+
+        this.refreshNumberInputs();
+    }
+
+    private refreshNumberInputs(): void {
+        let minInput: HTMLInputElement, maxInput: HTMLInputElement;
+        if (Helpers.isPortrait()) {
+            minInput = this.numberInputB;
+            maxInput = this.numberInputA;
+        } else {
+            minInput = this.numberInputA;
+            maxInput = this.numberInputB;
+        }
+
+        const minMax = this.rangeInput.getMinMax();
+        minInput.min = minMax.min.toString();
+        minInput.max = minMax.max.toString();
+        maxInput.min = minMax.min.toString();
+        maxInput.max = minMax.max.toString();
+
+        const values = this.rangeInput.getValues();
+        minInput.value = values.from.toString();
+        maxInput.value = values.to.toString();
+    }
+
+    getValues() {
+        return this.rangeInput.getValues();
+    }
+
+    setValues(data: { from?: number, to?: number }): void {
+        // InputRangeDouble already contains the logic for validating min/max values, if that fails then the inputs won't be updated.
+        this.rangeInput.setValues(data);
+        this.refreshNumberInputs();
+    }
+
+    getMinMax(): { min: number; max: number } {
+        return this.rangeInput.getMinMax();
+    }
+
+    setMinMax(data: { min?: number, max?: number }): void {
+        this.rangeInput.setMinMax(data);
+        const { min, max } = this.rangeInput.getMinMax();
+        this.numberInputA.min = min.toString();
+        this.numberInputA.max = max.toString();
+        this.numberInputB.min = min.toString();
+        this.numberInputB.max = max.toString();
+    }
+
+    addEventListener(event: "input" | "change", callback: () => PromiseLike<void> | void): void {
+        this.rangeInput.addEventListener(event, callback);
+    }
+
+    removeEventListener(event: "input" | "change", callback: () => PromiseLike<void> | void): void {
+        this.rangeInput.removeEventListener(event, callback);
+    }
+}
+
 // TODO: Add UI support for connecting multiple devices.
 class OssmWebControl {
     static instance?: OssmWebControl;
@@ -83,36 +243,42 @@ class OssmWebControl {
 
     readonly elements: Elements;
     readonly infoContainers: Map<string, HTMLElement> = new Map();
+    readonly relativeRangeSlider!: SliderComponent;
     ossmBle?: OssmBle;
 
     private constructor() {
-        const startupAnimation = () => {
+        const constructorInfoContainerKey = "constructor";
+
+        const startupAnimation = async () => {
             // Page load animation
-            new Promise(resolve => setTimeout(resolve, 250)).then(() =>
-            {
-                this.elements.mainContent.style.opacity = "unset";
-                StylesScript.transitionFade({
-                    element: this.elements.mainContent,
-                    direction: TransitionDirection.In,
-                    durationMs: 650
-                });
+            await Helpers.delay(250);
+            this.elements.mainContent.style.opacity = "unset";
+            StylesScript.transitionFade({
+                element: this.elements.mainContent,
+                direction: TransitionDirection.In,
+                durationMs: 650
             });
         };
 
         try {
             this.elements = initializeComponent();
+            this.relativeRangeSlider = SliderComponent.createFromExisting(this.elements.relativeRangeSlider);
         } catch (error) {
             this.elements = {
-                // Try at the very least to get the main container, if this fails then something is seriously wrong.
+                // Try at the very least to get the main container and splash, if this fails then something is seriously wrong.
                 mainContent: document.getElementById("main-content") as HTMLDivElement,
+                pairScreen: document.getElementById("pair-screen") as HTMLElement,
             } as Partial<Elements> as Elements;
             console.error("Error initializing components:", error);
-            const errorContainer = StylesScript.createInfoContainer({
-                state: InfoContainerState.Error,
-                title: "Initialization Error",
-                message: "An error occurred while initializing the application",
-            });
-            this.elements.mainContent.appendChild(errorContainer);
+            this.setInfoContainer(
+                constructorInfoContainerKey,
+                StylesScript.createInfoContainer({
+                    state: InfoContainerState.Error,
+                    title: "Initialization Error",
+                    message: "An error occurred while initializing the application",
+                }),
+                this.elements.pairScreen
+            );
             startupAnimation();
             return;
         }
@@ -159,15 +325,17 @@ class OssmWebControl {
                         break;
                 }
 
-                const errorContainer = StylesScript.createInfoContainer({
-                    state: InfoContainerState.Error,
-                    title: "Unsupported Browser",
-                    message: "Your browser does not support the required Bluetooth features",
-                    // TODO: Change this message to detect client for specifics
-                    extraContent: content
-                });
-
-                this.elements.pairScreen.appendChild(errorContainer);
+                this.setInfoContainer(
+                    constructorInfoContainerKey,
+                    StylesScript.createInfoContainer({
+                        state: InfoContainerState.Error,
+                        title: "Unsupported Browser",
+                        message: "Your browser does not support the required Bluetooth features",
+                        // TODO: Change this message to detect client for specifics
+                        extraContent: content
+                    }),
+                    this.elements.pairScreen
+                );
                 startupAnimation();
             };
 
@@ -335,7 +503,7 @@ class OssmWebControl {
         //#endregion
 
         //#region Switch screens
-        // await new Promise(resolve => setTimeout(resolve, 500));
+        // await Helpers.delay(500);
         await StylesScript.transitionFade({
             element: this.elements.mainContent,
             direction: TransitionDirection.Out,

@@ -1,7 +1,9 @@
 // Attach to window to allow global usage and avoid multiple injections
 type WindowWithStyles = Window & typeof globalThis & {
     StylesScript?: typeof StylesScript;
+    __inputRangeDoubleInstances?: Map<HTMLElement, InputRangeDouble>;
 };
+const windowWithStyles = window as WindowWithStyles;
 
 export enum TransitionDirection {
     In = "in",
@@ -15,10 +17,14 @@ export enum InfoContainerState {
 }
 
 export class InputRangeDouble {
-    private static readonly instances: Map<HTMLElement, InputRangeDouble> = new Map();
+    private static getInstances() {
+        if (!windowWithStyles.__inputRangeDoubleInstances)
+            windowWithStyles.__inputRangeDoubleInstances = new Map<HTMLElement, InputRangeDouble>();
+        return windowWithStyles.__inputRangeDoubleInstances;
+    };
     
     static getInstance(container: HTMLElement): InputRangeDouble | undefined {
-        return InputRangeDouble.instances.get(container);
+        return InputRangeDouble.getInstances().get(container);
     }
 
     static getOrCreateInstance(container: HTMLElement, data?: {
@@ -26,8 +32,9 @@ export class InputRangeDouble {
         max?: number;
         from?: number;
         to?: number;
+        step?: number;
     }): InputRangeDouble {
-        let instance = InputRangeDouble.instances.get(container);
+        let instance = InputRangeDouble.getInstances().get(container);
         if (instance)
             return instance;
         return this.createInstance(container, data);
@@ -40,9 +47,10 @@ export class InputRangeDouble {
             max?: number;
             from?: number;
             to?: number;
+            step?: number;
         }
     ): InputRangeDouble {
-        if (InputRangeDouble.instances.has(container))
+        if (InputRangeDouble.getInstances().has(container))
             throw new Error("InputRangeDouble instance already exists for this container");
 
         container.classList.add("input-container-range-double");
@@ -59,14 +67,21 @@ export class InputRangeDouble {
         container.appendChild(toInput);
 
         const instance = new InputRangeDouble(container);
-        instance.setMinMax(data?.min ?? 0, data?.max ?? 100);
-        instance.setValues(data?.from ?? data?.min ?? 0, data?.to ?? data?.max ?? 100);
+        instance.setMinMax({
+            min: data?.min ?? 0,
+            max: data?.max ?? 100
+        });
+        instance.setValues({
+            from: data?.from ?? data?.min ?? 0,
+            to: data?.to ?? data?.max ?? 100
+        });
+        instance.setStep(data?.step ?? 1);
 
         return instance;
     }
 
     static removeInstance(container: HTMLElement): void {
-        const instance = InputRangeDouble.instances.get(container);
+        const instance = InputRangeDouble.getInstances().get(container);
         if (instance)
             instance.dispose();
     }
@@ -75,11 +90,12 @@ export class InputRangeDouble {
     private readonly containerObserver = new MutationObserver(this.onContainerMutated.bind(this));
     private readonly fromSlider: HTMLInputElement;
     private readonly toSlider: HTMLInputElement;
+    private readonly externalCallbacks: Map<string, Array<(sender?: any) => void>> = new Map();
 
     constructor(
         private readonly container: HTMLElement
-    ) {
-        if (InputRangeDouble.instances.has(container))
+    ){
+        if (InputRangeDouble.getInstances().has(container))
             throw new Error("InputRangeDouble instance already exists for this container");
 
         if (!container.classList.contains("input-container-range-double"))
@@ -90,7 +106,7 @@ export class InputRangeDouble {
         if (!fromSlider || !toSlider)
             throw new Error("InputRangeDouble: Could not find required range input elements");
 
-        InputRangeDouble.instances.set(container, this);
+        InputRangeDouble.getInstances().set(container, this);
 
         this.fromSlider = fromSlider;
         this.toSlider = toSlider;
@@ -101,60 +117,10 @@ export class InputRangeDouble {
         this.updateStyles();
     }
 
-    getValues(): { from: number; to: number } {
-        return {
-            from: Number(this.fromSlider.value),
-            to: Number(this.toSlider.value),
-        };
-    }
-
-    setValues(from: number, to: number): void {
-        // Used to avoid recursive event triggering when setting values programmatically
+    private dispose(): void {
+        this.containerObserver.disconnect();
+        InputRangeDouble.removeInstance(this.container);
         this.unbindEvents();
-
-        // Validate values
-        const min = Number(this.fromSlider.min);
-        const max = Number(this.fromSlider.max);
-        if (from < min)
-            throw new Error(`From value ${from} is less than minimum value ${min}`);
-        if (to > max)
-            throw new Error(`To value ${to} is greater than maximum value ${max}`);
-
-        // Avoid unnecessary updates
-        const oldValues = this.getValues();
-        if (oldValues.from === from && oldValues.to === to) {
-            this.bindEvents();
-            return;
-        }
-
-        if (oldValues.from !== from)
-            this.fromSlider.value = from.toString();
-        if (oldValues.to !== to)
-            this.toSlider.value = to.toString();
-
-        this.updateStyles();
-        
-        this.bindEvents();
-    }
-
-    setMinMax(min: number, max: number): void {
-        this.unbindEvents();
-
-        // Set bounds
-        this.fromSlider.min = min.toString();
-        this.fromSlider.max = max.toString();
-        this.toSlider.min = min.toString();
-        this.toSlider.max = max.toString();
-
-        // Keep current values within new bounds
-        const values = this.getValues();
-        const newFrom = Math.max(min, Math.min(values.from, max));
-        const newTo = Math.max(min, Math.min(values.to, max));
-        this.setValues(newFrom, newTo);
-
-        this.updateStyles();
-
-        this.bindEvents();
     }
 
     private onContainerMutated(mutations: MutationRecord[]): void {
@@ -183,20 +149,18 @@ export class InputRangeDouble {
             this.dispose();
     }
 
-    private dispose(): void {
-        this.containerObserver.disconnect();
-        InputRangeDouble.removeInstance(this.container);
-        this.unbindEvents();
-    }
-
     private bindEvents(): void {
         this.fromSlider.addEventListener("input", this.onMinSliderInput.bind(this));
+        this.fromSlider.addEventListener("change", this.onMinSliderChange.bind(this));
         this.toSlider.addEventListener("input", this.onMaxSliderInput.bind(this));
+        this.toSlider.addEventListener("change", this.onMaxSliderChange.bind(this));
     }
 
     private unbindEvents(): void {
         this.fromSlider.removeEventListener("input", this.onMinSliderInput.bind(this));
+        this.fromSlider.removeEventListener("change", this.onMinSliderChange.bind(this));
         this.toSlider.removeEventListener("input", this.onMaxSliderInput.bind(this));
+        this.toSlider.removeEventListener("change", this.onMaxSliderChange.bind(this));
     }
 
     private onMinSliderInput(): void {
@@ -205,6 +169,8 @@ export class InputRangeDouble {
             this.fromSlider.value = values.to.toString();
 
         this.updateStyles();
+        
+        this.dispatchEvent("input", this.fromSlider);
     }
 
     private onMaxSliderInput(): void {
@@ -213,6 +179,16 @@ export class InputRangeDouble {
             this.toSlider.value = values.from.toString();
         
         this.updateStyles();
+
+        this.dispatchEvent("input", this.toSlider);
+    }
+
+    private onMinSliderChange(): void {
+        this.dispatchEvent("change", this.fromSlider);
+    }
+    
+    private onMaxSliderChange(): void {
+        this.dispatchEvent("change", this.toSlider);
     }
 
     private updateStyles(): void {
@@ -232,6 +208,99 @@ export class InputRangeDouble {
 
         this.container.style.setProperty("--range-from-value", `${fromPositionPercent}%`);
         this.container.style.setProperty("--range-to-value", `${toPositionPercent}%`);
+    }
+
+    private dispatchEvent(event: "input" | "change", sender?: any): void {
+        const callbacks = this.externalCallbacks.get(event);
+        if (!callbacks)
+            return;
+        for (const callback of callbacks)
+            callback(sender);
+    }
+
+    getValues(): { from: number; to: number } {
+        return {
+            from: Number(this.fromSlider.value),
+            to: Number(this.toSlider.value),
+        };
+    }
+
+    setValues(data: { from?: number; to?: number }): void {
+        // Validate values
+        const min = Number(this.fromSlider.min);
+        const max = Number(this.fromSlider.max);
+        if (data.from !== undefined && data.from < min)
+            throw new Error(`From value ${data.from} is less than minimum value ${min}`);
+        if (data.to !== undefined && data.to > max)
+            throw new Error(`To value ${data.to} is greater than maximum value ${max}`);
+
+        // Avoid unnecessary updates
+        const oldValues = this.getValues();
+        if (oldValues.from === data.from && oldValues.to === data.to)
+            return;
+
+        if (data.from !== undefined && oldValues.from !== data.from)
+            this.fromSlider.value = data.from.toString();
+        if (data.to !== undefined && oldValues.to !== data.to)
+            this.toSlider.value = data.to.toString();
+
+        this.updateStyles();
+
+        this.dispatchEvent("input", this);
+        this.dispatchEvent("change", this);
+    }
+
+    getMinMax(): { min: number; max: number } {
+        return {
+            min: Number(this.fromSlider.min),
+            max: Number(this.fromSlider.max),
+        };
+    }
+
+    setMinMax(data: { min?: number, max?: number }): void {
+        // Set bounds
+        if (data.min !== undefined) {
+            this.fromSlider.min = data.min.toString();
+            this.toSlider.min = data.min.toString();
+        }
+        if (data.max !== undefined) {
+            this.fromSlider.max = data.max.toString();
+            this.toSlider.max = data.max.toString();
+        }
+
+        // Keep current values within new bounds
+        const values = this.getValues();
+        const newFrom = Math.max(data?.min ?? values.from, Math.min(values.from, data?.max ?? values.from));
+        const newTo = Math.max(data?.min ?? values.to, Math.min(values.to, data?.max ?? values.to));
+
+        if (newFrom === values.from && newTo === values.to)
+            return;
+
+        this.setValues({ from: newFrom, to: newTo });
+    }
+
+    getStep(): number {
+        return Number(this.fromSlider.step);
+    }
+
+    setStep(step: number): void {
+        this.fromSlider.step = step.toString();
+        this.toSlider.step = step.toString();
+    }
+
+    addEventListener(event: "input" | "change", callback: (sender?: any) => PromiseLike<void> | void): void {
+        if (!this.externalCallbacks.has(event))
+            this.externalCallbacks.set(event, []);
+        this.externalCallbacks.get(event)?.push(callback);
+    }
+
+    removeEventListener(event: "input" | "change", callback: (sender?: any) => PromiseLike<void> | void): void {
+        const callbacks = this.externalCallbacks.get(event);
+        if (!callbacks)
+            return;
+        const index = callbacks.indexOf(callback);
+        if (index !== -1)
+            callbacks.splice(index, 1);
     }
 }
 
@@ -422,6 +491,8 @@ class StylesScriptAuto {
         downButton.addEventListener("click", () => {
             numberElement.stepDown();
             numberElement.dispatchEvent(new Event("input", { bubbles: true }));
+            // Since clicking a button is a one-time action (i.e. instantly unfocused) fire the "change" event too.
+            numberElement.dispatchEvent(new Event("change", { bubbles: true }));
         });
 
         const upButton = document.createElement("button");
@@ -430,6 +501,7 @@ class StylesScriptAuto {
         upButton.addEventListener("click", () => {
             numberElement.stepUp();
             numberElement.dispatchEvent(new Event("input", { bubbles: true }));
+            numberElement.dispatchEvent(new Event("change", { bubbles: true }));
         });
 
         const reorderElements = () => {
@@ -510,7 +582,7 @@ class StylesScriptAuto {
             let max = container.hasAttribute("max") ? Number(container.getAttribute("max")) : undefined;
             let from = container.hasAttribute("from") ? Number(container.getAttribute("from")) : undefined;
             let to = container.hasAttribute("to") ? Number(container.getAttribute("to")) : undefined;
-            InputRangeDouble.createInstance(container, {
+            InputRangeDouble.getOrCreateInstance(container, {
                 min: min,
                 max: max,
                 from: from,
@@ -529,7 +601,7 @@ class StylesScriptAuto {
     }
 }
 
-if (!(window as WindowWithStyles).StylesScript) {
-    (window as WindowWithStyles).StylesScript = StylesScript;
+if (!windowWithStyles.StylesScript) {
+    windowWithStyles.StylesScript = StylesScript;
     StylesScriptAuto.initialize();
 }
