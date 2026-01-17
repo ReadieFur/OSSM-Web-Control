@@ -299,7 +299,7 @@ var OssmBle = class OssmBle {
 	* @returns `true` if supported, `false` otherwise
 	*/
 	static isClientSupported() {
-		return !!navigator.bluetooth;
+		return !(!navigator.bluetooth || !navigator.bluetooth.requestDevice);
 	}
 	/**
 	* Prompts the user via the browser to pair with an OSSM BLE device
@@ -755,4 +755,3 @@ var OssmBle = class OssmBle {
 
 //#endregion
 export { KnownPattern, OssmBle, OssmEventType, OssmPage, OssmStatus, PatternHelper, mapRational };
-//# sourceMappingURL=ossmBle.js.map

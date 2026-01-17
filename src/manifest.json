@@ -1,0 +1,29 @@
+{
+    "name": "OSSM Web Control",
+    "short_name": "OSSM Control",
+    "description": "Web-based control interface for OSSM devices.",
+    "start_url": "./index.html",
+    "display": "standalone",
+    "background_color": "#343541",
+    "icons": [
+        {
+            "src": "./favicon.png",
+            "type": "image/png",
+            "sizes": "256x256",
+            "purpose": "any"
+        },
+        {
+            "src": "./favicon.png",
+            "type": "image/png",
+            "sizes": "256x256",
+            "purpose": "maskable"
+        }
+    ],
+    "share_target": {
+        "action": "./",
+        "method": "GET",
+        "params": {
+            "text": "shared"
+        }
+    }
+}

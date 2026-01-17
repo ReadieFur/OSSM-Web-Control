@@ -362,4 +362,3 @@ declare class OssmBle implements Disposable {
 }
 //#endregion
 export { KnownPattern, OssmBle, type OssmEventCallback, type OssmEventCallbackParameters, OssmEventType, OssmPage, type OssmPattern, type OssmState, OssmStatus, PatternHelper, mapRational };
-//# sourceMappingURL=ossmBle.d.ts.map

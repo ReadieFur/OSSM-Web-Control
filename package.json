@@ -1,5 +1,6 @@
 {
   "devDependencies": {
-    "@types/web-bluetooth": "^0.0.21"
+    "@types/web-bluetooth": "^0.0.21",
+    "user-agent-data-types": "^0.4.2"
   }
 }

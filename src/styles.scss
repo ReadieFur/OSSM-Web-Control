@@ -2,6 +2,7 @@
 
 // #region Imports
 @use "sass:map";
+@use "sass:list";
 @use "sass:color";
 @use "sass:math";
 @use "sass:meta";
@@ -11,6 +12,14 @@
 
 // #region Theme variables
 $mobile-media-query: "(max-width: 500px), (max-height: 1000px)";
+
+$material-symbols: (
+    "bluetooth_searching",
+    "deployed_code_update",
+);
+$material-symbols-options: (
+    "FILL": "0..1",
+);
 
 $theme-constants: (
     radius: 8px
@@ -50,10 +59,8 @@ $theme-rules: (
 
     @return $result;
 }
-
 $dark-theme: generate-theme(dark);
 $light-theme: generate-theme(light);
-
 :root {
     // Define SASS variables as CSS variables for light and dark themes
     @each $name, $value in $theme-constants {
@@ -78,6 +85,39 @@ $background-primary: var(--background-primary);
 $accent-primary: var(--accent-primary);
 $accent-secondary: var(--accent-secondary);
 $radius: var(--radius);
+
+@function build-material-symbol-url() {
+    @if list.length($material-symbols) == 0 {
+        @return null;
+    }
+
+    $base-url: "https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:";
+    
+    $symbol-list: "";
+    @each $symbol in $material-symbols {
+        $separator: if($symbol-list == "", "", ",");
+        $symbol-list: #{$symbol-list}#{$separator}#{$symbol};
+    }
+
+    // Must be in alphabetical order
+    $correct-order: ("opsz", "wght", "FILL", "GRAD");
+    $opt-keys: "";
+    $opt-vals: "";
+    @each $key in $correct-order {
+        @if map.has-key($material-symbols-options, $key) {
+            $separator: if($opt-keys == "", "", ",");
+            $opt-keys: #{$opt-keys}#{$separator}#{$key};
+            $opt-vals: #{$opt-vals}#{$separator}#{map.get($material-symbols-options, $key)};
+        }
+    }
+
+    // 3. Combine everything
+    @return "#{$base-url}#{$opt-keys}@#{$opt-vals}&icon_names=#{$symbol-list}&display=block";
+}
+$material-symbols-url: build-material-symbol-url();
+@if $material-symbols-url {
+    @import url(#{$material-symbols-url});
+}
 // #endregion
 
 // #region Helpers
@@ -280,7 +320,8 @@ $radius: var(--radius);
 body {
     // Position
     margin: 0;
-    height: 100vh;
+    height: 100dvh;
+    overflow: hidden;
 
     // Layout
     display: flex;
@@ -309,19 +350,22 @@ body {
     background-attachment: fixed;
 }
 
-button {
+button,
+a.button {
     // background: $foreground-5;
     background: transparent;
-    backdrop-filter: blur(10px);
     padding: 1rem;
     border: none;
     border: 1px solid $foreground-30;
     border-radius: $radius;
     transition: background 0.2s ease;
+    text-decoration: none;
+    color: $foreground-100;
 
     &:hover:not([disabled]) {
         // background: $foreground-30;
         background: $foreground-5;
+        backdrop-filter: blur(10px);
         cursor: pointer;
     }
 
@@ -478,8 +522,36 @@ footer {
 // #endregion
 
 // #region Reusable classes
+.material-symbol {
+    // Make larger icon not take up extra space
+    display: inline-block;
+    width: 1.5em; //1.5x the inherited font size
+    height: 0;
+    line-height: 0;
+    vertical-align: middle;
+    font-family: "Material Symbols Outlined";
+    font-size: 1.5em;
+    overflow: visible;
+
+    &.fill {
+        font-variation-settings: 'FILL' 1;
+    }
+
+    &::before {
+        content: attr(data-icon);
+        display: block;
+        transform: translateY(-0.075em);
+    }
+}
+
 .no-border {
     border: none !important;
+}
+
+.space-between {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
 }
 
 .input-container-number {
@@ -667,23 +739,45 @@ footer {
     // https://www.youtube.com/watch?v=JN-nme9oF10
     // I would program this in script but I can't be arsed and given that this app requires WebBLE it will only run on chrome anyway.
     interpolate-size: allow-keywords;
+    // width: calc-size(auto);
+    // height: calc-size(auto);
+}
+
+@keyframes fade-in {
+    from {
+        opacity: 0;
+        transform: scale(0.9);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+@keyframes fade-out {
+    from {
+        opacity: 1;
+        transform: scale(1);
+    }
+    to {
+        opacity: 0;
+        transform: scale(0.9);
+    }
 }
 
 .transition-fade {
     // Set in script
     --transition-fade-duration: 0.5s;
 
-    transition: opacity var(--transition-fade-duration) ease, transform var(--transition-fade-duration) ease;
+    animation-duration: var(--transition-fade-duration);
+    animation-timing-function: ease;
 
     &[data-transition-fade="in"] {
-        opacity: inherit;
-        transform: scale(inherit);
+        animation-name: fade-in;
     }
 
     &[data-transition-fade="out"] {
-        opacity: 0;
-        transform: scale(0.9); //TODO: Get inherited value * 0.9
-        pointer-events: none;
+        animation-name: fade-out;
     }
 }
 
@@ -696,6 +790,7 @@ footer {
 
 .hidden {
     display: none !important;
+    opacity: 0 !important;
 }
 
 .info-container {
@@ -780,8 +875,8 @@ footer {
 
     // Layout
     text-align: center;
-    max-width: 100vh;
-    max-height: 100vh;
+    max-width: 100dvh;
+    max-height: 100dvh;
 
     &:not(.fill-page) {
         width: fit-content;
@@ -795,8 +890,8 @@ footer {
     }
 
     &.fill-page {
-        width: calc(100vw - $page-offset);
-        height: calc(100vh - $page-offset);
+        width: calc(100dvw - $page-offset);
+        height: calc(100dvh - $page-offset);
 
         > footer {
             // Position equally between bottom of main and bottom of viewport
@@ -807,8 +902,8 @@ footer {
 
     @media #{$mobile-media-query} {
         &.fill-page {
-            width: 100vw;
-            height: 100vh;
+            width: 100dvw;
+            height: 100dvh;
 
             > footer {
                 display: none;

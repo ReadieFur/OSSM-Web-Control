@@ -6,7 +6,6 @@ type WindowWithStyles = Window & typeof globalThis & {
 export enum TransitionDirection {
     In = "in",
     Out = "out",
-    Both = "both",
 }
 
 export enum InfoContainerState {
@@ -309,87 +308,17 @@ export class StylesScript {
     static async transitionFade(data: {
         element: HTMLElement;
         direction: TransitionDirection;
-        durationMs: number | {
-            in?: number;
-            out?: number;
-            delay?: number;
-        };
-        addedClasses?: string[];
-        removedClasses?: string[];
+        durationMs: number;
     }): Promise<void> {
-        const isDirectionBoth = data.direction === TransitionDirection.Both;
+        data.element.classList.add("transition-fade");
+        data.element.dataset.transitionFade = data.direction;
+        data.element.style.setProperty("--transition-fade-duration", `${data.durationMs}ms`);
 
-        let parsedDuration: { in?: number; out?: number; delay?: number; };
-        if (typeof data.durationMs === "number") {
-            const durationTemp = isDirectionBoth ? data.durationMs / 2 : data.durationMs;
-            parsedDuration = {
-                in: durationTemp,
-                out: durationTemp,
-            };
-        }
-        else {
-            parsedDuration = data.durationMs;
-        }
+        await new Promise<void>((resolve) => setTimeout(resolve, data.durationMs));
 
-        const modifyClasses = () => {
-            if (data.removedClasses)
-                data.element.classList.remove(...data.removedClasses);
-
-            if (data.addedClasses)
-                data.element.classList.add(...data.addedClasses);
-        };
-
-        const transitionOut = async () => {
-            if (parsedDuration.out === undefined)
-                throw new Error("Transition out duration is not defined.");
-
-            data.element.classList.add("transition-fade");
-            data.element.dataset.transitionFade = TransitionDirection.Out;
-            data.element.style.setProperty("--transition-fade-duration", `${parsedDuration.out}ms`);
-
-            await new Promise<void>((resolve) => {
-                setTimeout(() => {
-                    data.element.style.removeProperty("--transition-fade-duration");
-                    resolve();
-                }, parsedDuration.out);
-            });
-        };
-
-        const transitionIn = async () => {
-            if (parsedDuration.in === undefined)
-                throw new Error("Transition in duration is not defined.");
-
-            data.element.classList.add("transition-fade");
-            data.element.dataset.transitionFade = TransitionDirection.In;
-            data.element.style.setProperty("--transition-fade-duration", `${parsedDuration.in}ms`);
-
-            await new Promise<void>((resolve) => {
-                // data.element.addEventListener("transitionend", () => {
-                setTimeout(() => {
-                    data.element.classList.remove("transition-fade");
-                    delete data.element.dataset.transitionFade;
-                    data.element.style.removeProperty("--transition-fade-duration");
-                    resolve();
-                // }, { once: true });
-                }, parsedDuration.in);
-            });
-        };
-
-        if (data.direction === TransitionDirection.In) {
-            modifyClasses();
-            await transitionIn();
-        } else if (data.direction === TransitionDirection.Out) {
-            await transitionOut();
-            modifyClasses();
-        } else if (isDirectionBoth) {
-            // transitionend event is not reliable in this context since the events fire eso close together they can trigger the animation to end prematurely
-            // Using setTimeout instead and setting the duration property in script
-            await transitionOut();
-            modifyClasses();
-            if (parsedDuration.delay)
-                await new Promise<void>((resolve) => setTimeout(() => resolve(), parsedDuration.delay));
-            await transitionIn();
-        }
+        data.element.classList.remove("transition-fade");
+        delete data.element.dataset.transitionFade;
+        data.element.style.removeProperty("--transition-fade-duration");
     }
 
     static createInfoContainer(data?: {
