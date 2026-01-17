@@ -87,8 +87,8 @@ class Helpers {
     }
 }
 
-class SliderComponent {
-    static createFromExisting(container: HTMLElement): SliderComponent {
+class DualSliderComponent {
+    static createFromExisting(container: HTMLElement): DualSliderComponent {
         const numberInputs = container.querySelectorAll("input[type='number']");
         if (numberInputs.length < 2)
             throw new Error("SliderComponent: Could not find required number input elements");
@@ -97,7 +97,7 @@ class SliderComponent {
         if (!rangeContainer || !(rangeContainer instanceof HTMLElement))
             throw new Error("SliderComponent: Could not find required range input container element");
 
-        return new SliderComponent(
+        return new DualSliderComponent(
             numberInputs[0] as HTMLInputElement,
             numberInputs[1] as HTMLInputElement,
             rangeContainer,
@@ -243,7 +243,7 @@ class OssmWebControl {
 
     readonly elements: Elements;
     readonly infoContainers: Map<string, HTMLElement> = new Map();
-    readonly relativeRangeSlider!: SliderComponent;
+    readonly relativeRangeSlider!: DualSliderComponent;
     ossmBle?: OssmBle;
 
     private constructor() {
@@ -262,7 +262,7 @@ class OssmWebControl {
 
         try {
             this.elements = initializeComponent();
-            this.relativeRangeSlider = SliderComponent.createFromExisting(this.elements.relativeRangeSlider);
+            // this.relativeRangeSlider = DualSliderComponent.createFromExisting(this.elements.relativeRangeSlider);
         } catch (error) {
             this.elements = {
                 // Try at the very least to get the main container and splash, if this fails then something is seriously wrong.
