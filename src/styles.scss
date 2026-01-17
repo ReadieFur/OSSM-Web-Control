@@ -179,10 +179,11 @@ $material-symbols-url: build-material-symbol-url();
     writing-mode: vertical-lr;
     direction: rtl;
 
-    --range-real-width: calc(max(var(--range-track-thickness), var(--range-thumb-size)));
+    min-width: 1rem;
+    // height: 100%;
 
     @include range-track {
-        width: var(--range-real-width);
+        width: var(--range-track-thickness);
         background:
             linear-gradient(
                 to top,
@@ -191,15 +192,6 @@ $material-symbols-url: build-material-symbol-url();
                 $foreground-5 var(--range-value),
                 $foreground-5 100%
             ) center / var(--range-track-thickness) 100% no-repeat;
-    }
-
-    @include range-thumb {
-        width: var(--range-real-width);
-        height: var(--range-thumb-size);
-        background: linear-gradient(
-            $accent-primary,
-            $accent-primary
-        ) center / var(--range-thumb-size) 100% no-repeat;
     }
 }
 
@@ -448,13 +440,10 @@ input {
     &[type="range"] {
         // Set in script
         --range-value: 50%;
-        --range-thumb-size: 1rem;
-        --range-track-thickness: 0.4rem;
+        --range-track-thickness: 100%;
 
         appearance: none;
         background: transparent;
-        width: auto;
-        height: auto;
         cursor: pointer;
 
         @include range-track {
@@ -463,7 +452,8 @@ input {
         }
 
         @include range-thumb {
-            border-radius: 100%;
+            width: 0;
+            height: 0;
             border: none;
         }
         
@@ -473,15 +463,11 @@ input {
 
         // Horizontal
         &:not([orientation="vertical"]) {
-            // In order to set the proper bounding box, we set the height to the larger of the track thickness or thumb size
-            --range-real-height: calc(max(var(--range-track-thickness), var(--range-thumb-size)));
-
-            // width: 100%;
-            // height: 100%;
+            min-height: 1rem;
 
             @include range-track {
                 // In order to set the proper bounding box, we set the height to the larger of the track thickness or thumb size
-                height: var(--range-real-height);
+                height: var(--range-track-thickness);
                 // We then set the background to a gradient that is centered vertically, with the height of the desired track thickness
                 background:
                     linear-gradient(
@@ -492,21 +478,12 @@ input {
                         $foreground-5 100%
                     ) center / 100% var(--range-track-thickness) no-repeat;
             }
-
-            @include range-thumb {
-                width: var(--range-thumb-size);
-                height: var(--range-real-height);
-                //Emulate a background image using gradients, then use the same trick as above to center it
-                background: linear-gradient(
-                    $accent-primary,
-                    $accent-primary
-                ) center / 100% var(--range-thumb-size) no-repeat;
-            }
         }
 
         // Vertical in a mixin because it needs to be repeated elsewhere
         &[orientation="vertical"] {
             @include range-vertical;
+            // width: fit-content;
         }
     }
 }
@@ -678,7 +655,7 @@ footer {
             // Left side
             &[data-component="from"] {
                 $offset: calc(100% - var(--range-to-value) + ((var(--range-to-value) - var(--range-from-value)) / 2));
-                $handle-offset: calc(var(--range-thumb-size) * -1);
+                $handle-offset: 0;
                 $left-offset: $offset; //These two would be flipped if direction was right-to-left
                 $right-offset: 0;
                 clip-path: inset($handle-offset $left-offset $handle-offset $right-offset);
@@ -689,7 +666,7 @@ footer {
             }
 
             // Right side
-            &[data-component="to"]:not(:disabled[orientation="vertical"]) {
+            &[data-component="to"]:not(:disabled) {
                 @include range-track {
                     background:
                         linear-gradient(
@@ -707,13 +684,18 @@ footer {
     }
 
     &[orientation="vertical"] {
-        @include range-vertical;
+        // width: fit-content;
 
-        >input[type="range"] {
+        >input[type="range"]
+        {
+            @include range-vertical;
+
+            height: initial;
+
             // Bottom side
             &[data-component="from"] {
                 $offset: calc(100% - var(--range-to-value) + ((var(--range-to-value) - var(--range-from-value)) / 2));
-                $handle-offset: calc(var(--range-thumb-size) * -1);
+                $handle-offset: 0;
                 $top-offset: 0; //These two would be flipped if direction was top-to-bottom
                 $bottom-offset: $offset;
                 clip-path: inset($bottom-offset $handle-offset $top-offset $handle-offset);
@@ -724,7 +706,7 @@ footer {
             }
 
             // Top side
-            &[data-component="to"]:not(:disabled[orientation="vertical"]) {
+            &[data-component="to"]:not(:disabled) {
                 @include range-track {
                     background:
                         linear-gradient(
@@ -902,12 +884,8 @@ footer {
     // #endregion
 
     .input-container-range-double {
+        width: 100%;
         height: 100%;
-
-        @media #{$landscape-media-query} {
-            height: auto;
-            width: 100%;
-        }
     }
 }
 // #endregion
@@ -971,6 +949,7 @@ footer {
             display: none;
 
             @media #{$desktop-media-query} {
+                display: unset;
                 // Position equally between bottom of main and bottom of viewport
                 top: calc(100% + (#{$page-offset} / 4));
                 transform: translateY(-50%);

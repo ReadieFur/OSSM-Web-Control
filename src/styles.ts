@@ -564,9 +564,24 @@ class StylesScriptAuto {
 
         rangeElement.dataset.styled = "true";
 
+        // const onResize = () => {
+        //     if (!rangeElement.isConnected)
+        //         return;
+
+        //     let thickness = 0;
+        //     if (rangeElement.getAttribute("orientation") === "vertical")
+        //         // Get computed height
+        //         thickness = rangeElement.clientHeight;
+        //     else
+        //         thickness = rangeElement.clientWidth;
+
+        //     rangeElement.style.setProperty("--range-track-thickness", `${thickness}px`);
+        // };
+        // new ResizeObserver(onResize).observe(rangeElement);
+
         // const container = document.createElement("div");
         // container.classList.add("input-container-range");
-        // wrapElement(rangeElement, container);
+        // StylesScript.wrapElement(rangeElement, container);
 
         const updateValue = () => {
             const valuePercent = ((Number(rangeElement.value) - Number(rangeElement.min)) / (Number(rangeElement.max) - Number(rangeElement.min))) * 100;
