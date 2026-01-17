@@ -262,7 +262,7 @@ class OssmWebControl {
 
         try {
             this.elements = initializeComponent();
-            // this.relativeRangeSlider = DualSliderComponent.createFromExisting(this.elements.relativeRangeSlider);
+            this.relativeRangeSlider = DualSliderComponent.createFromExisting(this.elements.relativeRangeSlider);
         } catch (error) {
             this.elements = {
                 // Try at the very least to get the main container and splash, if this fails then something is seriously wrong.

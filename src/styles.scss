@@ -855,40 +855,60 @@ footer {
     }
 }
 
-.device-controls {
-    flex: 1;
-    // justify-content: space-around;
-    justify-content: space-evenly;
-
-    @media #{$landscape-media-query} {
-        flex-direction: column;
-    }
-}
-
-.slider-control {
-    display: flex;
-    gap: 0.5rem;
-
-    // When portrait
-    width: fit-content;
-    flex-direction: column;
-    height: 100%;
-
-    > .input-container-range-double {
-        flex: 1;
-    }
-
-    @media #{$landscape-media-query} {
-        width: 100%;
-        height: fit-content;
-        // When landscape
-        flex-direction: row;
-    }
-}
-
 .controls {
-    flex: 1;
-    justify-content: space-evenly;
+    // #region Layout
+    height: 100%;
+    display: grid;
+    grid-template-rows: auto 1fr auto;
+    grid-template-columns: auto;
+    justify-content: space-evenly; // Column alignment
+    align-content: space-evenly; // Row alignment
+    align-items: center; // Content alignment
+    gap: 1rem;
+
+    // Column
+    > div {
+        display: contents;
+
+        // Rows
+        @for $i from 1 through 3 {
+            > :nth-child(#{$i}) {
+                grid-row: $i;
+            }
+        }
+
+        > :nth-child(2) {
+            min-height: 0;
+            overflow: auto;
+        }
+    }
+
+    @media #{$landscape-media-query} {
+        // Flip layout direction in landscape mode
+        grid-template-rows: auto;
+        grid-template-columns: auto 1fr auto;
+
+        // Column becomes row
+        > div {
+            // Row becomes column
+            @for $i from 1 through 3 {
+                > :nth-child(#{$i}) {
+                    grid-column: $i;
+                    grid-row: auto;
+                }
+            }
+        }
+    }
+    // #endregion
+
+    .input-container-range-double {
+        height: 100%;
+
+        @media #{$landscape-media-query} {
+            height: auto;
+            width: 100%;
+        }
+    }
 }
 // #endregion
 
@@ -972,10 +992,6 @@ footer {
     flex-grow: 1;
     flex-direction: column;
     gap: 1rem;
-
-    > div {
-        display: flex;
-    }
 
     @media #{$mobile-media-query} {
         border: none;
