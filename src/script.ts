@@ -13,7 +13,7 @@ import type {
 } from "./pwa.js"
 
 const isDevMode = window.location.hostname === "localhost" || /^(?:[0-9]{1,3}\.){3}[0-9]{1,3}$/.test(window.location.hostname);
-if (isDevMode) console.log("Dev Mode:", isDevMode);
+if (isDevMode) console.log("Dev mode:", isDevMode);
 
 enum DOMExceptionError {
     InvalidState = "InvalidStateError",
@@ -141,6 +141,8 @@ class OssmWebControl {
                     content += secureContextContent;
                 }
 
+                console.log("User Agent Platform:", userAgent);
+
                 switch (userAgent) {
                     case "Windows":
                     case "Linux":
@@ -169,10 +171,29 @@ class OssmWebControl {
                 startupAnimation();
             };
 
-            if (navigator.userAgentData)
+            if (navigator.userAgentData){
+                // Modern method
                 navigator.userAgentData.getHighEntropyValues(["platform"]).then(ua => buildError(ua.platform));
-            else
+            }
+            else if (navigator.userAgent) {
+                // Legacy method
+                const ua = navigator.userAgent;
+                let platform: string | undefined = undefined;
+                if (ua.indexOf("Windows") !== -1)
+                    platform = "Windows";
+                else if (ua.indexOf("Linux") !== -1)
+                    platform = "Linux";
+                else if (ua.indexOf("Macintosh") !== -1)
+                    platform = "Macintosh";
+                else if (ua.indexOf("Android") !== -1)
+                    platform = "Android";
+                else if (ua.indexOf("iPhone") !== -1 || ua.indexOf("iPad") !== -1 || ua.indexOf("iPod") !== -1)
+                    platform = "iOS";
+                buildError(platform);
+            }
+            else {
                 buildError();
+            }
 
             return;
         }
@@ -180,6 +201,7 @@ class OssmWebControl {
         this.elements.pairDeviceButton.addEventListener("click", this.onConnectButtonClicked.bind(this));
         this.elements.pairDeviceButton.classList.remove("hidden");
 
+        // PWA install prompt handling
         window.addEventListener("beforeinstallprompt", async (e) => {
             const event = e as BeforeInstallPromptEvent;
             event.preventDefault();
