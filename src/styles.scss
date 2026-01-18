@@ -6,6 +6,7 @@
 @use "sass:color";
 @use "sass:math";
 @use "sass:meta";
+@use "sass:string";
 // #endregion
 
 // #region Theme variables
@@ -20,7 +21,11 @@ $mobile-height-threshold: 1000;
 
 $material-symbols: (
     "bluetooth_searching",
+    "circle",
+    "dangerous",
     "deployed_code_update",
+    "logout",
+    "share",
 );
 $material-symbols-options: (
     "FILL": "0..1",
@@ -435,7 +440,7 @@ input {
     &[type="checkbox"] {
         @include input-checkbox-radio using ($content) {
             @if $content == "box" {
-                border-radius: $radius-400;
+                border-radius: $radius-200;
             }
 
             @if $content == "checked" {
@@ -549,6 +554,11 @@ footer {
 
     &.fill {
         font-variation-settings: 'FILL' 1;
+    }
+
+    &.small {
+        width: 1em;
+        font-size: 1em;
     }
 
     &::before {
@@ -793,67 +803,6 @@ footer {
         content: "⚠️ Warning!";
     }
 }
-
-.controls {
-    $column-max-width: 6rem;
-
-    // #region Layout
-    height: 100%;
-    display: grid;
-    grid-template-rows: auto 1fr auto;
-    grid-auto-flow: column;
-    grid-template-columns: repeat(auto-fit, minmax(0, 1fr));
-    justify-items: center;
-    justify-content: space-evenly; // Column alignment
-    align-content: space-evenly; // Row alignment
-    align-items: center; // Content alignment
-    gap: 1rem;
-
-    // Column
-    > div {
-        min-width: 0;
-        display: contents;
-
-        // Rows
-        @for $i from 1 through 3 {
-            > :nth-child(#{$i}) {
-                grid-row: $i;
-            }
-        }
-
-        > * {
-            max-width: $column-max-width;
-        }
-    }
-
-    @media #{$landscape-media-query} {
-        // Flip layout direction in landscape mode
-        grid-template-rows: auto;
-        grid-template-columns: auto 1fr auto;
-
-        // Column becomes row
-        > div {
-            // Row becomes column
-            @for $i from 1 through 3 {
-                > :nth-child(#{$i}) {
-                    grid-column: $i;
-                    grid-row: auto;
-                }
-            }
-
-            > :nth-child(2) {
-                max-width: unset;
-            }
-        }
-    }
-    // #endregion
-
-    .input-container-range-double,
-    > div > input {
-        width: 100%;
-        height: 100%;
-    }
-}
 // #endregion
 
 // #region Animations
@@ -910,7 +859,7 @@ footer {
 }
 // #endregion
 
-// #region ID specific styles
+// #region Specific styles
 #background {
     position: absolute;
     top: 0;
@@ -955,14 +904,19 @@ footer {
         filter: contrast(220%) brightness(90%);
     }
 
+    /* TODO: Re-enable animation once performance impact issue is resolved.
+     * Seems to heavily load the GPU at least on Firefox.
+     * While this may be of no concern on desktop or Chrome (since chrome is the target browser),
+     * it could have negative effects on battery life and performance on mobile devices.
+     */
     // Doing this seems to create quite a nice, yet subtile "flame" effect (is what I'll call it) on the background of the blurred elements
     $animation-duration: 5s;
     &::before {
-        animation: grain-fade $animation-duration ease-in-out infinite;
+        // animation: grain-fade $animation-duration ease-in-out infinite;
     }
     &::after {
         background-position: 50px -50px;
-        animation: grain-fade $animation-duration ease-in-out infinite;
+        // animation: grain-fade $animation-duration ease-in-out infinite;
         animation-delay: calc(-1 * #{$animation-duration} / 2);
     }
 
@@ -1067,13 +1021,214 @@ footer {
     flex-direction: column;
     gap: 1rem;
 
-    > div.card {
+    div.card {
         padding: 1rem;
     }
 
     @media #{$mobile-media-query} {
         border: none;
         border-radius: 0;
+    }
+}
+
+#connection-status {
+    $text-placement: "after"; // "before" or "after"
+    $gap: 0.2em;
+
+    @keyframes connection-pulse {
+        0%, 100% {
+            opacity: 1;
+        }
+        50% {
+            opacity: 0.7;
+        }
+    }
+
+    $margin-property: if($text-placement == "before", "margin-right", "margin-left");
+    $states: (
+        connected: hsl(135, 64%, 50%),
+        disconnected: hsl(352, 100%, 61%),
+        connecting: hsl(48, 100%, 50%)
+    );
+    @each $state, $color in $states {
+        &[data-state="#{$state}"] {
+            > span {
+                color: hsl(from $color h s l / 1);
+            }
+
+            &::#{$text-placement} {
+                $text-capitalized: string.to-upper-case(string.slice("#{$state}", 1, 1)) + string.slice("#{$state}", 2);
+                content: "#{$text-capitalized}";
+                #{$margin-property}: $gap;
+            }
+        }
+    }
+
+    &[data-state="connecting"] {
+        color: $text-2;
+        
+        > span {
+            animation: connection-pulse 3s ease-in-out infinite;
+            @media (prefers-reduced-motion: reduce) {
+                animation: none;
+            }
+        }
+    }
+}
+
+.status {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.5rem 1rem !important;
+
+    > div {
+        display: flex;
+        gap: 0.5rem;
+    }
+
+    button {
+        padding: 0.75rem 0.5rem;
+
+        &#stop-button {
+            background-color: hsl(from hsl(352, 100%, 61%) h s l / 0.7);
+        }
+    }
+}
+
+.options-and-controls {
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    gap: 1rem;
+    $controls-size: 70%;
+
+    > .options {
+        flex: 1 1 auto;
+        min-height: 0;
+    }
+
+    > .controls {
+        flex: 0 0 $controls-size;
+    }
+
+    @media #{$landscape-media-query} {
+        flex-direction: row;
+
+        > .options {
+            flex: 1 1 auto;
+            min-width: 0;
+        }
+
+        > .controls {
+            flex: 0 0 $controls-size;
+        }
+    }
+}
+
+.options {
+    display: flex;
+    flex-direction: row;
+    gap: 0.5rem;
+    text-align: left;
+
+    > div {
+        flex: 1 1 0;
+    }
+
+    > .pattern-list {
+        display: flex;
+        flex-direction: column;
+        gap: inherit;
+        overflow: hidden;
+
+        > #pattern-select {
+            display: inherit;
+            flex-direction: inherit;
+            gap: inherit;
+            min-height: 0;
+            overflow-y: auto;
+        }
+    }
+
+    > .pattern-settings {
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        gap: inherit;
+
+        > #description-text {
+            margin-bottom: auto;
+        }
+
+        > #apply-pattern-button {
+            padding: 0.75rem;
+        }
+    }
+
+    @media #{$landscape-media-query} {
+        flex-direction: column;
+    }
+}
+
+.controls {
+    $column-max-width: 6rem;
+
+    // #region Layout
+    height: 100%;
+    display: grid;
+    grid-template-rows: auto 1fr auto;
+    grid-auto-flow: column;
+    grid-template-columns: repeat(auto-fit, minmax(0, 1fr));
+    justify-items: center;
+    justify-content: space-evenly; // Column alignment
+    align-content: space-evenly; // Row alignment
+    align-items: center; // Content alignment
+    gap: 1rem;
+
+    // Column
+    > div {
+        min-width: 0;
+        display: contents;
+
+        // Rows
+        @for $i from 1 through 3 {
+            > :nth-child(#{$i}) {
+                grid-row: $i;
+            }
+        }
+
+        > * {
+            max-width: $column-max-width;
+        }
+    }
+
+    @media #{$landscape-media-query} {
+        // Flip layout direction in landscape mode
+        grid-template-rows: auto;
+        grid-template-columns: auto 1fr auto;
+
+        // Column becomes row
+        > div {
+            // Row becomes column
+            @for $i from 1 through 3 {
+                > :nth-child(#{$i}) {
+                    grid-column: $i;
+                    grid-row: auto;
+                }
+            }
+
+            > :nth-child(2) {
+                max-width: unset;
+            }
+        }
+    }
+    // #endregion
+
+    .input-container-range-double,
+    > div > input {
+        width: 100%;
+        height: 100%;
     }
 }
 // #endregion

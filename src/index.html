@@ -36,21 +36,62 @@
             </noscript>
         </section>
 
+        <!-- TODO: Add a tutorial card -->
+
         <section id="control-screen" class="hidden">
             <!-- TODO: Split each section into its own glass-card -->
-            <div class="card">
-                <!-- Status: stop, disconnect on right etc -->
-            </div>
-            <div class="controls card">
-                <div id="relative-range-slider">
-                    <input type="number" class="spin-split">
-                    <div class="input-container-range-double"></div>
-                    <input type="number" class="spin-split">
+            <div class="status card">
+                <div>
+                    <p id="connection-status" data-state="connecting">
+                        <span class="material-symbol fill small" data-icon="circle"></span>
+                    </p>
                 </div>
-                <div id="relative-speed-slider">
-                    <input type="number" class="spin-split">
-                    <input type="range" min="0" max="100">
-                    <input type="number" class="spin-split">
+                <div>
+                    <button id="stop-button"><span class="material-symbol" data-icon="dangerous"></span></button>
+                    <!-- TODO: Future feature; session sharing -->
+                    <!-- <button id="share-button"><span class="material-symbol" data-icon="share"></span></button> -->
+                    <button id="disconnect-button"><span class="material-symbol" data-icon="logout"></span></button>
+                </div>
+            </div>
+
+            <div class="options-and-controls">
+                <div class="options card">
+                    <div class="pattern-list">
+                        <h3>Patterns</h3>
+                        <!-- <select id="pattern-select"></select> -->
+                        <div id="pattern-select">
+                            <input type="radio" name="pattern" id="pattern-0" checked>
+                            <label for="pattern-0">Pattern 1</label>
+                            <input type="radio" name="pattern" id="pattern-1">
+                            <label for="pattern-1">Pattern 2</label>
+                            <input type="radio" name="pattern" id="pattern-2">
+                            <label for="pattern-2">Pattern 3</label>
+                        </div>
+                    </div>
+                    <div class="pattern-settings">
+                        <p id="description-text">[Description] Lorem ipsum dolor sit amet, consectetur adipiscing elit.</p>
+                        <input type="checkbox" id="invert-toggle">
+                        <label for="invert-toggle">Reverse pattern</label>
+                        <!-- <button id="apply-pattern-button">Apply</button> -->
+                    </div>
+                </div>
+
+                <div class="controls card">
+                    <div id="relative-range-slider">
+                        <input type="number" class="spin-split">
+                        <div class="input-container-range-double"></div>
+                        <input type="number" class="spin-split">
+                    </div>
+                    <div id="relative-speed-slider">
+                        <input type="number" class="spin-split">
+                        <input type="range" min="0" max="100">
+                        <input type="number" class="spin-split">
+                    </div>
+                    <div id="intensity-slider">
+                        <input type="number" class="spin-split">
+                        <input type="range" min="0" max="100">
+                        <input type="number" class="spin-split">
+                    </div>
                 </div>
             </div>
         </section>

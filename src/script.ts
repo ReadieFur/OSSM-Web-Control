@@ -40,6 +40,7 @@ const __elements = {
     controlScreen: HTMLElement,
     relativeRangeSlider: HTMLDivElement,
     relativeSpeedSlider: HTMLDivElement,
+    intensitySlider: HTMLDivElement,
     //#endregion
 } as const satisfies Record<string, typeof HTMLElement>;
 type Elements = {
@@ -387,6 +388,7 @@ class OssmWebControl {
     readonly infoContainers: Map<string, HTMLElement> = new Map();
     readonly relativeRangeSlider!: DualSliderComponent;
     readonly relativeSpeedSlider!: SingleSliderComponent;
+    readonly intensitySlider!: SingleSliderComponent;
     ossmBle?: OssmBle;
 
     private constructor() {
@@ -407,6 +409,7 @@ class OssmWebControl {
             this.elements = initializeComponent();
             this.relativeRangeSlider = DualSliderComponent.createFromExisting(this.elements.relativeRangeSlider);
             this.relativeSpeedSlider = SingleSliderComponent.createFromExisting(this.elements.relativeSpeedSlider);
+            this.intensitySlider = SingleSliderComponent.createFromExisting(this.elements.intensitySlider);
         } catch (error) {
             this.elements = {
                 // Try at the very least to get the main container and splash, if this fails then something is seriously wrong.
