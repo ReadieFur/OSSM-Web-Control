@@ -144,8 +144,8 @@ declare enum KnownPattern {
   */
   TeasingPounding = 1,
   /**
-  * Full and half depth strokes alternate
-  * @param intensity how pronounced the half/full depth effect is, lower is more robotic, higher is smoother
+  * Robotic-style strokes with abrupt starts and stops
+  * @param intensity how pronounced the effect is, lower is more robotic, higher is smoother
   * @param canInvert `false`
   */
   RoboStroke = 2,

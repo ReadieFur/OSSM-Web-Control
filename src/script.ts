@@ -1,6 +1,8 @@
 import {
+    KnownPattern,
     OssmBle,
     OssmEventType,
+    OssmStatus,
     PatternHelper,
     type OssmEventCallbackParameters,
     type OssmPattern,
@@ -16,19 +18,12 @@ import type {
     BeforeInstallPromptEvent
 } from "./pwa.js"
 
-const isDevMode = window.location.hostname === "localhost" || /^(?:[0-9]{1,3}\.){3}[0-9]{1,3}$/.test(window.location.hostname);
-if (isDevMode) console.log("Dev mode:", isDevMode);
-
-enum DOMExceptionError {
-    InvalidState = "InvalidStateError",
-    NetworkError = "NetworkError",
-    Timeout = "TimeoutError",
-    TypeError = "TypeError",
-    OperationError = "OperationError",
-    DataError = "DataError",
-    AbortError = "AbortError",
-    NotFoundError = "NotFoundError",
-}
+const isDevMode =
+    window.location.hostname === "localhost" ||
+    /^(?:[0-9]{1,3}\.){3}[0-9]{1,3}$/.test(window.location.hostname) ||
+    new URLSearchParams(window.location.search).has("dev");
+if (isDevMode)
+    console.log("Dev mode:", isDevMode);
 
 const __elements = {
     mainContent: HTMLDivElement,
@@ -91,6 +86,61 @@ const initializeComponent = () => {
     }
     return elements as Elements;
 };
+
+type PatternInfo = {
+    idx: number;
+    name: string;
+    description: string;
+    hasIntensityControl: boolean;
+    canInvert: boolean;
+};
+
+// I find that some of the descriptions for the built-in patterns aren't very explanatory, so I've re-written them here.
+const KNOWN_PATTERNS = {
+    [KnownPattern.SimpleStroke]: {
+        name: "Simple Stroke",
+        description: "Smooth acceleration and deceleration simulating a basic stroking motion.",
+        hasIntensityControl: false,
+        canInvert: false,
+    },
+    [KnownPattern.TeasingPounding]: {
+        name: "Teasing Pounding",
+        description: "The actuator moves steadily in one direction and quickly in the other.",
+        hasIntensityControl: true,
+    },
+    [KnownPattern.RoboStroke]: {
+        name: "Robo Stroke",
+        description: "A mechanical stroking motion with abrupt starts and stops.",
+        hasIntensityControl: true,
+    },
+    [KnownPattern.HalfNHalf]: {
+        name: "Half'n'Half",
+        description: "Full and half depth strokes alternating with each cycle.",
+        hasIntensityControl: true,
+        canInvert: true,
+    },
+    [KnownPattern.Deeper]: {
+        name: "Deeper",
+        description: "Gradually deepens the stroke over a set number of cycles.",
+        hasIntensityControl: true,
+    },
+    [KnownPattern.StopNGo]: {
+        name: "Stop'n'Go",
+        description: "Pauses briefly between strokes at random intervals.",
+        hasIntensityControl: true,
+    }
+} as const satisfies Record<number, Partial<PatternInfo>>;
+
+enum DOMExceptionError {
+    InvalidState = "InvalidStateError",
+    NetworkError = "NetworkError",
+    Timeout = "TimeoutError",
+    TypeError = "TypeError",
+    OperationError = "OperationError",
+    DataError = "DataError",
+    AbortError = "AbortError",
+    NotFoundError = "NotFoundError",
+}
 
 class Helpers {
     static isMobileUI(): boolean {
@@ -406,7 +456,7 @@ class OssmWebControl {
     private readonly relativeRangeSlider!: DualSliderComponent;
     private readonly relativeSpeedSlider!: SingleSliderComponent;
     private readonly intensitySlider!: SingleSliderComponent;
-    private readonly patternRadioButtons: Map<number, HTMLInputElement> = new Map();
+    private readonly patternRadioButtons: Map<HTMLInputElement, PatternInfo> = new Map();
     private pwaInstallContext?: BeforeInstallPromptEvent;
     private ossmBle?: OssmBle;
 
@@ -638,6 +688,7 @@ class OssmWebControl {
 
         this.elements.pairDeviceButton.classList.add("hidden");
         this.elements.installPwaButton.classList.add("hidden");
+
         this.setInfoContainer(
             pairingInfoContainerKey,
             StylesScript.createInfoContainer({
@@ -650,6 +701,8 @@ class OssmWebControl {
             await this.ossmBle.begin();
             await this.ossmBle.waitForReady(5_000);
             await this.ossmBle.setSpeedKnobConfig(false);
+            if (isDevMode)
+                console.log("Device is ready");
         } catch (error) {
             console.error("Error waiting for device to become ready:", error);
 
@@ -667,19 +720,20 @@ class OssmWebControl {
             this.elements.pairDeviceButton.classList.remove("hidden");
             return;
         }
-
-        // this.setInfoContainer(
-        //     pairingInfoContainerKey,
-        //     StylesScript.createInfoContainer({
-        //         state: InfoContainerState.Success,
-        //         title: "Connected",
-        //         message: "Loading control interface...",
-        //     }),
-        //     this.pairScreenElement
-        // );
         //#endregion
 
         //#region Setup control screen
+        if (isDevMode) {
+            console.log("Fetching initial device state...");
+            this.setInfoContainer(
+                pairingInfoContainerKey,
+                StylesScript.createInfoContainer({
+                    message: "Fetching device information..."
+                }),
+                this.elements.pairScreen
+            );
+        }
+
         // Wait until one state update has been received (see onStateChanged for UI refresh)
         let currentState: OssmState;
         try {
@@ -701,6 +755,17 @@ class OssmWebControl {
             this.ossmBle = undefined;
             this.restorePairScreenLayout();
             return;
+        }
+
+        if (isDevMode) {
+            console.log("Fetching pattern list...");
+            this.setInfoContainer(
+                pairingInfoContainerKey,
+                StylesScript.createInfoContainer({
+                    message: "Loading patterns..."
+                }),
+                this.elements.pairScreen
+            );
         }
 
         let patterns: OssmPattern[];
@@ -732,23 +797,58 @@ class OssmWebControl {
             option.value = pattern.idx.toString();
             option.name = "pattern-select";
             option.addEventListener("change", this.onPatternSelected.bind(this));
+
+            let patternInfo: PatternInfo = {
+                idx: pattern.idx,
+                name: pattern.name,
+                description: pattern.description,
+                hasIntensityControl: true,
+                canInvert: false,
+            };
+
+            // Check if there is override information to use instead.
+            for (const knownPatternInfo of Object.values(KNOWN_PATTERNS) as Partial<PatternInfo>[]) {
+                if (pattern.name === undefined || pattern.name !== knownPatternInfo.name)
+                    continue;
+                patternInfo = {
+                    idx: pattern.idx,
+                    name: knownPatternInfo.name,
+                    description: knownPatternInfo?.description ?? pattern.description,
+                    hasIntensityControl: knownPatternInfo?.hasIntensityControl ?? patternInfo.hasIntensityControl,
+                    canInvert: knownPatternInfo?.canInvert ?? patternInfo.canInvert,
+                };
+                break;
+            }
             
             const label = document.createElement("label");
             label.htmlFor = option.id;
-            label.textContent = pattern.name;
-
-            this.patternRadioButtons.set(pattern.idx, option);
-            if (currentState.pattern === pattern.idx) {
-                option.checked = true;
-                this.elements.descriptionText.textContent = pattern.description;
-            }
+            label.textContent = patternInfo.name;
 
             this.elements.patternSelect.appendChild(option);
             this.elements.patternSelect.appendChild(label);
+
+            this.patternRadioButtons.set(option, patternInfo);
+            if (currentState.pattern === pattern.idx) {
+                option.checked = true;
+                this.elements.descriptionText.textContent = patternInfo.description;
+            }
         }
         //#endregion
 
         //#region Switch screens
+        if (isDevMode) {
+            console.log("Setup complete");
+            this.setInfoContainer(
+                pairingInfoContainerKey,
+                StylesScript.createInfoContainer({
+                    // state: InfoContainerState.Success,
+                    // message: "Setup complete!"
+                    message: "Connection successful"
+                }),
+                this.elements.pairScreen
+            );
+        }
+
         await StylesScript.transitionFade({
             element: this.elements.mainContent,
             direction: TransitionDirection.Out,
@@ -796,19 +896,16 @@ class OssmWebControl {
         if (!(target instanceof HTMLInputElement))
             return;
 
-        const patternIdx = parseInt(target.value);
-        if (isNaN(patternIdx))
+        const patternInfo = this.patternRadioButtons.get(target);
+        if (!patternInfo)
             return;
 
         if (!this.ossmBle)
             return;
 
-        const patterns = this.ossmBle?.getCachedPatternList();
-        const selectedPattern = patterns?.find(p => p.idx === patternIdx);
-        if (!selectedPattern)
-            return;
+        this.elements.descriptionText.textContent = patternInfo.description;
 
-        this.elements.descriptionText.textContent = selectedPattern.description;
+        // TODO: Change pattern on device
     }
 
     private async onConnected(data: OssmEventCallbackParameters): Promise<void> {
@@ -854,22 +951,73 @@ class OssmWebControl {
     }
 
     private async onStateChanged(data: OssmEventCallbackParameters): Promise<void> {
-        const newState = data[OssmEventType.StateChanged]!.newState;
+        if (!data[OssmEventType.StateChanged])
+            return;
 
-        // Select current pattern
+        switch (data[OssmEventType.StateChanged].newState.status) {
+            // Transition to stroke engine when in these states:
+            case OssmStatus.Idle:
+            case OssmStatus.Menu:
+            case OssmStatus.MenuIdle:
+            case OssmStatus.SimplePenetration:
+            case OssmStatus.SimplePenetrationIdle:
+            case OssmStatus.SimplePenetrationPreflight:
+                await this.stateTransition();
+                break;
+            // Wait for external event when in these states:
+            case OssmStatus.Update:
+            case OssmStatus.UpdateChecking:
+            case OssmStatus.UpdateUpdating:
+            case OssmStatus.UpdateIdle:
+            case OssmStatus.Wifi:
+            case OssmStatus.WifiIdle:
+            case OssmStatus.Help:
+            case OssmStatus.HelpIdle:
+                await this.stateExternal();
+                break;
+            // Wait in these states:
+            case OssmStatus.Homing:
+            case OssmStatus.HomingForward:
+            case OssmStatus.HomingBackward:
+                await this.stateHoming();
+                break;
+            // Activate controls in these states:
+            case OssmStatus.StrokeEngine:
+            case OssmStatus.StrokeEngineIdle:
+            case OssmStatus.StrokeEnginePreflight:
+            case OssmStatus.StrokeEnginePattern:
+                await this.stateStrokeEngine();
+                break;
+            // Signal catastrophic device error in these states:
+            case OssmStatus.Error:
+            case OssmStatus.ErrorIdle:
+            case OssmStatus.ErrorHelp:
+            case OssmStatus.Restart:
+                await this.stateDeviceError();
+                break;
+            // Unknown state
+            default:
+                await this.stateUnknown();
+                break;
+        }
+    }
 
-        // let patternData: PatternHelper;
-        // try {
-        //     patternData = PatternHelper.fromPlayData(
-        //         newState,
-        //         false,
-        //         false
-        //     );
-        // } catch (error) {
-        //     console.error("Error parsing play state data:", error);
-        //     // TODO: Show error in UI?
-        //     return;
-        // }
+    private async stateTransition(): Promise<void> {
+    }
+
+    private async stateExternal(): Promise<void> {
+    }
+
+    private async stateHoming(): Promise<void> {
+    }
+
+    private async stateStrokeEngine(): Promise<void> {
+    }
+
+    private async stateDeviceError(): Promise<void> {
+    }
+
+    private async stateUnknown(): Promise<void> {
     }
 }
 

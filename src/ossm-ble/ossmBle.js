@@ -234,8 +234,8 @@ let KnownPattern = /* @__PURE__ */ function(KnownPattern$1) {
 	*/
 	KnownPattern$1[KnownPattern$1["TeasingPounding"] = 1] = "TeasingPounding";
 	/**
-	* Full and half depth strokes alternate
-	* @param intensity how pronounced the half/full depth effect is, lower is more robotic, higher is smoother
+	* Robotic-style strokes with abrupt starts and stops
+	* @param intensity how pronounced the effect is, lower is more robotic, higher is smoother
 	* @param canInvert `false`
 	*/
 	KnownPattern$1[KnownPattern$1["RoboStroke"] = 2] = "RoboStroke";
