@@ -540,7 +540,14 @@ class StylesScriptAuto {
                     if (mutation.attributeName === "class") {
                         // Wrap observer must be disconnected here as reorderElements modifies the DOM
                         wrapObserver.disconnect();
+                        
                         reorderElements();
+                        
+                        if (numberElement.classList.contains("hidden"))
+                            container.classList.add("hidden");
+                        else
+                            container.classList.remove("hidden");
+
                         wrapObserver.observe(document.body, { childList: true, subtree: true });
                     } else if (mutation.attributeName === "disabled") {
                         const disabled = numberElement.disabled;

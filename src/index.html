@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>OSSM Web Control</title>
     <link rel="icon" type="image/png" href="favicon.png">
     <link rel="manifest" href="manifest.json">
@@ -36,19 +36,20 @@
             </noscript>
         </section>
 
-        <section id="control-screen" class="card hidden">
+        <section id="control-screen" class="hidden">
             <!-- TODO: Split each section into its own glass-card -->
-            <div>
-                <!-- Info -->
-                <div id="device-info">
-                    <h2 id="device-name">Device Name</h2>
-                    <p id="device-status">Status: <span>Disconnected</span></p>
-                </div>
+            <div class="card">
+                <!-- Status: stop, disconnect on right etc -->
             </div>
-            <div class="controls">
-                <div class="col" id="relative-range-slider">
+            <div class="controls card">
+                <div id="relative-range-slider">
                     <input type="number" class="spin-split">
                     <div class="input-container-range-double"></div>
+                    <input type="number" class="spin-split">
+                </div>
+                <div id="relative-speed-slider">
+                    <input type="number" class="spin-split">
+                    <input type="range" min="0" max="100">
                     <input type="number" class="spin-split">
                 </div>
             </div>

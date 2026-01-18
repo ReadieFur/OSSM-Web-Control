@@ -39,6 +39,7 @@ const __elements = {
     //#region Control Screen
     controlScreen: HTMLElement,
     relativeRangeSlider: HTMLDivElement,
+    relativeSpeedSlider: HTMLDivElement,
     //#endregion
 } as const satisfies Record<string, typeof HTMLElement>;
 type Elements = {
@@ -84,6 +85,147 @@ class Helpers {
 
     static async delay(ms: number): Promise<void> {
         return new Promise(resolve => setTimeout(resolve, ms));
+    }
+}
+
+class SingleSliderComponent {
+    static createFromExisting(container: HTMLElement): SingleSliderComponent {
+        const numberInputs = container.querySelectorAll("input[type='number']");
+        if (numberInputs.length < 2)
+            throw new Error("SliderComponent: Could not find required number input elements");
+        const rangeInput = container.querySelector("input[type='range']");
+        if (!rangeInput || !(rangeInput instanceof HTMLInputElement))
+            throw new Error("SliderComponent: Could not find required range input element");
+        return new SingleSliderComponent(
+            numberInputs[0] as HTMLInputElement,
+            numberInputs[1] as HTMLInputElement,
+            rangeInput
+        );
+    }
+
+    private readonly externalCallbacks: Map<string, Array<(sender: any) => void>> = new Map();
+
+    private constructor(
+        private readonly numberInputA: HTMLInputElement,
+        private readonly numberInputB: HTMLInputElement,
+        private readonly rangeInput: HTMLInputElement,
+    ){
+        window.addEventListener("resize", this.onWindowResize.bind(this));
+
+        this.setMinMax({
+            min: this.rangeInput.min ? parseFloat(this.rangeInput.min) : undefined,
+            max: this.rangeInput.max ? parseFloat(this.rangeInput.max) : undefined,
+        })
+        this.setValue(this.rangeInput.valueAsNumber);
+
+        rangeInput.addEventListener("input", (sender) => {
+            this.numberInputA.value = this.rangeInput.value;
+            this.numberInputB.value = this.rangeInput.value;
+            this.dispatchEvent("input", sender);
+        });
+        rangeInput.addEventListener("change", (sender) => {
+            this.numberInputA.value = this.rangeInput.value;
+            this.numberInputB.value = this.rangeInput.value;
+            this.dispatchEvent("change", sender);
+        });
+        numberInputA.addEventListener("change", () => {
+            const value = parseFloat(this.numberInputA.value);
+            this.rangeInput.valueAsNumber = value;
+            this.numberInputB.value = value.toString();
+            this.rangeInput.dispatchEvent(new Event("input"));
+            this.rangeInput.dispatchEvent(new Event("change"));
+        });
+        numberInputB.addEventListener("change", () => {
+            const value = parseFloat(this.numberInputB.value);
+            this.rangeInput.valueAsNumber = value;
+            this.numberInputA.value = value.toString();
+            this.rangeInput.dispatchEvent(new Event("input"));
+            this.rangeInput.dispatchEvent(new Event("change"));
+        });
+
+        this.onWindowResize();
+    }
+
+    private dispatchEvent(event: "input" | "change", sender?: any): void {
+        const callbacks = this.externalCallbacks.get(event);
+        if (!callbacks)
+            return;
+        for (const callback of callbacks)
+            callback(sender);
+    }
+
+    private onWindowResize(): void {
+        const isPortrait = Helpers.isPortrait();
+
+        if (isPortrait) {
+            this.rangeInput.setAttribute("orientation", "vertical");
+            this.numberInputA.classList.add("hidden");
+            this.numberInputB.classList.remove("hidden");
+        }
+        else {
+            this.rangeInput.removeAttribute("orientation");
+            this.numberInputA.classList.remove("hidden");
+            this.numberInputB.classList.add("hidden");
+        }
+    }
+
+    private onNumberInput(value: number): void {
+        this.rangeInput.valueAsNumber = value;
+        this.numberInputA.value = value.toString();
+        this.numberInputB.value = value.toString();
+    }
+
+    getValue(): number {
+        return this.rangeInput.valueAsNumber;
+    }
+
+    setValue(value: number): void {
+        const min = this.rangeInput.min ? parseFloat(this.rangeInput.min) : Number.NEGATIVE_INFINITY;
+        const max = this.rangeInput.max ? parseFloat(this.rangeInput.max) : Number.POSITIVE_INFINITY;
+        if (value < min || value > max)
+            throw new Error("Value is out of range");
+        
+        this.rangeInput.valueAsNumber = value;
+        this.numberInputA.value = value.toString();
+        this.numberInputB.value = value.toString();
+
+        this.dispatchEvent("input", this);
+        this.dispatchEvent("change", this);
+    }
+
+    getMinMax(): { min: number; max: number } {
+        const min = this.rangeInput.min ? parseFloat(this.rangeInput.min) : Number.NEGATIVE_INFINITY;
+        const max = this.rangeInput.max ? parseFloat(this.rangeInput.max) : Number.POSITIVE_INFINITY;
+        return { min, max };
+    }
+
+    setMinMax(data: { min?: number, max?: number }): void {
+        this.rangeInput.min = data.min?.toString() ?? this.rangeInput.min;
+        this.rangeInput.max = data.max?.toString() ?? this.rangeInput.max;
+        const { min, max } = this.getMinMax();
+        this.numberInputA.min = min.toString();
+        this.numberInputA.max = max.toString();
+        this.numberInputB.min = min.toString();
+        this.numberInputB.max = max.toString();
+
+        const value = this.getValue();
+        if (value > max)
+            this.setValue(max);
+        else if (value < min)
+            this.setValue(min);
+
+        if (value != this.getValue()) {
+            this.dispatchEvent("input", this);
+            this.dispatchEvent("change", this);
+        }
+    }
+
+    addEventListener(event: "input" | "change", callback: () => PromiseLike<void> | void): void {
+        this.rangeInput.addEventListener(event, callback);
+    }
+
+    removeEventListener(event: "input" | "change", callback: () => PromiseLike<void> | void): void {
+        this.rangeInput.removeEventListener(event, callback);
     }
 }
 
@@ -244,6 +386,7 @@ class OssmWebControl {
     readonly elements: Elements;
     readonly infoContainers: Map<string, HTMLElement> = new Map();
     readonly relativeRangeSlider!: DualSliderComponent;
+    readonly relativeSpeedSlider!: SingleSliderComponent;
     ossmBle?: OssmBle;
 
     private constructor() {
@@ -263,6 +406,7 @@ class OssmWebControl {
         try {
             this.elements = initializeComponent();
             this.relativeRangeSlider = DualSliderComponent.createFromExisting(this.elements.relativeRangeSlider);
+            this.relativeSpeedSlider = SingleSliderComponent.createFromExisting(this.elements.relativeSpeedSlider);
         } catch (error) {
             this.elements = {
                 // Try at the very least to get the main container and splash, if this fails then something is seriously wrong.
