@@ -67,6 +67,10 @@ $radius-200: 0.25em;
 
 $blur: 12px;
 
+$green: hsl(135, 64%, 50%);
+$red: hsl(352, 100%, 61%);
+$yellow: hsl(48, 100%, 50%);
+
 $theme-rules: (
     text-1: (
         dark: $neutral-100,
@@ -774,9 +778,9 @@ footer {
 
     // State-based styling
     $states: (
-        success: hsl(135, 64%, 50%),
-        error:   hsl(352, 100%, 61%),
-        warning: hsl(48, 100%, 50%)
+        success: $green,
+        error:   $red,
+        warning: $yellow
     );
     @each $state, $color in $states {
         &[data-state="#{$state}"] {
@@ -813,6 +817,11 @@ footer {
     interpolate-size: allow-keywords;
     // width: calc-size(auto);
     // height: calc-size(auto);
+
+    @media (prefers-reduced-motion: reduce) {
+        transition: none;
+        interpolate-size: none;
+    }
 }
 
 @keyframes fade-in {
@@ -856,6 +865,32 @@ footer {
 @keyframes grain-fade {
     0%, 100% { opacity: 1; }
     50% { opacity: 0; }
+}
+
+@keyframes opacity-pulse {
+    0%, 100% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.7;
+    }
+}
+
+@keyframes scale-pulse {
+    0%, 100% {
+        transform: scale(1);
+    }
+    50% {
+        transform: scale(0.975);
+    }
+}
+
+.scale-pulse {
+    animation: scale-pulse 2s ease-in-out infinite;
+
+    @media (prefers-reduced-motion: reduce) {
+        animation: none;
+    }
 }
 // #endregion
 
@@ -1031,24 +1066,16 @@ footer {
     }
 }
 
-#connection-status {
+#state-indicator {
     $text-placement: "after"; // "before" or "after"
     $gap: 0.2em;
 
-    @keyframes connection-pulse {
-        0%, 100% {
-            opacity: 1;
-        }
-        50% {
-            opacity: 0.7;
-        }
-    }
-
     $margin-property: if($text-placement == "before", "margin-right", "margin-left");
     $states: (
-        connected: hsl(135, 64%, 50%),
-        disconnected: hsl(352, 100%, 61%),
-        connecting: hsl(48, 100%, 50%)
+        connected: $green,
+        disconnected: $red,
+        connecting: $yellow,
+        calibrating: $accent-2
     );
     @each $state, $color in $states {
         &[data-state="#{$state}"] {
@@ -1064,11 +1091,12 @@ footer {
         }
     }
 
-    &[data-state="connecting"] {
+    &[data-state="connecting"],
+    &[data-state="calibrating"] {
         color: $text-2;
         
         > span {
-            animation: connection-pulse 3s ease-in-out infinite;
+            animation: opacity-pulse 3s ease-in-out infinite;
             @media (prefers-reduced-motion: reduce) {
                 animation: none;
             }
@@ -1091,12 +1119,12 @@ footer {
         padding: 0.75rem 0.5rem;
 
         &#stop-button {
-            background-color: hsl(from hsl(352, 100%, 61%) h s l / 0.7);
+            background-color: hsl(from $red h s l / 0.7);
         }
     }
 }
 
-.options-and-controls {
+#options-and-controls {
     display: flex;
     flex: 1 1 auto;
     flex-direction: column;
@@ -1148,6 +1176,7 @@ footer {
             gap: inherit;
             min-height: 0;
             overflow-y: auto;
+            scrollbar-gutter: stable;
         }
     }
 

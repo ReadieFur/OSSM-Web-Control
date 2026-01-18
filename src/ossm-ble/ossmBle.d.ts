@@ -233,6 +233,11 @@ declare class OssmBle implements Disposable {
   */
   end(): void;
   /**
+  * Checks whether automatic reconnection will occur upon disconnection
+  * @returns `true` if auto-reconnect is enabled, `false` otherwise
+  */
+  willAutoReconnect(): boolean;
+  /**
   * Adds an event listener for the specified event type
   * @param eventType one of {@link OssmEventType}
   * @param callback Function to call when the event occurs (see {@link OssmEventCallback})

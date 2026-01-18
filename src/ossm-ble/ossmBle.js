@@ -443,6 +443,13 @@ var OssmBle = class OssmBle {
 		else doDisconnect();
 	}
 	/**
+	* Checks whether automatic reconnection will occur upon disconnection
+	* @returns `true` if auto-reconnect is enabled, `false` otherwise
+	*/
+	willAutoReconnect() {
+		return this.autoReconnect;
+	}
+	/**
 	* Adds an event listener for the specified event type
 	* @param eventType one of {@link OssmEventType}
 	* @param callback Function to call when the event occurs (see {@link OssmEventCallback})

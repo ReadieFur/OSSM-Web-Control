@@ -1,7 +1,10 @@
 import {
     OssmBle,
     OssmEventType,
+    PatternHelper,
     type OssmEventCallbackParameters,
+    type OssmPattern,
+    type OssmState,
 } from "./ossm-ble/ossmBle.js";
 import {
     StylesScript,
@@ -38,9 +41,23 @@ const __elements = {
     
     //#region Control Screen
     controlScreen: HTMLElement,
+
+    stateIndicator: HTMLParagraphElement,
+    stopButton: HTMLButtonElement,
+    // shareSessionButton: HTMLButtonElement,
+    disconnectButton: HTMLButtonElement,
+
+    //#region Options and Controls
+    optionsAndControls: HTMLDivElement,
+    patternSelect: HTMLDivElement,
+    descriptionText: HTMLParagraphElement,
+    invertToggle: HTMLInputElement,
+    // applyPatternButton: HTMLButtonElement,
+
     relativeRangeSlider: HTMLDivElement,
     relativeSpeedSlider: HTMLDivElement,
     intensitySlider: HTMLDivElement,
+    //#endregion
     //#endregion
 } as const satisfies Record<string, typeof HTMLElement>;
 type Elements = {
@@ -376,7 +393,7 @@ class DualSliderComponent {
 
 // TODO: Add UI support for connecting multiple devices.
 class OssmWebControl {
-    static instance?: OssmWebControl;
+    private static instance?: OssmWebControl;
 
     public static async initialize(): Promise<void> {
         if (OssmWebControl.instance)
@@ -384,12 +401,14 @@ class OssmWebControl {
         OssmWebControl.instance = new OssmWebControl();
     }
 
-    readonly elements: Elements;
-    readonly infoContainers: Map<string, HTMLElement> = new Map();
-    readonly relativeRangeSlider!: DualSliderComponent;
-    readonly relativeSpeedSlider!: SingleSliderComponent;
-    readonly intensitySlider!: SingleSliderComponent;
-    ossmBle?: OssmBle;
+    private readonly elements: Elements;
+    private readonly infoContainers: Map<string, HTMLElement> = new Map();
+    private readonly relativeRangeSlider!: DualSliderComponent;
+    private readonly relativeSpeedSlider!: SingleSliderComponent;
+    private readonly intensitySlider!: SingleSliderComponent;
+    private readonly patternRadioButtons: Map<number, HTMLInputElement> = new Map();
+    private pwaInstallContext?: BeforeInstallPromptEvent;
+    private ossmBle?: OssmBle;
 
     private constructor() {
         const constructorInfoContainerKey = "constructor";
@@ -513,16 +532,20 @@ class OssmWebControl {
             return;
         }
 
+        this.elements.stopButton.addEventListener("click", this.onStopButtonClicked.bind(this));
+        this.elements.disconnectButton.addEventListener("click", this.onDisconnectButtonClicked.bind(this));
+
         this.elements.pairDeviceButton.addEventListener("click", this.onConnectButtonClicked.bind(this));
         this.elements.pairDeviceButton.classList.remove("hidden");
 
         // PWA install prompt handling
         window.addEventListener("beforeinstallprompt", async (e) => {
-            const event = e as BeforeInstallPromptEvent;
-            event.preventDefault();
+            this.pwaInstallContext = e as BeforeInstallPromptEvent;
+            this.pwaInstallContext.preventDefault();
 
             this.elements.installPwaButton.addEventListener("click", async () => {
-                const result = await event.prompt();
+                this.elements.installPwaButton.disabled = true;
+                const result = await this.pwaInstallContext!.prompt();
                 if (result.outcome === "accepted") {
                     await StylesScript.transitionFade({
                         element: this.elements.installPwaButton,
@@ -531,6 +554,8 @@ class OssmWebControl {
                     });
                     this.elements.installPwaButton.classList.add("hidden");
                 }
+                this.pwaInstallContext = undefined;
+                this.elements.installPwaButton.disabled = false;
             }, { once: true });
 
             if (this.elements.installPwaButton.classList.contains("hidden")) {
@@ -562,12 +587,15 @@ class OssmWebControl {
     }
 
     private async onConnectButtonClicked(): Promise<void> {
+        const pairingInfoContainerKey = "pairing-info";
+
         //#region Pre-run
         // Remove any old connection related info containers
-        const pairingInfoContainerKey = "pairing-info";
         this.deleteInfoContainer(pairingInfoContainerKey);
 
+        // Should already be disposed here, but extra cleanup just in case.
         this.ossmBle?.[Symbol.dispose]();
+        this.ossmBle = undefined;
         
         this.elements.pairDeviceButton.disabled = true;
         //#endregion
@@ -598,10 +626,18 @@ class OssmWebControl {
         //#endregion
 
         //#region Initialization
+        this.elements.pairScreen.classList.add("scale-pulse");
+
         this.ossmBle.debug = isDevMode;
+        if (isDevMode)
+            console.log("OssmBle instance created:", this.ossmBle);
+
+        this.ossmBle.addEventListener(OssmEventType.Connected, this.onConnected.bind(this));
+        this.ossmBle.addEventListener(OssmEventType.Disconnected, this.onDisconnected.bind(this));
+        this.ossmBle.addEventListener(OssmEventType.StateChanged, this.onStateChanged.bind(this));
 
         this.elements.pairDeviceButton.classList.add("hidden");
-
+        this.elements.installPwaButton.classList.add("hidden");
         this.setInfoContainer(
             pairingInfoContainerKey,
             StylesScript.createInfoContainer({
@@ -613,6 +649,7 @@ class OssmWebControl {
         try {
             await this.ossmBle.begin();
             await this.ossmBle.waitForReady(5_000);
+            await this.ossmBle.setSpeedKnobConfig(false);
         } catch (error) {
             console.error("Error waiting for device to become ready:", error);
 
@@ -640,25 +677,86 @@ class OssmWebControl {
         //     }),
         //     this.pairScreenElement
         // );
-
-        this.ossmBle.addEventListener(OssmEventType.Connected, this.onConnected.bind(this));
-        this.ossmBle.addEventListener(OssmEventType.Disconnected, this.onDisconnected.bind(this));
-        this.ossmBle.addEventListener(OssmEventType.StateChanged, this.onStateChanged.bind(this));
         //#endregion
 
         //#region Setup control screen
+        // Wait until one state update has been received (see onStateChanged for UI refresh)
+        let currentState: OssmState;
+        try {
+            currentState = await this.ossmBle.getState(5_000);
+        } catch (error) {
+            console.error("Error retrieving initial device state:", error);
+            this.setInfoContainer(
+                pairingInfoContainerKey,
+                StylesScript.createInfoContainer({
+                    state: InfoContainerState.Error,
+                    title: "Connection Error",
+                    message: `Failed to retrieve device state`,
+                }),
+                this.elements.pairScreen
+            );
+
+            await this.ossmBle.end();
+            this.ossmBle?.[Symbol.dispose]();
+            this.ossmBle = undefined;
+            this.restorePairScreenLayout();
+            return;
+        }
+
+        let patterns: OssmPattern[];
+        try {
+            patterns = await this.ossmBle.getPatternList();
+        } catch (error) {
+            console.error("Error retrieving pattern list:", error);
+            this.setInfoContainer(
+                pairingInfoContainerKey,
+                StylesScript.createInfoContainer({
+                    state: InfoContainerState.Error,
+                    title: "Connection Error",
+                    message: `Failed to retrieve pattern list from device`,
+                }),
+                this.elements.pairScreen
+            );
+
+            await this.ossmBle.end();
+            this.ossmBle?.[Symbol.dispose]();
+            this.ossmBle = undefined;
+            this.restorePairScreenLayout();
+            return;
+        }
+        this.elements.patternSelect.innerHTML = "";
+        for (const pattern of patterns) {
+            const option = document.createElement("input");
+            option.type = "radio";
+            option.id = `pattern-idx-${pattern.idx}`;
+            option.value = pattern.idx.toString();
+            option.name = "pattern-select";
+            option.addEventListener("change", this.onPatternSelected.bind(this));
+            
+            const label = document.createElement("label");
+            label.htmlFor = option.id;
+            label.textContent = pattern.name;
+
+            this.patternRadioButtons.set(pattern.idx, option);
+            if (currentState.pattern === pattern.idx) {
+                option.checked = true;
+                this.elements.descriptionText.textContent = pattern.description;
+            }
+
+            this.elements.patternSelect.appendChild(option);
+            this.elements.patternSelect.appendChild(label);
+        }
         //#endregion
 
         //#region Switch screens
-        // await Helpers.delay(500);
         await StylesScript.transitionFade({
             element: this.elements.mainContent,
             direction: TransitionDirection.Out,
             durationMs: 500
         });
         this.elements.pairScreen.classList.add("hidden");
-        this.elements.controlScreen.classList.remove("hidden");
         this.elements.mainContent.classList.add("fill-page");
+        this.elements.controlScreen.classList.remove("hidden");
         await StylesScript.transitionFade({
             element: this.elements.mainContent,
             direction: TransitionDirection.In,
@@ -666,18 +764,112 @@ class OssmWebControl {
         });
 
         this.deleteInfoContainer(pairingInfoContainerKey);
-        this.elements.pairDeviceButton.disabled = false;
-        this.elements.pairDeviceButton.classList.remove("hidden");
+        this.elements.pairScreen.classList.remove("scale-pulse");
+        // this.restorePairScreenLayout();
         //#endregion
     }
 
+    private restorePairScreenLayout(): void {
+        this.elements.pairScreen.classList.remove("scale-pulse");
+
+        this.elements.pairDeviceButton.disabled = false;
+        this.elements.pairDeviceButton.classList.remove("hidden");
+        
+        if (this.pwaInstallContext) {
+            this.elements.installPwaButton.disabled = false;
+            this.elements.installPwaButton.classList.remove("hidden");
+        }
+    }
+
+    private async onDisconnectButtonClicked(): Promise<void> {
+        await this.ossmBle?.stop(); // Forcefully stop any movement
+        this.ossmBle?.end();
+        // See onDisconnected for UI handling
+    }
+
+    private async onStopButtonClicked(): Promise<void> {
+        await this.ossmBle?.stop();
+    }
+
+    private async onPatternSelected(event: Event): Promise<void> {
+        const target = event.target;
+        if (!(target instanceof HTMLInputElement))
+            return;
+
+        const patternIdx = parseInt(target.value);
+        if (isNaN(patternIdx))
+            return;
+
+        if (!this.ossmBle)
+            return;
+
+        const patterns = this.ossmBle?.getCachedPatternList();
+        const selectedPattern = patterns?.find(p => p.idx === patternIdx);
+        if (!selectedPattern)
+            return;
+
+        this.elements.descriptionText.textContent = selectedPattern.description;
+    }
+
     private async onConnected(data: OssmEventCallbackParameters): Promise<void> {
+        this.elements.stateIndicator.dataset.state = "connected";
+        this.elements.optionsAndControls.classList.remove("scale-pulse");
     }
 
     private async onDisconnected(data: OssmEventCallbackParameters): Promise<void> {
+        const willReconnect = this.ossmBle?.willAutoReconnect() ?? false;
+        this.elements.stateIndicator.dataset.state = willReconnect ? "connecting" : "disconnected";
+
+        if (willReconnect) {
+            // Stay on control screen and wait for reconnection
+            this.elements.optionsAndControls.classList.add("scale-pulse");
+        } else {
+            // Return to pair screen
+            this.ossmBle?.removeEventListener(OssmEventType.Connected, this.onConnected.bind(this));
+            this.ossmBle?.removeEventListener(OssmEventType.Disconnected, this.onDisconnected.bind(this));
+            this.ossmBle?.removeEventListener(OssmEventType.StateChanged, this.onStateChanged.bind(this));
+
+            this.ossmBle?.[Symbol.dispose]();
+            this.ossmBle = undefined;
+            if (isDevMode)
+                console.log("OssmBle instance disposed");
+
+            await StylesScript.transitionFade({
+                element: this.elements.mainContent,
+                direction: TransitionDirection.Out,
+                durationMs: 500
+            });
+            this.restorePairScreenLayout();
+            this.elements.controlScreen.classList.add("hidden");
+            this.elements.mainContent.classList.remove("fill-page");
+            this.elements.pairScreen.classList.remove("hidden");
+            await StylesScript.transitionFade({
+                element: this.elements.mainContent,
+                direction: TransitionDirection.In,
+                durationMs: 500
+            });
+
+            this.elements.optionsAndControls.classList.remove("scale-pulse");
+        }
     }
 
     private async onStateChanged(data: OssmEventCallbackParameters): Promise<void> {
+        const newState = data[OssmEventType.StateChanged]!.newState;
+
+        // Select current pattern
+
+        // let patternData: PatternHelper;
+        // try {
+        //     patternData = PatternHelper.fromPlayData(
+        //         newState,
+        //         false,
+        //         false
+        //     );
+        // } catch (error) {
+        //     console.error("Error parsing play state data:", error);
+        //     // TODO: Show error in UI?
+        //     return;
+        // }
     }
 }
 
