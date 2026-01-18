@@ -6,17 +6,17 @@
 @use "sass:color";
 @use "sass:math";
 @use "sass:meta";
-
-@import url('https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap');
 // #endregion
 
 // #region Theme variables
-// Site is designed mobile-first
+/* Site is designed mobile first & dark first
+ * Inspired by the following:
+ * https://codepen.io/kevinpowell/pen/XJJwaxG?editors=1100
+ * https://www.youtube.com/watch?v=_ZFghigBmqo
+ */
+
 $mobile-width-threshold: 500;
 $mobile-height-threshold: 1000;
-$desktop-media-query: "(min-width: #{$mobile-width-threshold + 1}px) and (min-height: #{$mobile-height-threshold + 1}px)";
-$mobile-media-query: "(max-width: #{$mobile-width-threshold}px), (max-height: #{$mobile-height-threshold}px)";
-$landscape-media-query: "(orientation: landscape)";
 
 $material-symbols: (
     "bluetooth_searching",
@@ -26,32 +26,82 @@ $material-symbols-options: (
     "FILL": "0..1",
 );
 
-$theme-constants: (
-    radius: 8px
-);
+// #020817
+$primary-900: hsl(256, 43%, 7%);
+$primary-800: hsl(240, 24%, 13%);
+$primary-700: hsl(243, 26%, 15%);
+$primary-600: hsl(252, 9%, 22%);
+$primary-500: hsl(259, 13%, 28%);
+$primary-400: hsl(254, 22%, 32%);
+$primary-300: hsl(251, 13%, 68%);
+$primary-200: hsl(240, 15%, 76%);
+$primary-100: hsl(240, 21%, 88%);
+
+$neutral-900: hsl(0, 0%, 0%);
+$neutral-100: hsl(0, 0%, 100%);
+
+$accent-1: hsl(275, 100%, 69%);
+$accent-2: hsl(204, 85%, 60%);
+
+$font-family: system-ui;
+$text-1: var(--text-1);
+$text-2: var(--text-2);
+$text-3: var(--text-3);
+
+$surface-1: var(--surface-1);
+$surface-2: var(--surface-2);
+$surface-3: var(--surface-3);
+
+$border-1: var(--border-1);
+$border-2: var(--border-2);
+
+$radius-800: 1em;
+$radius-600: 0.75em;
+$radius-400: 0.5em;
+$radius-200: 0.25em;
+
+$blur: 12px;
 
 $theme-rules: (
-    accent-primary: (
-        light: hsl(275, 100%, 50%),
-        dark: hsl(275, 100%, 20%),
+    text-1: (
+        dark: $neutral-100,
+        light: $neutral-900,
     ),
-    accent-secondary: (
-        light: hsl(234, 100%, 74%),
-        dark: hsl(225, 85%, 20%),
+    text-2: (
+        dark: $primary-100,
+        light: $primary-900,
     ),
-    foreground-primary: (
-        light: #000000,
-        dark: #ffffff,
+    text-3: (
+        dark: $primary-200,
+        light: $primary-800,
     ),
-    foreground-secondary: (
-        light: #666666,
-        dark: #999999,
+    surface-1: (
+        dark: $primary-900,
+        light: $primary-100,
     ),
-    background-primary: (
-        light: #ffffff,
-        dark: #020817,
+    surface-2: (
+        dark: $primary-800,
+        light: $primary-200,
+    ),
+    surface-3: (
+        dark: $primary-700,
+        light: $primary-300,
+    ),
+    border-1: (
+        dark: $primary-500,
+        light: $primary-400,
+    ),
+    border-2: (
+        dark: $primary-600,
+        light: $primary-500,
     ),
 );
+// #endregion
+
+// #region Generators
+$desktop-media-query: "(min-width: #{$mobile-width-threshold + 1}px) and (min-height: #{$mobile-height-threshold + 1}px)";
+$mobile-media-query: "(max-width: #{$mobile-width-threshold}px), (max-height: #{$mobile-height-threshold}px)";
+$landscape-media-query: "(orientation: landscape)";
 
 @function generate-theme($mode) {
     $result: ();
@@ -64,23 +114,17 @@ $theme-rules: (
 
     @return $result;
 }
-$dark-theme: generate-theme(dark);
-$light-theme: generate-theme(light);
+
 :root {
     --is-mobile-ui: true;
     --is-portrait: true;
 
-    // Define SASS variables as CSS variables for light and dark themes
-    @each $name, $value in $theme-constants {
+    @each $name, $value in generate-theme(dark) {
         --#{$name}: #{$value};
     }
 
-    @each $name, $value in $light-theme {
-        --#{$name}: #{$value};
-    }
-
-    @media (prefers-color-scheme: dark) {
-        @each $name, $value in $dark-theme {
+    @media (prefers-color-scheme: light) {
+        @each $name, $value in generate-theme(light) {
             --#{$name}: #{$value};
         }
     }
@@ -93,14 +137,6 @@ $light-theme: generate-theme(light);
         --is-portrait: false;
     }
 }
-
-$foreground-100: var(--foreground-primary);
-$foreground-30: color-mix(in srgb, var(--foreground-primary) 30%, transparent);
-$foreground-5: color-mix(in srgb, var(--foreground-primary) 5%, transparent);
-$background-primary: var(--background-primary);
-$accent-primary: var(--accent-primary);
-$accent-secondary: var(--accent-secondary);
-$radius: var(--radius);
 
 @function build-material-symbol-url() {
     @if list.length($material-symbols) == 0 {
@@ -127,7 +163,6 @@ $radius: var(--radius);
         }
     }
 
-    // 3. Combine everything
     @return "#{$base-url}#{$opt-keys}@#{$opt-vals}&icon_names=#{$symbol-list}&display=block";
 }
 $material-symbols-url: build-material-symbol-url();
@@ -142,6 +177,19 @@ $material-symbols-url: build-material-symbol-url();
         $color: hsl(math.random(360), 100%, 50%);
     }
     border: 1px solid $color !important;
+}
+
+@mixin glass-border {
+    // TODO: Add this to more elements
+    position: absolute;
+    z-index: -1;
+    inset: 0;
+    border-radius: inherit;
+    border: 1px solid transparent;
+    background: linear-gradient($border-1, $border-2) border-box;
+    mask: linear-gradient(black, black) border-box,
+        linear-gradient(black, black) padding-box;
+    mask-composite: subtract;
 }
 
 @mixin range-track {
@@ -183,27 +231,18 @@ $material-symbols-url: build-material-symbol-url();
     // height: 100%;
 
     @include range-track {
+        $track-background: hsl(from $surface-2 h s l / 0.5);
+        $track-fill: hsl(from $accent-1 h s l / 0.5);
         width: var(--range-track-thickness);
         background:
             linear-gradient(
                 to top,
-                $accent-secondary 0%,
-                $accent-secondary var(--range-value),
-                $foreground-5 var(--range-value),
-                $foreground-5 100%
+                $track-fill 0%,
+                $track-fill var(--range-value),
+                $track-background var(--range-value),
+                $track-background 100%
             ) center / var(--range-track-thickness) 100% no-repeat;
     }
-}
-
-@mixin input-container-field {
-    display: inline-flex;
-    border-radius: $radius;
-
-    // @media #{$desktop-media-query} {
-        background: $foreground-5;
-        backdrop-filter: blur(10px);
-        padding: 0.5rem;
-    // }
 }
 
 @mixin input-checkbox-radio-box {
@@ -211,23 +250,21 @@ $material-symbols-url: build-material-symbol-url();
     display: inline-block;
     width: 1rem;
     height: 1rem;
-    border: 1px solid $foreground-30;
     vertical-align: middle;
-    background-color: $foreground-5;
-    backdrop-filter: blur(10px);
+    background-color: hsl(from $surface-1 h s l / 0.5);
     transition: background-color 0.2s ease, border-color 0.2s ease;
+    // @include glass-border;
 }
 
 @mixin input-checkbox-radio-checked {
-    background-color: $accent-primary;
-    border-color: $accent-primary;
+    // background-color: hsl(from $surface-2 h s l / 0.5);
+    background-color: hsl(from $accent-1 h s l / 0.5);
     background-repeat: no-repeat;
     background-position: center;
 }
 
 @mixin input-checkbox-radio-hover {
-    background-color: $foreground-5;
-    border-color: $accent-primary;
+    background-color: hsl(from $surface-2 h s l / 0.5);
 }
 
 @mixin input-checkbox-radio {
@@ -323,57 +360,37 @@ $material-symbols-url: build-material-symbol-url();
     color: inherit;
 }
 
-body {
-    // Position
+html, body {
     margin: 0;
+    padding: 0;
     width: 100dvw;
     height: 100dvh;
     overflow: hidden;
+}
 
+body {
     // Layout
     display: flex;
     justify-content: center;
     align-items: center;
 
     // Font settings
-    color: $foreground-100;
-    font-family: "Inter", sans-serif;
-
-    // Background
-    // TODO: Slowly animate these radials around the page
-    background:
-        radial-gradient(
-            circle at bottom left,
-            color-mix(in srgb, $accent-secondary 50%, transparent),
-            transparent 20%
-        ),
-        radial-gradient(
-            circle at bottom right,
-            color-mix(in srgb, $accent-primary 50%, transparent),
-            transparent 40%
-        ),
-        $background-primary
-    ;
-    background-size: cover;
-    background-attachment: fixed;
+    color: $text-1;
+    font-family: $font-family;
 }
 
 button,
 a.button {
-    // background: $foreground-5;
-    background: transparent;
     padding: 1rem;
     border: none;
-    border: 1px solid $foreground-30;
-    border-radius: $radius;
+    border-radius: $radius-600;
     transition: background 0.2s ease;
     text-decoration: none;
-    color: $foreground-100;
+    background-color: hsl(from $surface-1 h s l / 0.5);
+    color: $text-1;
 
     &:hover:not([disabled]) {
-        // background: $foreground-30;
-        background: $foreground-5;
-        backdrop-filter: blur(10px);
+        background-color: hsl(from $surface-2 h s l / 0.5);
         cursor: pointer;
     }
 
@@ -394,29 +411,21 @@ input {
     &[type="number"] {
         background-color: transparent;
         border: none;
+        border-radius: $radius-600;
+        padding: 0.75rem;
+        background-color: hsl(from $surface-1 h s l / 0.5);
         transition: background-color 0.2s ease, border-color 0.2s ease;
 
-        // Bottom border style
-        // border-bottom: 1px solid $foreground-30;
-        // border-radius: 0 0 2px 2px;
-        // padding: 0.2rem 0.25rem 0.5rem 0.25rem;
-
-        // No border style
-        padding: 0.2rem;
-
-        &::selection {
-            background-color: $accent-primary;
-        }
-
-        &:focus {
-            border-color: $foreground-100;
-        }
+        // &:hover:not([disabled]),
+        // &:focus:not([disabled]) {
+        //     background-color: hsl(from $surface-2 h s l / 0.5);
+        // }
     }
 
     &[type="checkbox"] {
         @include input-checkbox-radio using ($content) {
             @if $content == "box" {
-                border-radius: calc($radius / 2);
+                border-radius: $radius-400;
             }
 
             @if $content == "checked" {
@@ -448,7 +457,7 @@ input {
 
         @include range-track {
             // TODO: Fix this not working if the track is smaller than the thumb (cause: gradient hack)
-            border-radius: $radius;
+            border-radius: $radius-600;
         }
 
         @include range-thumb {
@@ -466,16 +475,18 @@ input {
             min-height: 1rem;
 
             @include range-track {
+                $track-background: hsl(from $surface-2 h s l / 0.5);
+                $track-fill: hsl(from $accent-1 h s l / 0.5);
                 // In order to set the proper bounding box, we set the height to the larger of the track thickness or thumb size
                 height: var(--range-track-thickness);
                 // We then set the background to a gradient that is centered vertically, with the height of the desired track thickness
                 background:
                     linear-gradient(
                         to right,
-                        $accent-secondary 0%,
-                        $accent-secondary var(--range-value),
-                        $foreground-5 var(--range-value),
-                        $foreground-5 100%
+                        $track-fill 0%,
+                        $track-fill var(--range-value),
+                        $track-background var(--range-value),
+                        $track-background 100%
                     ) center / 100% var(--range-track-thickness) no-repeat;
             }
         }
@@ -508,7 +519,7 @@ footer {
     // Layout
     text-align: center;
     font-size: 0.75rem;
-    color: var(--foreground-tertiary);
+    color: $text-2;
 
     transition: opacity 0.2s ease;
 }
@@ -548,9 +559,7 @@ footer {
 }
 
 .input-container-number {
-    // @include input-container-field; // TODO: Fix having to move this to the bottom due to deprecation warning.
     display: inline-flex;
-    gap: 0.5rem;
 
     [type="number"] {
         appearance: textfield;
@@ -562,32 +571,19 @@ footer {
     }
 
     >button {
-        padding: 0.2rem;
-        border: none;
-        // border-bottom: 1px solid $foreground-30;
+        padding: 0.2rem 0.5rem;
         border-radius: 0;
-        transition: border-color 0.2s ease;
-        backdrop-filter: none;
-
-        &:hover {
-            background-color: transparent;
-        }
-    }
-
-    &:has(>input[type="number"]:focus) > button {
-        border-color: $foreground-100;
     }
 
     &:has(>input[type="number"].spin-left) {
         >input[type="number"] {
             text-align: left;
-            margin-left: -1px;
-            border-radius: 0 0 2px 0;
+            border-radius: 0 $radius-400 $radius-400 0;
         }
 
         >button {
             &:first-of-type {
-                border-radius: 0 0 0 2px;
+                border-radius: $radius-400 0 0 $radius-400;
             }
         }
     }
@@ -595,13 +591,12 @@ footer {
     &:has(>input[type="number"].spin-right) {
         >input[type="number"] {
             text-align: right;
-            margin-right: -1px;
-            border-radius: 0 0 0 2px;
+            border-radius: $radius-400 0 0 $radius-400;
         }
 
         >button {
             &:last-of-type {
-                border-radius: 0 0 2px 0;
+                border-radius: 0 $radius-400 $radius-400 0;
             }
         }
     }
@@ -609,28 +604,29 @@ footer {
     &:has(>input[type="number"].spin-split) {
         >input[type="number"] {
             text-align: center;
-            margin: 0 -1px;
             border-radius: 0;
         }
 
         >button {
             &:first-of-type {
-                border-radius: 0 0 0 2px;
+                border-radius: $radius-400 0 0 $radius-400;
             }
 
             &:last-of-type {
-                border-radius: 0 0 2px 0;
+                border-radius: 0 $radius-400 $radius-400 0;
             }
         }
     }
-
-    @include input-container-field;
 }
 
 .input-container-range-double {
     // Set in script
     --range-from-value: 20%;
     --range-to-value: 80%;
+
+    // TODO: Make this more transparent
+    $track-background: hsl(from $surface-2 h s l / 0.5);
+    $track-fill: hsl(from $accent-1 h s l / 0.5);
 
     position: relative;
     display: inline-flex;
@@ -671,12 +667,12 @@ footer {
                     background:
                         linear-gradient(
                             to right,
-                            $foreground-5 0%,
-                            $foreground-5 var(--range-from-value),
-                            $accent-secondary var(--range-from-value),
-                            $accent-secondary var(--range-to-value),
-                            $foreground-5 var(--range-to-value),
-                            $foreground-5 100%
+                            $track-background 0%,
+                            $track-background var(--range-from-value),
+                            $track-fill var(--range-from-value),
+                            $track-fill var(--range-to-value),
+                            $track-background var(--range-to-value),
+                            $track-background 100%
                         ) center / 100% var(--range-track-thickness) no-repeat;
                 }
             }
@@ -711,12 +707,12 @@ footer {
                     background:
                         linear-gradient(
                             to top,
-                            $foreground-5 0%,
-                            $foreground-5 var(--range-from-value),
-                            $accent-secondary var(--range-from-value),
-                            $accent-secondary var(--range-to-value),
-                            $foreground-5 var(--range-to-value),
-                            $foreground-5 100%
+                            $track-background 0%,
+                            $track-background var(--range-from-value),
+                            $track-fill var(--range-from-value),
+                            $track-fill var(--range-to-value),
+                            $track-background var(--range-to-value),
+                            $track-background 100%
                         ) center / var(--range-track-thickness) 100% no-repeat;
                 }
             }
@@ -724,66 +720,15 @@ footer {
     }
 }
 
-.input-container-text {
-    @include input-container-field;
+.card {
+    border-radius: $radius-800;
+    background: hsl(from $surface-3 h s l / 0.25);
+    backdrop-filter: blur($blur);
 
-    // >input {
-    //     border-radius: 0 !important;
-    // }
-}
-
-.transition-bounds {
-    transition: width 0.5s ease, height 0.5s ease;
-    // https://www.youtube.com/watch?v=JN-nme9oF10
-    // I would program this in script but I can't be arsed and given that this app requires WebBLE it will only run on chrome anyway.
-    interpolate-size: allow-keywords;
-    // width: calc-size(auto);
-    // height: calc-size(auto);
-}
-
-@keyframes fade-in {
-    from {
-        opacity: 0;
-        transform: scale(0.9);
+    &::before {
+        content: "";
+        @include glass-border;
     }
-    to {
-        opacity: 1;
-        transform: scale(1);
-    }
-}
-
-@keyframes fade-out {
-    from {
-        opacity: 1;
-        transform: scale(1);
-    }
-    to {
-        opacity: 0;
-        transform: scale(0.9);
-    }
-}
-
-.transition-fade {
-    // Set in script
-    --transition-fade-duration: 0.5s;
-
-    animation-duration: var(--transition-fade-duration);
-    animation-timing-function: ease;
-
-    &[data-transition-fade="in"] {
-        animation-name: fade-in;
-    }
-
-    &[data-transition-fade="out"] {
-        animation-name: fade-out;
-    }
-}
-
-.backdrop-blur {
-    border: 1px solid $foreground-30;
-    border-radius: $radius;
-    background: $foreground-5;
-    backdrop-filter: blur(10px);
 }
 
 .hidden {
@@ -793,9 +738,10 @@ footer {
 
 .info-container {
     // Container styling
-    @extend .backdrop-blur;
     border: none;
-    border-left: calc($radius - 1px) solid $foreground-30;
+    border-radius: $radius-600;
+    border-left: calc($radius-600 - 1px) solid hsl(from $text-1 h s l / 0.7);
+    background-color: hsl(from $surface-2 h s l / 0.5);
 
     // Content layout
     display: flex;
@@ -803,18 +749,17 @@ footer {
     text-align: center;
     gap: 1rem;
     padding: 1rem;
-    backdrop-filter: blur(10px);
 
     // State-based styling
     $states: (
-        success: #30d158,
-        error:   #ff3751,
-        warning: #ffcc00
+        success: hsl(135, 64%, 50%),
+        error:   hsl(352, 100%, 61%),
+        warning: hsl(48, 100%, 50%)
     );
     @each $state, $color in $states {
         &[data-state="#{$state}"] {
-            border-left-color: color-mix(in srgb, $color 90%, transparent);
-            background: color-mix(in srgb, $color 5%, transparent);
+            border-left-color: hsl(from $color h s l / 0.8);
+            background: hsl(from $color h s l / 0.05);
 
             &::before {
                 //h2
@@ -890,7 +835,124 @@ footer {
 }
 // #endregion
 
+// #region Animations
+.transition-bounds {
+    transition: width 0.5s ease, height 0.5s ease;
+    // https://www.youtube.com/watch?v=JN-nme9oF10
+    // I would program this in script but I can't be arsed and given that this app requires WebBLE it will only run on chrome anyway.
+    interpolate-size: allow-keywords;
+    // width: calc-size(auto);
+    // height: calc-size(auto);
+}
+
+@keyframes fade-in {
+    from {
+        opacity: 0;
+        transform: scale(0.9);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+@keyframes fade-out {
+    from {
+        opacity: 1;
+        transform: scale(1);
+    }
+    to {
+        opacity: 0;
+        transform: scale(0.9);
+    }
+}
+
+.transition-fade {
+    // Set in script
+    --transition-fade-duration: 0.5s;
+
+    animation-duration: var(--transition-fade-duration);
+    animation-timing-function: ease;
+
+    &[data-transition-fade="in"] {
+        animation-name: fade-in;
+    }
+
+    &[data-transition-fade="out"] {
+        animation-name: fade-out;
+    }
+}
+
+@keyframes grain-fade {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0; }
+}
+// #endregion
+
 // #region ID specific styles
+#background {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: -1;
+    inset: 0;
+    isolation: isolate;
+    pointer-events: none;
+
+    // Background
+    // TODO: Slowly animate these radials around the page
+    background-color: $surface-1;
+    background:
+        radial-gradient(
+            circle at bottom left,
+            hsl(from $accent-2 h s l / 0.2),
+            transparent 20%
+        ),
+        radial-gradient(
+            circle at bottom right,
+            hsl(from $accent-1 h s l / 0.2),
+            transparent 40%
+        ),
+        $surface-1;
+    background-size: cover;
+    background-attachment: fixed;
+
+    &::before,
+    &::after {
+        content: "";
+        position: fixed;
+        inset: 0;
+        pointer-events: none;
+        
+        background-image: url('./noise.svg');
+        background-repeat: repeat;
+        background-size: 100px;
+
+        mix-blend-mode: overlay;
+        filter: contrast(220%) brightness(90%);
+    }
+
+    // Doing this seems to create quite a nice, yet subtile "flame" effect (is what I'll call it) on the background of the blurred elements
+    $animation-duration: 5s;
+    &::before {
+        animation: grain-fade $animation-duration ease-in-out infinite;
+    }
+    &::after {
+        background-position: 50px -50px;
+        animation: grain-fade $animation-duration ease-in-out infinite;
+        animation-delay: calc(-1 * #{$animation-duration} / 2);
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+        .grain::before,
+        .grain::after {
+            animation: none;
+        }
+    }
+}
+
 #style-guide {
     padding: 15px 20px;
     width: 100%;
@@ -901,6 +963,18 @@ footer {
     flex-wrap: wrap;
     align-content: flex-start;
     gap: 1rem;
+
+    #container {
+        position: fixed;
+        $size: 10dvw;
+        left: $size;
+        right: $size;
+        bottom: $size;
+        height: $size * 2;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+    }
 
     > div {
         display: flex;

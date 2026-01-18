@@ -469,7 +469,7 @@ class StylesScriptAuto {
                 case "text":
                 case "password":
                 case "email":
-                    StylesScriptAuto.inputTypeText(input);
+                    // StylesScriptAuto.inputTypeText(input);
                     break;
                 default:
                     break;

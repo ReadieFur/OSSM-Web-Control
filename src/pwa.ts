@@ -8,6 +8,7 @@ const INCLUDE_CACHE_LOCAL_URLS: string[] = [
     "./favicon.png",
     "./index.html",
     "./manifest.json",
+    "./noise.svg",
     "./offline.html",
     "./script.js",
     "./styles.css",

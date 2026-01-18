@@ -15,9 +15,10 @@
     </script>
 </head>
 <body>
+    <div id="background"></div>
     <!-- Opacity set to 0 in html initially for fastest load of the hidden style which is then animated out of in script -->
     <div id="main-content" style="opacity: 0;">
-        <section id="pair-screen" class="backdrop-blur transition-bounds">
+        <section id="pair-screen" class="card transition-bounds">
             <h1>OSSM Web Control</h1>
             <button id="pair-device-button" class="space-between hidden"><span class="material-symbol" data-icon="bluetooth_searching"></span>Connect OSSM</button>
             <button id="install-pwa-button" class="space-between hidden"><span class="material-symbol" data-icon="deployed_code_update"></span>Install PWA</button>
@@ -35,7 +36,8 @@
             </noscript>
         </section>
 
-        <section id="control-screen" class="backdrop-blur hidden">
+        <section id="control-screen" class="card hidden">
+            <!-- TODO: Split each section into its own glass-card -->
             <div>
                 <!-- Info -->
                 <div id="device-info">
