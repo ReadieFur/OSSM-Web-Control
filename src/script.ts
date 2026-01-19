@@ -39,9 +39,10 @@ const __elements = {
     controlScreen: HTMLElement,
 
     stateIndicator: HTMLParagraphElement,
-    stopButton: HTMLButtonElement,
     // shareSessionButton: HTMLButtonElement,
+    recalibrateButton: HTMLButtonElement,
     disconnectButton: HTMLButtonElement,
+    stopButton: HTMLButtonElement,
 
     //#region Options and Controls
     optionsAndControls: HTMLDivElement,
@@ -461,6 +462,7 @@ class OssmWebControl {
     private pwaInstallContext?: BeforeInstallPromptEvent;
     private ossmBle?: OssmBle;
     private isTransitioningPage: boolean = false;
+    private isRecalibrating: boolean = false;
 
     private constructor() {
         const constructorInfoContainerKey = "constructor";
@@ -586,6 +588,7 @@ class OssmWebControl {
 
         this.elements.stopButton.addEventListener("click", this.onStopButtonClicked.bind(this));
         this.elements.disconnectButton.addEventListener("click", this.onDisconnectButtonClicked.bind(this));
+        this.elements.recalibrateButton.addEventListener("click", this.onRecalibrateButtonClicked.bind(this));
 
         this.elements.pairDeviceButton.addEventListener("click", this.onConnectButtonClicked.bind(this));
         this.elements.pairDeviceButton.classList.remove("hidden");
@@ -883,14 +886,66 @@ class OssmWebControl {
         }
     }
 
+    private async onStopButtonClicked(): Promise<void> {
+        if (isDevMode)
+            console.log("Emergency stop button clicked");
+        await this.ossmBle?.stop();
+    }
+
     private async onDisconnectButtonClicked(): Promise<void> {
         await this.ossmBle?.stop(); // Forcefully stop any movement
         this.ossmBle?.end();
         // See onDisconnected for UI handling
     }
 
-    private async onStopButtonClicked(): Promise<void> {
-        await this.ossmBle?.stop();
+    private async onRecalibrateButtonClicked(): Promise<void> {
+        if (!this.ossmBle || this.isRecalibrating)
+            return;
+        this.isRecalibrating = true;
+
+        // onStateChanged will handle the UI updates
+        
+        try {
+            await this.ossmBle.navigateTo(OssmPage.Menu);
+            await this.ossmBle.waitForStatus([
+                OssmStatus.Idle,
+                OssmStatus.Menu,
+                OssmStatus.MenuIdle
+            ], 1_000);
+        } catch (error) {
+            // TODO: Error
+            this.isRecalibrating = false;
+            throw error;
+        }
+
+        try {
+            await this.ossmBle.navigateTo(OssmPage.StrokeEngine);
+            // This can take a while...
+            await this.ossmBle.waitForStatus([
+                OssmStatus.StrokeEngine,
+                OssmStatus.StrokeEngineIdle,
+                OssmStatus.StrokeEnginePreflight,
+                OssmStatus.StrokeEnginePattern
+            ], 30_000);
+        } catch (error) {
+            // TODO: Error
+            this.isRecalibrating = false;
+            throw error;
+        }
+
+        // Additionally reset speed to 0 for safety
+        try {
+            await this.ossmBle.setSpeed(0);
+        } catch (error) {
+            // TODO: Error
+            this.isRecalibrating = false;
+            throw error;
+        }
+
+        this.isRecalibrating = false;
+
+        if (isDevMode)
+            console.log("Recalibration complete");
     }
 
     private async onPatternSelected(event: Event): Promise<void> {
@@ -911,7 +966,7 @@ class OssmWebControl {
     }
 
     private async onConnected(data: OssmEventCallbackParameters): Promise<void> {
-        this.elements.stateIndicator.dataset.state = "connected";
+        this.elements.stateIndicator.dataset.state = "ready";
         this.elements.optionsAndControls.classList.remove("scale-pulse");
     }
 
@@ -956,57 +1011,66 @@ class OssmWebControl {
         if (!data[OssmEventType.StateChanged])
             return;
 
-        switch (data[OssmEventType.StateChanged].newState.status) {
-            // Transition to stroke engine when in these states:
-            case OssmStatus.Idle:
-            case OssmStatus.Menu:
-            case OssmStatus.MenuIdle:
-            case OssmStatus.SimplePenetration:
-            case OssmStatus.SimplePenetrationIdle:
-            case OssmStatus.SimplePenetrationPreflight:
-                /* For now don't auto-transition, as the user with a physical remote may be controlling the device.
-                 * We do however transition the state upon the initial connection in onConnectButtonClicked as there may not be a physical remote.
-                 * If that is the case then the state shouldn't ever have any reason to change (unless we are recalibrating).
-                 */
-                // await this.stateTransition();
-                await this.stateExternal();
-                break;
-            // Wait for external event when in these states:
-            case OssmStatus.Update:
-            case OssmStatus.UpdateChecking:
-            case OssmStatus.UpdateUpdating:
-            case OssmStatus.UpdateIdle:
-            case OssmStatus.Wifi:
-            case OssmStatus.WifiIdle:
-            case OssmStatus.Help:
-            case OssmStatus.HelpIdle:
-                await this.stateExternal();
-                break;
-            // Wait in these states:
-            case OssmStatus.Homing:
-            case OssmStatus.HomingForward:
-            case OssmStatus.HomingBackward:
-                await this.stateHoming();
-                break;
-            // Activate controls in these states:
-            case OssmStatus.StrokeEngine:
-            case OssmStatus.StrokeEngineIdle:
-            case OssmStatus.StrokeEnginePreflight:
-            case OssmStatus.StrokeEnginePattern:
-                await this.stateStrokeEngine();
-                break;
-            // Signal catastrophic device error in these states:
-            case OssmStatus.Error:
-            case OssmStatus.ErrorIdle:
-            case OssmStatus.ErrorHelp:
-            case OssmStatus.Restart:
-                await this.stateDeviceError();
-                break;
-            // Unknown state
-            default:
-                await this.stateUnknown();
-                break;
+        if (data[OssmEventType.StateChanged].oldState?.status !== data[OssmEventType.StateChanged].newState.status) {
+            if (isDevMode)
+                console.log("Device status changed:", data[OssmEventType.StateChanged].newState.status);
+    
+            // Process new state change
+            switch (data[OssmEventType.StateChanged].newState.status) {
+                // Transition to stroke engine when in these states:
+                case OssmStatus.Idle:
+                case OssmStatus.Menu:
+                case OssmStatus.MenuIdle:
+                case OssmStatus.SimplePenetration:
+                case OssmStatus.SimplePenetrationIdle:
+                case OssmStatus.SimplePenetrationPreflight:
+                    /* For now don't auto-transition, as the user with a physical remote may be controlling the device.
+                     * We do however transition the state upon the initial connection in onConnectButtonClicked as there may not be a physical remote.
+                     * If that is the case then the state shouldn't ever have any reason to change (unless we are recalibrating).
+                     */
+                    // await this.stateTransition();
+                    await this.stateExternal();
+                    break;
+                // Wait for external event when in these states:
+                case OssmStatus.Update:
+                case OssmStatus.UpdateChecking:
+                case OssmStatus.UpdateUpdating:
+                case OssmStatus.UpdateIdle:
+                case OssmStatus.Wifi:
+                case OssmStatus.WifiIdle:
+                case OssmStatus.Help:
+                case OssmStatus.HelpIdle:
+                    await this.stateExternal();
+                    break;
+                // Wait in these states:
+                case OssmStatus.Homing:
+                case OssmStatus.HomingForward:
+                case OssmStatus.HomingBackward:
+                    await this.stateHoming();
+                    break;
+                // Activate controls in these states:
+                case OssmStatus.StrokeEngine:
+                case OssmStatus.StrokeEngineIdle:
+                case OssmStatus.StrokeEnginePreflight:
+                case OssmStatus.StrokeEnginePattern:
+                    await this.stateStrokeEngine();
+                    break;
+                // Signal catastrophic device error in these states:
+                case OssmStatus.Error:
+                case OssmStatus.ErrorIdle:
+                case OssmStatus.ErrorHelp:
+                case OssmStatus.Restart:
+                    await this.stateDeviceError();
+                    break;
+                // Unknown state
+                default:
+                    await this.stateUnknown();
+                    break;
+            }
         }
+
+        // Always send new state to controls
+        this.updateControlsState(data[OssmEventType.StateChanged].newState);
     }
 
     private async stateTransition(): Promise<void> {
@@ -1023,11 +1087,24 @@ class OssmWebControl {
     }
 
     private async stateExternal(): Promise<void> {
+        if (!this.ossmBle)
+            return;
+
+        // Ignore showing warning message here if we are in the middle of a scheduled process.
+        if (this.isTransitioningPage || this.isRecalibrating)
+            return;
+
+        if (isDevMode)
+            console.log("Waiting for external interaction");
     }
 
     private async stateHoming(): Promise<void> {
+        if (isDevMode)
+            console.log("Homing in progress...");
+
         this.elements.stateIndicator.dataset.state = "calibrating";
         this.elements.optionsAndControls.classList.add("scale-pulse");
+        this.elements.recalibrateButton.disabled = true;
         this.elements.optionsAndControls.querySelectorAll("*").forEach(el => {
             if (el instanceof HTMLInputElement || el instanceof HTMLButtonElement) {
                 el.disabled = true;
@@ -1036,12 +1113,30 @@ class OssmWebControl {
     }
 
     private async stateStrokeEngine(): Promise<void> {
+        if (isDevMode)
+            console.log("Stroke Engine active");
+
+        this.elements.stateIndicator.dataset.state = "ready";
+        this.elements.optionsAndControls.classList.remove("scale-pulse");
+        this.elements.recalibrateButton.disabled = false;
+        this.elements.optionsAndControls.querySelectorAll("*").forEach(el => {
+            if (el instanceof HTMLInputElement || el instanceof HTMLButtonElement) {
+                el.disabled = false;
+            }
+        });
     }
 
     private async stateDeviceError(): Promise<void> {
+        if (isDevMode)
+            console.log("Device is in error state");
     }
 
     private async stateUnknown(): Promise<void> {
+        if (isDevMode)
+            console.log("Device is in unknown state");
+    }
+
+    private updateControlsState(state: OssmState): void {
     }
 }
 

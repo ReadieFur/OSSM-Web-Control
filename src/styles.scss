@@ -1074,7 +1074,7 @@ footer {
 
     $margin-property: if($text-placement == "before", "margin-right", "margin-left");
     $states: (
-        connected: $green,
+        ready: $green,
         disconnected: $red,
         connecting: $yellow,
         calibrating: $accent-2
@@ -1138,6 +1138,7 @@ footer {
     flex-direction: column;
     gap: 1rem;
     $controls-size: 70%;
+    user-select: none;
 
     > .options {
         flex: 1 1 auto;
