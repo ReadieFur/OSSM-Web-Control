@@ -1089,6 +1089,7 @@ footer {
                 $text-capitalized: string.to-upper-case(string.slice("#{$state}", 1, 1)) + string.slice("#{$state}", 2);
                 content: "#{$text-capitalized}";
                 #{$margin-property}: $gap;
+                // font-size: 0.9rem
             }
         }
     }
@@ -1110,7 +1111,7 @@ footer {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 0.5rem 1rem !important;
+    padding: 0.5rem 0.75rem !important;
 
     > div {
         display: flex;
@@ -1121,7 +1122,12 @@ footer {
         padding: 0.75rem 0.5rem;
 
         &#stop-button {
+            padding: 0.75rem 1.5rem;
             background-color: hsl(from $red h s l / 0.7);
+        }
+
+        &:last-child {
+            margin-right: -0.25rem;
         }
     }
 }
