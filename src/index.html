@@ -57,31 +57,39 @@
                 </div>
                 <div>
                     <button id="stop-button"><span class="material-symbol" data-icon="dangerous"></span></button>
-                    <!-- TODO: Future feature; session sharing -->
-                    <!-- <button id="share-button"><span class="material-symbol" data-icon="share"></span></button> -->
-                    <button id="disconnect-button"><span class="material-symbol" data-icon="logout"></span></button>
+                    <button id="dashboard-button"><span class="material-symbol" data-icon="dashboard"></span></button>
                 </div>
             </div>
 
             <div id="options-and-controls">
                 <div class="options card">
-                    <div class="pattern-list">
-                        <h3>Patterns</h3>
-                        <!-- <select id="pattern-select"></select> -->
-                        <div id="pattern-select">
-                            <input type="radio" name="pattern" id="pattern-0" checked>
-                            <label for="pattern-0">Pattern 1</label>
-                            <input type="radio" name="pattern" id="pattern-1">
-                            <label for="pattern-1">Pattern 2</label>
-                            <input type="radio" name="pattern" id="pattern-2">
-                            <label for="pattern-2">Pattern 3</label>
+
+                    <div id="patterns-panel" class="hidden">
+                        <div class="pattern-list">
+                            <h3>Patterns</h3>
+                            <!-- <select id="pattern-select"></select> -->
+                            <div id="pattern-select">
+                                <input type="radio" name="pattern" id="pattern-0" checked>
+                                <label for="pattern-0">Pattern 1</label>
+                                <input type="radio" name="pattern" id="pattern-1">
+                                <label for="pattern-1">Pattern 2</label>
+                                <input type="radio" name="pattern" id="pattern-2">
+                                <label for="pattern-2">Pattern 3</label>
+                            </div>
+                        </div>
+                        <div class="pattern-settings">
+                            <p id="description-text">[Description] Lorem ipsum dolor sit amet, consectetur adipiscing elit.</p>
+                            <input type="checkbox" id="invert-toggle">
+                            <label for="invert-toggle">Reverse pattern</label>
+                            <!-- <button id="apply-pattern-button">Apply</button> -->
                         </div>
                     </div>
-                    <div class="pattern-settings">
-                        <p id="description-text">[Description] Lorem ipsum dolor sit amet, consectetur adipiscing elit.</p>
-                        <input type="checkbox" id="invert-toggle">
-                        <label for="invert-toggle">Reverse pattern</label>
-                        <!-- <button id="apply-pattern-button">Apply</button> -->
+
+                    <div id="dashboard-panel">
+                        <!-- TODO: Future feature; session sharing -->
+                        <!-- <button id="share-button"><span class="material-symbol" data-icon="share"></span>Share control</button> -->
+                        <button id="recalibrate-button"><span class="material-symbol" data-icon="reset_settings"></span>Recalibrate</button>
+                        <button id="disconnect-button"><span class="material-symbol" data-icon="logout"></span>Disconnect</button>
                     </div>
                 </div>
 

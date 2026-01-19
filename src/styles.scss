@@ -23,8 +23,10 @@ $material-symbols: (
     "bluetooth_searching",
     "circle",
     "dangerous",
+    "dashboard",
     "deployed_code_update",
     "logout",
+    "reset_settings",
     "share",
 );
 $material-symbols-options: (
@@ -1156,6 +1158,10 @@ footer {
 
 .options {
     display: flex;
+}
+
+#patterns-panel {
+    display: flex;
     flex-direction: row;
     gap: 0.5rem;
     text-align: left;
@@ -1198,6 +1204,14 @@ footer {
     @media #{$landscape-media-query} {
         flex-direction: column;
     }
+}
+
+#dashboard-panel {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    justify-content: space-evenly;
+    gap: 0.5rem;
 }
 
 .controls {
