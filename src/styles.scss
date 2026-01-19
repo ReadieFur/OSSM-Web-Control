@@ -359,6 +359,14 @@ $material-symbols-url: build-material-symbol-url();
             @content("hover");
         }
     }
+
+    &.hidden {
+        display: none;
+
+        +label {
+            display: none;
+        }
+    }
 }
 // #endregion
 

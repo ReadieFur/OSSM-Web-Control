@@ -109,11 +109,13 @@ const KNOWN_PATTERNS = {
         name: "Teasing Pounding",
         description: "The actuator moves steadily in one direction and quickly in the other.",
         hasIntensityControl: true,
+        canInvert: true,
     },
     [KnownPattern.RoboStroke]: {
         name: "Robo Stroke",
         description: "A mechanical stroking motion with abrupt starts and stops.",
         hasIntensityControl: true,
+        canInvert: false,
     },
     [KnownPattern.HalfNHalf]: {
         name: "Half'n'Half",
@@ -125,11 +127,13 @@ const KNOWN_PATTERNS = {
         name: "Deeper",
         description: "Gradually deepens the stroke over a set number of cycles.",
         hasIntensityControl: true,
+        canInvert: false,
     },
     [KnownPattern.StopNGo]: {
         name: "Stop'n'Go",
         description: "Pauses briefly between strokes at random intervals.",
         hasIntensityControl: true,
+        canInvert: false,
     }
 } as const satisfies Record<number, Partial<PatternInfo>>;
 
@@ -762,6 +766,28 @@ class OssmWebControl {
             return;
         }
 
+        /* Upon first startup of thee device the state of the depth/stroke can be invalid (as far as what I consider that to be)
+         * See this thread: https://discord.com/channels/559409652425687041/1462645505287917730
+         * For now manually set the device into a known valid state
+         */
+        if (currentState.depth - currentState.stroke < 0) {
+            currentState.stroke = currentState.depth;
+            try {
+                await this.ossmBle.setStroke(currentState.stroke);
+            } catch (error) {
+                console.error("Error setting initial stroke value:", error);
+                this.setInfoContainer(
+                    pairingInfoContainerKey,
+                    StylesScript.createInfoContainer({
+                        state: InfoContainerState.Error,
+                        title: "Connection Error",
+                        message: `Failed to set initial device state`,
+                    }),
+                    this.elements.pairScreen
+                );
+            }
+        }
+
         if (isDevMode) {
             console.log("Fetching pattern list...");
             this.setInfoContainer(
@@ -833,10 +859,48 @@ class OssmWebControl {
             this.elements.patternSelect.appendChild(label);
 
             this.patternRadioButtons.set(option, patternInfo);
+
+            // Do first initial selection
             if (currentState.pattern === pattern.idx) {
                 option.checked = true;
+
+                // UI Description
                 this.elements.descriptionText.textContent = patternInfo.description;
+
+                // UI invert toggle
+                // this.elements.invertToggle.checked = false; // Will be set by onStateChanged
+                if (patternInfo.canInvert)
+                    this.elements.invertToggle.classList.remove("hidden");
+                else
+                    this.elements.invertToggle.classList.add("hidden");
+
+                // UI intensity slider
+                if (patternInfo.hasIntensityControl)
+                    this.elements.intensitySlider.classList.remove("hidden");
+                else
+                    this.elements.intensitySlider.classList.add("hidden");
             }
+        }
+
+        // Manually trigger an update of the UI
+        try {
+            this.updateControlsState(currentState);
+        } catch (error) {
+            console.error("Error updating control screen UI:", error);
+            this.setInfoContainer(
+                pairingInfoContainerKey,
+                StylesScript.createInfoContainer({
+                    state: InfoContainerState.Error,
+                    title: "Connection Error",
+                    message: `Failed to read device state`,
+                }),
+                this.elements.pairScreen
+            );
+            await this.ossmBle.end();
+            this.ossmBle?.[Symbol.dispose]();
+            this.ossmBle = undefined;
+            this.restorePairScreenLayout();
+            return;
         }
         //#endregion
 
@@ -957,10 +1021,28 @@ class OssmWebControl {
         if (!patternInfo)
             return;
 
-        if (!this.ossmBle)
-            return;
-
+        // Description
         this.elements.descriptionText.textContent = patternInfo.description;
+
+        // Invert toggle
+        if (!patternInfo.canInvert) {
+            // Can't invert, hide toggle
+            this.elements.invertToggle.classList.add("hidden");
+        }
+        else if (this.elements.invertToggle.classList.contains("hidden")) {
+            // Was already hidden, reset toggle and show
+            this.elements.invertToggle.checked = false;
+            this.elements.invertToggle.classList.remove("hidden");
+        } else {
+            // Was already visible, --keep current state--
+            this.elements.invertToggle.checked = false;
+        }
+
+        // Intensity slider
+        if (patternInfo.hasIntensityControl)
+            this.elements.intensitySlider.classList.remove("hidden");
+        else
+            this.elements.intensitySlider.classList.add("hidden");
 
         // TODO: Change pattern on device
     }
@@ -1137,6 +1219,49 @@ class OssmWebControl {
     }
 
     private updateControlsState(state: OssmState): void {
+        // Find selected pattern info
+        let pattern: PatternInfo | undefined = undefined;
+        for (const [radioButton, patternInfo] of this.patternRadioButtons) {
+            if (patternInfo.idx === state.pattern) {
+                radioButton.checked = true;
+                pattern = patternInfo;
+                this.elements.descriptionText.textContent = patternInfo.description;
+            }
+        }
+        if (!pattern) {
+            console.error("Current pattern not found in pattern list:", state.pattern);
+            // TODO: Error
+            return;
+        }
+
+        let playState: PatternHelper;
+        try {
+            playState = PatternHelper.fromPlayData(state, pattern.hasIntensityControl, pattern.canInvert);
+        } catch (error) {
+            console.error("Error parsing play data from state:", error);
+            // TODO: Error
+            throw error;
+        }
+
+        // Update relative range
+        this.relativeRangeSlider.setValues({
+            from: playState.minDepth,
+            to: playState.maxDepth
+        });
+
+        // Update relative speed
+        this.relativeSpeedSlider.setValue(playState.speed);
+
+        // Update intensity
+        if (pattern.hasIntensityControl)
+            this.intensitySlider.setValue(playState.intensity!);
+
+        // Update invert button
+        if (pattern.canInvert)
+            this.elements.invertToggle.checked = playState.invert!;
+
+        if (isDevMode)
+            console.log("Controls updated successfully");
     }
 }
 

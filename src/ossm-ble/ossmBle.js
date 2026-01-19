@@ -410,16 +410,6 @@ var OssmBle = class OssmBle {
 			}
 		});
 	}
-	async sendCommand(value) {
-		this.throwIfNotReady();
-		const returnedValue = await this.bleTaskQueue.enqueue(async () => {
-			await this.ossmServices.primary.characteristics.command.writeValue(TEXT_ENCODER.encode(value));
-			await delay(this.commandProcessDelayMs);
-			return TEXT_DECODER.decode((await this.ossmServices.primary.characteristics.command.readValue()).buffer);
-		});
-		if (returnedValue === `fail:${value}`) throw new DOMException(`OSSM failed to process command: ${value}`, DOMExceptionError.OperationError);
-		else if (returnedValue !== `${value}`) throw new DOMException(`OSSM returned unexpected response for command "${value}": ${returnedValue}`, DOMExceptionError.DataError);
-	}
 	/**
 	* Begins automatic connection management.
 	* A call to {@link waitForReady()} is recommended after this to ensure the library is ready before sending commands
@@ -441,6 +431,25 @@ var OssmBle = class OssmBle {
 		};
 		if (this.isReady) this.stop().finally(doDisconnect);
 		else doDisconnect();
+	}
+	/**
+	* Send a raw command to the OSSM device
+	* @param value The command string to send
+	* @param speedup When `true`, the command is sent without waiting for and validating the response
+	*/
+	async sendCommand(value, speedup = false) {
+		this.throwIfNotReady();
+		if (speedup) {
+			await this.ossmServices.primary.characteristics.command.writeValue(TEXT_ENCODER.encode(value));
+			return;
+		}
+		const returnedValue = await this.bleTaskQueue.enqueue(async () => {
+			await this.ossmServices.primary.characteristics.command.writeValue(TEXT_ENCODER.encode(value));
+			await delay(this.commandProcessDelayMs);
+			return TEXT_DECODER.decode((await this.ossmServices.primary.characteristics.command.readValue()).buffer);
+		});
+		if (returnedValue === `fail:${value}`) throw new DOMException(`OSSM failed to process command: ${value}`, DOMExceptionError.OperationError);
+		else if (returnedValue !== `${value}`) throw new DOMException(`OSSM returned unexpected response for command "${value}": ${returnedValue}`, DOMExceptionError.DataError);
 	}
 	/**
 	* Checks whether automatic reconnection will occur upon disconnection
