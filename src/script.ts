@@ -2,6 +2,7 @@ import {
     KnownPattern,
     OssmBle,
     OssmEventType,
+    OssmPage,
     OssmStatus,
     PatternHelper,
     type OssmEventCallbackParameters,
@@ -459,6 +460,7 @@ class OssmWebControl {
     private readonly patternRadioButtons: Map<HTMLInputElement, PatternInfo> = new Map();
     private pwaInstallContext?: BeforeInstallPromptEvent;
     private ossmBle?: OssmBle;
+    private isTransitioningPage: boolean = false;
 
     private constructor() {
         const constructorInfoContainerKey = "constructor";
@@ -962,7 +964,12 @@ class OssmWebControl {
             case OssmStatus.SimplePenetration:
             case OssmStatus.SimplePenetrationIdle:
             case OssmStatus.SimplePenetrationPreflight:
-                await this.stateTransition();
+                /* For now don't auto-transition, as the user with a physical remote may be controlling the device.
+                 * We do however transition the state upon the initial connection in onConnectButtonClicked as there may not be a physical remote.
+                 * If that is the case then the state shouldn't ever have any reason to change (unless we are recalibrating).
+                 */
+                // await this.stateTransition();
+                await this.stateExternal();
                 break;
             // Wait for external event when in these states:
             case OssmStatus.Update:
@@ -1003,12 +1010,29 @@ class OssmWebControl {
     }
 
     private async stateTransition(): Promise<void> {
+        if (!this.ossmBle || this.isTransitioningPage || await this.ossmBle.getCurrentPage() === OssmPage.StrokeEngine)
+            return;
+        this.isTransitioningPage = true;
+
+        if (isDevMode)
+            console.log("Transitioning to Stroke Engine page");
+        
+        await this.ossmBle.navigateTo(OssmPage.StrokeEngine);
+
+        this.isTransitioningPage = false;
     }
 
     private async stateExternal(): Promise<void> {
     }
 
     private async stateHoming(): Promise<void> {
+        this.elements.stateIndicator.dataset.state = "calibrating";
+        this.elements.optionsAndControls.classList.add("scale-pulse");
+        this.elements.optionsAndControls.querySelectorAll("*").forEach(el => {
+            if (el instanceof HTMLInputElement || el instanceof HTMLButtonElement) {
+                el.disabled = true;
+            }
+        });
     }
 
     private async stateStrokeEngine(): Promise<void> {
