@@ -321,6 +321,7 @@ var OssmBle = class OssmBle {
 	ossmServices = null;
 	lastPoll = 0;
 	cachedState = null;
+	pendingStateTarget = {};
 	cachedPatternList = null;
 	lastFixedPosition = null;
 	commandProcessDelayMs = BASE_COMMAND_PROCESS_DELAY_MS;
@@ -388,6 +389,10 @@ var OssmBle = class OssmBle {
 			i++;
 		}
 	}
+	isIntermediateValue(key, incoming, expected) {
+		if (typeof incoming !== "number" || typeof expected !== "number") return false;
+		return incoming === expected - 1;
+	}
 	onCurrentStateChanged(event) {
 		this.lastPoll = Date.now();
 		const oldState = this.cachedState;
@@ -396,18 +401,37 @@ var OssmBle = class OssmBle {
 			status: state,
 			...rest
 		};
-		if (oldState && JSON.stringify(oldState) === JSON.stringify(remappedStateObj)) return;
+		let hasChanged = false;
+		for (const k in remappedStateObj) {
+			const key = k;
+			if (remappedStateObj[key] !== oldState?.[key]) {
+				hasChanged = true;
+				break;
+			}
+		}
+		if (!hasChanged) return;
+		let sawIntermediate = false;
+		let sawExternalChange = false;
+		if (Object.keys(this.pendingStateTarget).length > 0) {
+			for (const k in this.pendingStateTarget) {
+				const key = k;
+				const expected = this.pendingStateTarget[key];
+				const incoming = remappedStateObj[key];
+				if (incoming === expected) continue;
+				if (this.isIntermediateValue(key, incoming, expected)) {
+					sawIntermediate = true;
+					continue;
+				}
+				sawExternalChange = true;
+			}
+			if (sawExternalChange) for (const k in this.pendingStateTarget) delete this.pendingStateTarget[k];
+			if (sawIntermediate && !sawExternalChange) return;
+		}
 		this.cachedState = remappedStateObj;
-		this.debugLogTable({
-			"New state": remappedStateObj,
-			"Old state": this.cachedState
-		});
+		this.debugLogTable({ "New state": remappedStateObj });
 		this.dispatchEvent({
 			event: OssmEventType.StateChanged,
-			[OssmEventType.StateChanged]: {
-				newState: remappedStateObj,
-				oldState
-			}
+			[OssmEventType.StateChanged]: { newState: remappedStateObj }
 		});
 	}
 	/**
@@ -487,6 +511,7 @@ var OssmBle = class OssmBle {
 	async setSpeed(speed) {
 		if (speed < 0 || speed > 100 || !Number.isInteger(speed)) throw new RangeError("Speed must be an integer between 0 and 100.");
 		if (this.cachedState?.speed === speed) return;
+		this.debugLog(`Setting speed to ${speed}`);
 		await this.sendCommand(`set:speed:${speed}`);
 	}
 	/**
@@ -498,8 +523,10 @@ var OssmBle = class OssmBle {
 	async setStroke(stroke) {
 		if (stroke < 0 || stroke > 100 || !Number.isInteger(stroke)) throw new RangeError("Stroke must be an integer between 0 and 100.");
 		if (this.cachedState?.stroke === stroke) return;
-		if (stroke > 0 && stroke < 100) stroke -= 1;
-		await this.sendCommand(`set:stroke:${stroke}`);
+		this.debugLog(`Setting stroke to ${stroke}`);
+		this.pendingStateTarget.stroke = stroke;
+		const apiValue = stroke > 0 && stroke < 100 ? stroke - 1 : stroke;
+		await this.sendCommand(`set:stroke:${apiValue}`);
 	}
 	/**
 	* Set penetration depth percentage
@@ -510,8 +537,10 @@ var OssmBle = class OssmBle {
 	async setDepth(depth) {
 		if (depth < 0 || depth > 100 || !Number.isInteger(depth)) throw new RangeError("Depth must be an integer between 0 and 100.");
 		if (this.cachedState?.depth === depth) return;
-		if (depth > 0 && depth < 100) depth -= 1;
-		await this.sendCommand(`set:depth:${depth}`);
+		this.debugLog(`Setting depth to ${depth}`);
+		this.pendingStateTarget.depth = depth;
+		const apiValue = depth > 0 && depth < 100 ? depth - 1 : depth;
+		await this.sendCommand(`set:depth:${apiValue}`);
 	}
 	/**
 	* Set sensation intensity percentage
@@ -522,8 +551,10 @@ var OssmBle = class OssmBle {
 	async setSensation(sensation) {
 		if (sensation < 0 || sensation > 100 || !Number.isInteger(sensation)) throw new RangeError("Sensation must be an integer between 0 and 100.");
 		if (this.cachedState?.sensation === sensation) return;
-		if (sensation > 0 && sensation < 100) sensation -= 1;
-		await this.sendCommand(`set:sensation:${sensation}`);
+		this.debugLog(`Setting sensation to ${sensation}`);
+		this.pendingStateTarget.sensation = sensation;
+		const apiValue = sensation > 0 && sensation < 100 ? sensation - 1 : sensation;
+		await this.sendCommand(`set:sensation:${apiValue}`);
 	}
 	/**
 	* Set stroke pattern (see {@link getPatternList} for available patterns)

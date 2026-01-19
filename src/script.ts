@@ -14,6 +14,8 @@ import {
     InfoContainerState,
     TransitionDirection,
     InputRangeDouble,
+    SliderWithNumber,
+    DualSliderWithNumber,
 } from "./styles.js";
 import type {
     BeforeInstallPromptEvent
@@ -148,303 +150,8 @@ enum DOMExceptionError {
     NotFoundError = "NotFoundError",
 }
 
-class Helpers {
-    static isMobileUI(): boolean {
-        return window.getComputedStyle(document.documentElement).getPropertyValue("--is-mobile-ui") === "true";
-    }
-
-    static isPortrait(): boolean {
-        return window.getComputedStyle(document.documentElement).getPropertyValue("--is-portrait") === "true";
-    }
-
-    static async delay(ms: number): Promise<void> {
-        return new Promise(resolve => setTimeout(resolve, ms));
-    }
-}
-
-class SingleSliderComponent {
-    static createFromExisting(container: HTMLElement): SingleSliderComponent {
-        const numberInputs = container.querySelectorAll("input[type='number']");
-        if (numberInputs.length < 2)
-            throw new Error("SliderComponent: Could not find required number input elements");
-        const rangeInput = container.querySelector("input[type='range']");
-        if (!rangeInput || !(rangeInput instanceof HTMLInputElement))
-            throw new Error("SliderComponent: Could not find required range input element");
-        return new SingleSliderComponent(
-            numberInputs[0] as HTMLInputElement,
-            numberInputs[1] as HTMLInputElement,
-            rangeInput
-        );
-    }
-
-    private readonly externalCallbacks: Map<string, Array<(sender: any) => void>> = new Map();
-
-    private constructor(
-        private readonly numberInputA: HTMLInputElement,
-        private readonly numberInputB: HTMLInputElement,
-        private readonly rangeInput: HTMLInputElement,
-    ){
-        window.addEventListener("resize", this.onWindowResize.bind(this));
-
-        this.setMinMax({
-            min: this.rangeInput.min ? parseFloat(this.rangeInput.min) : undefined,
-            max: this.rangeInput.max ? parseFloat(this.rangeInput.max) : undefined,
-        })
-        this.setValue(this.rangeInput.valueAsNumber);
-
-        rangeInput.addEventListener("input", (sender) => {
-            this.numberInputA.value = this.rangeInput.value;
-            this.numberInputB.value = this.rangeInput.value;
-            this.dispatchEvent("input", sender);
-        });
-        rangeInput.addEventListener("change", (sender) => {
-            this.numberInputA.value = this.rangeInput.value;
-            this.numberInputB.value = this.rangeInput.value;
-            this.dispatchEvent("change", sender);
-        });
-        numberInputA.addEventListener("change", () => {
-            const value = parseFloat(this.numberInputA.value);
-            this.rangeInput.valueAsNumber = value;
-            this.numberInputB.value = value.toString();
-            this.rangeInput.dispatchEvent(new Event("input"));
-            this.rangeInput.dispatchEvent(new Event("change"));
-        });
-        numberInputB.addEventListener("change", () => {
-            const value = parseFloat(this.numberInputB.value);
-            this.rangeInput.valueAsNumber = value;
-            this.numberInputA.value = value.toString();
-            this.rangeInput.dispatchEvent(new Event("input"));
-            this.rangeInput.dispatchEvent(new Event("change"));
-        });
-
-        this.onWindowResize();
-    }
-
-    private dispatchEvent(event: "input" | "change", sender?: any): void {
-        const callbacks = this.externalCallbacks.get(event);
-        if (!callbacks)
-            return;
-        for (const callback of callbacks)
-            callback(sender);
-    }
-
-    private onWindowResize(): void {
-        const isPortrait = Helpers.isPortrait();
-
-        if (isPortrait) {
-            this.rangeInput.setAttribute("orientation", "vertical");
-            this.numberInputA.classList.add("hidden");
-            this.numberInputB.classList.remove("hidden");
-        }
-        else {
-            this.rangeInput.removeAttribute("orientation");
-            this.numberInputA.classList.remove("hidden");
-            this.numberInputB.classList.add("hidden");
-        }
-    }
-
-    private onNumberInput(value: number): void {
-        this.rangeInput.valueAsNumber = value;
-        this.numberInputA.value = value.toString();
-        this.numberInputB.value = value.toString();
-    }
-
-    getValue(): number {
-        return this.rangeInput.valueAsNumber;
-    }
-
-    setValue(value: number): void {
-        const min = this.rangeInput.min ? parseFloat(this.rangeInput.min) : Number.NEGATIVE_INFINITY;
-        const max = this.rangeInput.max ? parseFloat(this.rangeInput.max) : Number.POSITIVE_INFINITY;
-        if (value < min || value > max)
-            throw new Error("Value is out of range");
-        
-        this.rangeInput.valueAsNumber = value;
-        this.numberInputA.value = value.toString();
-        this.numberInputB.value = value.toString();
-
-        this.dispatchEvent("input", this);
-        this.dispatchEvent("change", this);
-    }
-
-    getMinMax(): { min: number; max: number } {
-        const min = this.rangeInput.min ? parseFloat(this.rangeInput.min) : Number.NEGATIVE_INFINITY;
-        const max = this.rangeInput.max ? parseFloat(this.rangeInput.max) : Number.POSITIVE_INFINITY;
-        return { min, max };
-    }
-
-    setMinMax(data: { min?: number, max?: number }): void {
-        this.rangeInput.min = data.min?.toString() ?? this.rangeInput.min;
-        this.rangeInput.max = data.max?.toString() ?? this.rangeInput.max;
-        const { min, max } = this.getMinMax();
-        this.numberInputA.min = min.toString();
-        this.numberInputA.max = max.toString();
-        this.numberInputB.min = min.toString();
-        this.numberInputB.max = max.toString();
-
-        const value = this.getValue();
-        if (value > max)
-            this.setValue(max);
-        else if (value < min)
-            this.setValue(min);
-
-        if (value != this.getValue()) {
-            this.dispatchEvent("input", this);
-            this.dispatchEvent("change", this);
-        }
-    }
-
-    addEventListener(event: "input" | "change", callback: () => PromiseLike<void> | void): void {
-        this.rangeInput.addEventListener(event, callback);
-    }
-
-    removeEventListener(event: "input" | "change", callback: () => PromiseLike<void> | void): void {
-        this.rangeInput.removeEventListener(event, callback);
-    }
-}
-
-class DualSliderComponent {
-    static createFromExisting(container: HTMLElement): DualSliderComponent {
-        const numberInputs = container.querySelectorAll("input[type='number']");
-        if (numberInputs.length < 2)
-            throw new Error("SliderComponent: Could not find required number input elements");
-
-        const rangeContainer = container.querySelector(".input-container-range-double");
-        if (!rangeContainer || !(rangeContainer instanceof HTMLElement))
-            throw new Error("SliderComponent: Could not find required range input container element");
-
-        return new DualSliderComponent(
-            numberInputs[0] as HTMLInputElement,
-            numberInputs[1] as HTMLInputElement,
-            rangeContainer,
-            InputRangeDouble.getOrCreateInstance(rangeContainer)
-        );
-    }
-
-    private readonly externalCallbacks: Map<string, Array<(sender: any) => void>> = new Map();
-
-    private constructor(
-        private readonly numberInputA: HTMLInputElement,
-        private readonly numberInputB: HTMLInputElement,
-        private readonly rangeContainer: HTMLElement,
-        private readonly rangeInput: InputRangeDouble,
-    ){
-        window.addEventListener("resize", this.onWindowResize.bind(this));
-
-        rangeInput.addEventListener("input", (sender) => {
-            this.refreshNumberInputs();
-            this.dispatchEvent("input", sender);
-        });
-
-        rangeInput.addEventListener("change", (sender) => {
-            // No need to refresh numbers as this will have been done when the input event fires which always comes first.
-            this.dispatchEvent("change", sender);
-        });
-
-        numberInputA.addEventListener("change", () => {
-            let from: number | undefined = undefined;
-            let to: number | undefined = undefined;
-
-            if (Helpers.isPortrait())
-                to = parseFloat(numberInputA.value);
-            else
-                from = parseFloat(numberInputA.value);
-
-            this.rangeInput.setValues({ from, to });
-
-            // No need to dispatch event here as the rangeInput will do that when its value changes.
-        });
-
-        numberInputB.addEventListener("change", () => {
-            let from: number | undefined = undefined;
-            let to: number | undefined = undefined;
-
-            if (Helpers.isPortrait())
-                from = parseFloat(numberInputB.value);
-            else
-                to = parseFloat(numberInputB.value);
-
-            this.rangeInput.setValues({ from, to });
-        });
-
-        this.refreshNumberInputs();
-        this.onWindowResize();
-    }
-
-    private dispatchEvent(event: "input" | "change", sender?: any): void {
-        const callbacks = this.externalCallbacks.get(event);
-        if (!callbacks)
-            return;
-        for (const callback of callbacks)
-            callback(sender);
-    }
-
-    private onWindowResize(): void {
-        const wasPortrait = this.rangeContainer.getAttribute("orientation") === "vertical";
-        const isPortrait = Helpers.isPortrait();
-
-        if (wasPortrait === isPortrait)
-            return;
-
-        if (isPortrait)
-            this.rangeContainer.setAttribute("orientation", "vertical");
-        else
-            this.rangeContainer.removeAttribute("orientation");
-
-        this.refreshNumberInputs();
-    }
-
-    private refreshNumberInputs(): void {
-        let minInput: HTMLInputElement, maxInput: HTMLInputElement;
-        if (Helpers.isPortrait()) {
-            minInput = this.numberInputB;
-            maxInput = this.numberInputA;
-        } else {
-            minInput = this.numberInputA;
-            maxInput = this.numberInputB;
-        }
-
-        const minMax = this.rangeInput.getMinMax();
-        minInput.min = minMax.min.toString();
-        minInput.max = minMax.max.toString();
-        maxInput.min = minMax.min.toString();
-        maxInput.max = minMax.max.toString();
-
-        const values = this.rangeInput.getValues();
-        minInput.value = values.from.toString();
-        maxInput.value = values.to.toString();
-    }
-
-    getValues() {
-        return this.rangeInput.getValues();
-    }
-
-    setValues(data: { from?: number, to?: number }): void {
-        // InputRangeDouble already contains the logic for validating min/max values, if that fails then the inputs won't be updated.
-        this.rangeInput.setValues(data);
-        this.refreshNumberInputs();
-    }
-
-    getMinMax(): { min: number; max: number } {
-        return this.rangeInput.getMinMax();
-    }
-
-    setMinMax(data: { min?: number, max?: number }): void {
-        this.rangeInput.setMinMax(data);
-        const { min, max } = this.rangeInput.getMinMax();
-        this.numberInputA.min = min.toString();
-        this.numberInputA.max = max.toString();
-        this.numberInputB.min = min.toString();
-        this.numberInputB.max = max.toString();
-    }
-
-    addEventListener(event: "input" | "change", callback: () => PromiseLike<void> | void): void {
-        this.rangeInput.addEventListener(event, callback);
-    }
-
-    removeEventListener(event: "input" | "change", callback: () => PromiseLike<void> | void): void {
-        this.rangeInput.removeEventListener(event, callback);
-    }
+async function delay(ms: number): Promise<void> {
+    return new Promise(resolve => setTimeout(resolve, ms));
 }
 
 // TODO: Add UI support for connecting multiple devices.
@@ -458,22 +165,23 @@ class OssmWebControl {
     }
 
     private readonly elements: Elements;
+    private readonly relativeRangeControl!: InputRangeDouble;
+    private readonly patternRadioButtons: Map<number, { element: HTMLElement, pattern: PatternInfo }> = new Map();
     private readonly infoContainers: Map<string, HTMLElement> = new Map();
-    private readonly relativeRangeSlider!: DualSliderComponent;
-    private readonly relativeSpeedSlider!: SingleSliderComponent;
-    private readonly intensitySlider!: SingleSliderComponent;
-    private readonly patternRadioButtons: Map<HTMLInputElement, PatternInfo> = new Map();
+    private readonly infoKeyPairingScreen = "pairing-screen";
+    private readonly skipRepaintFor = {
+        patterns: false,
+        range: false,
+        speed: false,
+        intensity: false,
+    };
     private pwaInstallContext?: BeforeInstallPromptEvent;
     private ossmBle?: OssmBle;
-    private isTransitioningPage: boolean = false;
-    private isRecalibrating: boolean = false;
 
     private constructor() {
-        const constructorInfoContainerKey = "constructor";
-
         const startupAnimation = async () => {
             // Page load animation
-            await Helpers.delay(250);
+            await delay(250);
             this.elements.mainContent.style.opacity = "unset";
             StylesScript.transitionFade({
                 element: this.elements.mainContent,
@@ -484,9 +192,11 @@ class OssmWebControl {
 
         try {
             this.elements = initializeComponent();
-            this.relativeRangeSlider = DualSliderComponent.createFromExisting(this.elements.relativeRangeSlider);
-            this.relativeSpeedSlider = SingleSliderComponent.createFromExisting(this.elements.relativeSpeedSlider);
-            this.intensitySlider = SingleSliderComponent.createFromExisting(this.elements.intensitySlider);
+            this.relativeRangeControl = InputRangeDouble.getOrCreateInstance(
+                this.elements.relativeRangeSlider.querySelector(".input-container-range-double") as HTMLDivElement);
+            DualSliderWithNumber.createFromExisting(this.elements.relativeRangeSlider);
+            SliderWithNumber.createFromExisting(this.elements.relativeSpeedSlider);
+            SliderWithNumber.createFromExisting(this.elements.intensitySlider);
         } catch (error) {
             this.elements = {
                 // Try at the very least to get the main container and splash, if this fails then something is seriously wrong.
@@ -495,7 +205,7 @@ class OssmWebControl {
             } as Partial<Elements> as Elements;
             console.error("Error initializing components:", error);
             this.setInfoContainer(
-                constructorInfoContainerKey,
+                this.infoKeyPairingScreen,
                 StylesScript.createInfoContainer({
                     state: InfoContainerState.Error,
                     title: "Initialization Error",
@@ -550,7 +260,7 @@ class OssmWebControl {
                 }
 
                 this.setInfoContainer(
-                    constructorInfoContainerKey,
+                    this.infoKeyPairingScreen,
                     StylesScript.createInfoContainer({
                         state: InfoContainerState.Error,
                         title: "Unsupported Browser",
@@ -590,10 +300,6 @@ class OssmWebControl {
             return;
         }
 
-        this.elements.stopButton.addEventListener("click", this.onStopButtonClicked.bind(this));
-        this.elements.disconnectButton.addEventListener("click", this.onDisconnectButtonClicked.bind(this));
-        this.elements.recalibrateButton.addEventListener("click", this.onRecalibrateButtonClicked.bind(this));
-
         this.elements.pairDeviceButton.addEventListener("click", this.onConnectButtonClicked.bind(this));
         this.elements.pairDeviceButton.classList.remove("hidden");
 
@@ -628,6 +334,14 @@ class OssmWebControl {
             }
         });
 
+        this.elements.stopButton.addEventListener("click", this.onStopButtonClicked.bind(this));
+        this.elements.disconnectButton.addEventListener("click", this.onDisconnectButtonClicked.bind(this));
+        this.elements.recalibrateButton.addEventListener("click", this.onRecalibrateButtonClicked.bind(this));
+
+        this.relativeRangeControl.addEventListener("change", this.onRelativeRangeChanged.bind(this));
+        this.elements.relativeSpeedSlider.addEventListener("change", this.onRelativeSpeedChanged.bind(this));
+        this.elements.intensitySlider.addEventListener("change", this.onIntensityChanged.bind(this));
+
         startupAnimation();
     }
 
@@ -645,12 +359,11 @@ class OssmWebControl {
         parent.appendChild(container);
     }
 
+    // #region Pairing screen
     private async onConnectButtonClicked(): Promise<void> {
-        const pairingInfoContainerKey = "pairing-info";
-
         //#region Pre-run
         // Remove any old connection related info containers
-        this.deleteInfoContainer(pairingInfoContainerKey);
+        this.deleteInfoContainer(this.infoKeyPairingScreen);
 
         // Should already be disposed here, but extra cleanup just in case.
         this.ossmBle?.[Symbol.dispose]();
@@ -669,7 +382,7 @@ class OssmWebControl {
             if (error instanceof DOMException && !allowedErrors.includes(error.name)) {
                 console.error("Error during device pairing:", error);
                 this.setInfoContainer(
-                    pairingInfoContainerKey,
+                    this.infoKeyPairingScreen,
                     StylesScript.createInfoContainer({
                         state: InfoContainerState.Error,
                         title: "Connection Error",
@@ -691,15 +404,11 @@ class OssmWebControl {
         if (isDevMode)
             console.log("OssmBle instance created:", this.ossmBle);
 
-        this.ossmBle.addEventListener(OssmEventType.Connected, this.onConnected.bind(this));
-        this.ossmBle.addEventListener(OssmEventType.Disconnected, this.onDisconnected.bind(this));
-        this.ossmBle.addEventListener(OssmEventType.StateChanged, this.onStateChanged.bind(this));
-
         this.elements.pairDeviceButton.classList.add("hidden");
         this.elements.installPwaButton.classList.add("hidden");
 
         this.setInfoContainer(
-            pairingInfoContainerKey,
+            this.infoKeyPairingScreen,
             StylesScript.createInfoContainer({
                 message: "Initializing..."
             }),
@@ -709,14 +418,13 @@ class OssmWebControl {
         try {
             await this.ossmBle.begin();
             await this.ossmBle.waitForReady(5_000);
-            await this.ossmBle.setSpeedKnobConfig(false);
             if (isDevMode)
                 console.log("Device is ready");
         } catch (error) {
             console.error("Error waiting for device to become ready:", error);
 
             this.setInfoContainer(
-                pairingInfoContainerKey,
+                this.infoKeyPairingScreen,
                 StylesScript.createInfoContainer({
                     state: InfoContainerState.Error,
                     title: "Connection Error",
@@ -731,13 +439,51 @@ class OssmWebControl {
         }
         //#endregion
 
-        //#region Setup control screen
+        // #region Initial device state
         if (isDevMode) {
             console.log("Fetching initial device state...");
             this.setInfoContainer(
-                pairingInfoContainerKey,
+                this.infoKeyPairingScreen,
                 StylesScript.createInfoContainer({
                     message: "Fetching device information..."
+                }),
+                this.elements.pairScreen
+            );
+        }
+
+        /* Upon first startup of the device the state of the depth/stroke can be invalid (as far as what I consider that to be)
+         * See this thread: https://discord.com/channels/559409652425687041/1462645505287917730
+         * For now manually set the device into a known valid state
+         */
+        // if (currentState.depth - currentState.stroke < 0) {
+        //     try {
+        //         await this.ossmBle.setStroke(currentState.depth);
+        //         // await this.ossmBle.runStrokeEnginePattern(new PatternHelper(0, 0, 10, 0));
+        //         currentState = await this.ossmBle.getState(1_000);
+        //     } catch (error) {
+        //         console.error("Error setting initial stroke value:", error);
+        //         this.setInfoContainer(
+        //             this.infoKeyPairingScreen,
+        //             StylesScript.createInfoContainer({
+        //                 state: InfoContainerState.Error,
+        //                 title: "Connection Error",
+        //                 message: `Failed to set initial device state`,
+        //             }),
+        //             this.elements.pairScreen
+        //         );
+        //     }
+        // }
+        // For now always set initial play settings
+        try {
+            await this.enterStableState();
+        } catch (error) {
+            console.error("Error setting initial play settings:", error);
+            this.setInfoContainer(
+                this.infoKeyPairingScreen,
+                StylesScript.createInfoContainer({
+                    state: InfoContainerState.Error,
+                    title: "Connection Error",
+                    message: `Failed to set initial device state`,
                 }),
                 this.elements.pairScreen
             );
@@ -750,7 +496,7 @@ class OssmWebControl {
         } catch (error) {
             console.error("Error retrieving initial device state:", error);
             this.setInfoContainer(
-                pairingInfoContainerKey,
+                this.infoKeyPairingScreen,
                 StylesScript.createInfoContainer({
                     state: InfoContainerState.Error,
                     title: "Connection Error",
@@ -765,33 +511,13 @@ class OssmWebControl {
             this.restorePairScreenLayout();
             return;
         }
+        //#endregion
 
-        /* Upon first startup of thee device the state of the depth/stroke can be invalid (as far as what I consider that to be)
-         * See this thread: https://discord.com/channels/559409652425687041/1462645505287917730
-         * For now manually set the device into a known valid state
-         */
-        if (currentState.depth - currentState.stroke < 0) {
-            currentState.stroke = currentState.depth;
-            try {
-                await this.ossmBle.setStroke(currentState.stroke);
-            } catch (error) {
-                console.error("Error setting initial stroke value:", error);
-                this.setInfoContainer(
-                    pairingInfoContainerKey,
-                    StylesScript.createInfoContainer({
-                        state: InfoContainerState.Error,
-                        title: "Connection Error",
-                        message: `Failed to set initial device state`,
-                    }),
-                    this.elements.pairScreen
-                );
-            }
-        }
-
+        //#region Setup control screen
         if (isDevMode) {
             console.log("Fetching pattern list...");
             this.setInfoContainer(
-                pairingInfoContainerKey,
+                this.infoKeyPairingScreen,
                 StylesScript.createInfoContainer({
                     message: "Loading patterns..."
                 }),
@@ -805,7 +531,7 @@ class OssmWebControl {
         } catch (error) {
             console.error("Error retrieving pattern list:", error);
             this.setInfoContainer(
-                pairingInfoContainerKey,
+                this.infoKeyPairingScreen,
                 StylesScript.createInfoContainer({
                     state: InfoContainerState.Error,
                     title: "Connection Error",
@@ -861,34 +587,28 @@ class OssmWebControl {
             this.patternRadioButtons.set(option, patternInfo);
 
             // Do first initial selection
-            if (currentState.pattern === pattern.idx) {
+            if (currentState.pattern === pattern.idx)
                 option.checked = true;
-
-                // UI Description
-                this.elements.descriptionText.textContent = patternInfo.description;
-
-                // UI invert toggle
-                // this.elements.invertToggle.checked = false; // Will be set by onStateChanged
-                if (patternInfo.canInvert)
-                    this.elements.invertToggle.classList.remove("hidden");
-                else
-                    this.elements.invertToggle.classList.add("hidden");
-
-                // UI intensity slider
-                if (patternInfo.hasIntensityControl)
-                    this.elements.intensitySlider.classList.remove("hidden");
-                else
-                    this.elements.intensitySlider.classList.add("hidden");
-            }
         }
 
         // Manually trigger an update of the UI
+        this.ossmBle.addEventListener(OssmEventType.Connected, this.onConnected.bind(this));
+        this.ossmBle.addEventListener(OssmEventType.Disconnected, this.onDisconnected.bind(this));
+        this.ossmBle.addEventListener(OssmEventType.StateChanged, this.onStateChanged.bind(this));
+
         try {
-            this.updateControlsState(currentState);
+            this.onConnected({ event: OssmEventType.Connected });
+            this.onStateChanged({
+                event: OssmEventType.StateChanged,
+                [OssmEventType.StateChanged]: {
+                    oldState: null,
+                    newState: currentState
+                }
+            });
         } catch (error) {
             console.error("Error updating control screen UI:", error);
             this.setInfoContainer(
-                pairingInfoContainerKey,
+                this.infoKeyPairingScreen,
                 StylesScript.createInfoContainer({
                     state: InfoContainerState.Error,
                     title: "Connection Error",
@@ -908,7 +628,7 @@ class OssmWebControl {
         if (isDevMode) {
             console.log("Setup complete");
             this.setInfoContainer(
-                pairingInfoContainerKey,
+                this.infoKeyPairingScreen,
                 StylesScript.createInfoContainer({
                     // state: InfoContainerState.Success,
                     // message: "Setup complete!"
@@ -932,7 +652,7 @@ class OssmWebControl {
             durationMs: 500
         });
 
-        this.deleteInfoContainer(pairingInfoContainerKey);
+        this.deleteInfoContainer(this.infoKeyPairingScreen);
         this.elements.pairScreen.classList.remove("scale-pulse");
         // this.restorePairScreenLayout();
         //#endregion
@@ -949,7 +669,10 @@ class OssmWebControl {
             this.elements.installPwaButton.classList.remove("hidden");
         }
     }
+    // #endregion
 
+    // #region Control screen
+    // #region UI handlers
     private async onStopButtonClicked(): Promise<void> {
         if (isDevMode)
             console.log("Emergency stop button clicked");
@@ -1021,35 +744,78 @@ class OssmWebControl {
         if (!patternInfo)
             return;
 
-        // Description
-        this.elements.descriptionText.textContent = patternInfo.description;
-
-        // Invert toggle
-        if (!patternInfo.canInvert) {
-            // Can't invert, hide toggle
-            this.elements.invertToggle.classList.add("hidden");
+        try {
+            await this.ossmBle?.setPattern(patternInfo.idx);
+        } catch (error) {
+            console.error("Error setting pattern on device:", error);
+            // TODO: Error
+            throw error;
         }
-        else if (this.elements.invertToggle.classList.contains("hidden")) {
-            // Was already hidden, reset toggle and show
-            this.elements.invertToggle.checked = false;
-            this.elements.invertToggle.classList.remove("hidden");
-        } else {
-            // Was already visible, --keep current state--
-            this.elements.invertToggle.checked = false;
-        }
-
-        // Intensity slider
-        if (patternInfo.hasIntensityControl)
-            this.elements.intensitySlider.classList.remove("hidden");
-        else
-            this.elements.intensitySlider.classList.add("hidden");
-
-        // TODO: Change pattern on device
     }
 
+    private async onPlayControlChanged(): Promise<void> {
+        if (!this.ossmBle || this.isRecalibrating || this.isStabilizing || this.isTransitioningPage || this.isUserInputting)
+            return;
+        this.isUserInputting = true;
+
+        if (isDevMode)
+            console.log("Updating device from controls");
+
+        const range = this.relativeRangeControl.getValues();
+        const speed = this.relativeSpeedSlider.getValue();
+        const intensity = this.intensitySlider.getValue();
+        const invert = this.elements.invertToggle.checked;
+
+        // Find selected pattern info
+        let pattern: PatternInfo | undefined = undefined;
+        for (const [radioButton, patternInfo] of this.patternRadioButtons) {
+            if (radioButton.checked) {
+                pattern = patternInfo;
+            }
+        }
+        if (!pattern) {
+            console.error("No pattern selected when updating play controls");
+            this.isUserInputting = false;
+            return;
+        }
+
+        let playState: PatternHelper;
+        try {
+            playState = new PatternHelper(
+                pattern.idx,
+                range.from,
+                range.to,
+                speed,
+                pattern.hasIntensityControl ? intensity : undefined,
+                pattern.canInvert ? invert : undefined
+            );
+        } catch (error) {
+            console.error("Error creating play state from control values:", error);
+            this.isUserInputting = false;
+            return;
+        }
+
+        try {
+            await this.ossmBle.runStrokeEnginePattern(playState);
+        } catch (error) {
+            console.error("Error sending play state to device:", error);
+            return;
+        }
+
+        this.isUserInputting = false;
+    }
+    //#endregion
+
+    // #region API handlers
     private async onConnected(data: OssmEventCallbackParameters): Promise<void> {
         this.elements.stateIndicator.dataset.state = "ready";
         this.elements.optionsAndControls.classList.remove("scale-pulse");
+        try {
+            if (await this.ossmBle?.getSpeedKnobConfig())
+                await this.ossmBle?.setSpeedKnobConfig(false);
+        } catch (error) {
+            console.error("Error setting speed knob config on reconnection:", error);
+        }
     }
 
     private async onDisconnected(data: OssmEventCallbackParameters): Promise<void> {
@@ -1151,8 +917,17 @@ class OssmWebControl {
             }
         }
 
-        // Always send new state to controls
-        this.updateControlsState(data[OssmEventType.StateChanged].newState);
+        switch (data[OssmEventType.StateChanged].newState.status) {
+            case OssmStatus.StrokeEngine:
+            case OssmStatus.StrokeEngineIdle:
+            case OssmStatus.StrokeEnginePreflight:
+            case OssmStatus.StrokeEnginePattern:
+                // Always send new state to controls
+                this.updateControlsState(data[OssmEventType.StateChanged].newState);
+                break;
+            default:
+                break;
+        }
     }
 
     private async stateTransition(): Promise<void> {
@@ -1178,6 +953,16 @@ class OssmWebControl {
 
         if (isDevMode)
             console.log("Waiting for external interaction");
+
+        this.elements.stateIndicator.dataset.state = "waiting";
+        this.elements.optionsAndControls.classList.add("scale-pulse");
+
+        // TODO: Show info box here
+        this.elements.optionsAndControls.querySelectorAll("*").forEach(el => {
+            if (el instanceof HTMLInputElement || el instanceof HTMLButtonElement) {
+                el.disabled = true;
+            }
+        });
     }
 
     private async stateHoming(): Promise<void> {
@@ -1187,6 +972,8 @@ class OssmWebControl {
         this.elements.stateIndicator.dataset.state = "calibrating";
         this.elements.optionsAndControls.classList.add("scale-pulse");
         this.elements.recalibrateButton.disabled = true;
+
+        // TODO: Show info box here
         this.elements.optionsAndControls.querySelectorAll("*").forEach(el => {
             if (el instanceof HTMLInputElement || el instanceof HTMLButtonElement) {
                 el.disabled = true;
@@ -1201,6 +988,7 @@ class OssmWebControl {
         this.elements.stateIndicator.dataset.state = "ready";
         this.elements.optionsAndControls.classList.remove("scale-pulse");
         this.elements.recalibrateButton.disabled = false;
+
         this.elements.optionsAndControls.querySelectorAll("*").forEach(el => {
             if (el instanceof HTMLInputElement || el instanceof HTMLButtonElement) {
                 el.disabled = false;
@@ -1211,14 +999,71 @@ class OssmWebControl {
     private async stateDeviceError(): Promise<void> {
         if (isDevMode)
             console.log("Device is in error state");
+
+        // Disconnect and return to pair screen with error
+        try {
+            await this.ossmBle?.stop();
+            await this.ossmBle?.end();
+            // Disposal handled by onDisconnected
+        } catch (error) {
+            console.error("Error stopping/ending connection during device error handling:", error);
+        }
+
+        this.setInfoContainer(
+            this.infoKeyPairingScreen,
+            StylesScript.createInfoContainer({
+                state: InfoContainerState.Error,
+                title: "Device Error",
+                message: `The device has encountered an error and must be restarted manually`,
+            }),
+            this.elements.pairScreen
+        );
     }
 
     private async stateUnknown(): Promise<void> {
         if (isDevMode)
             console.log("Device is in unknown state");
+
+        try {
+            await this.ossmBle?.stop();
+            await this.ossmBle?.end();
+        } catch (error) {
+            console.error("Error stopping/ending connection during unknown state handling:", error);
+        }
+
+        this.setInfoContainer(
+            this.infoKeyPairingScreen,
+            StylesScript.createInfoContainer({
+                state: InfoContainerState.Error,
+                title: "State Error",
+                message: `The device has entered a state that the application cannot handle`,
+            }),
+            this.elements.pairScreen
+        );
+    }
+
+    private async enterStableState(): Promise<void> {
+        if (!this.ossmBle || this.isStabilizing)
+            return;
+        this.isStabilizing = true;
+
+        if (isDevMode)
+            console.log("Entering stable state...");
+
+        await this.ossmBle.setSpeed(0);
+        await this.ossmBle.setStroke(10);
+        await this.ossmBle.setDepth(10);
+
+        this.isStabilizing = false;
     }
 
     private updateControlsState(state: OssmState): void {
+        if (!this.ossmBle || this.isRecalibrating || this.isStabilizing || this.isTransitioningPage || this.isUserInputting)
+            return;
+        
+        if (isDevMode)
+            console.log("Updating controls from device");
+
         // Find selected pattern info
         let pattern: PatternInfo | undefined = undefined;
         for (const [radioButton, patternInfo] of this.patternRadioButtons) {
@@ -1239,30 +1084,43 @@ class OssmWebControl {
             playState = PatternHelper.fromPlayData(state, pattern.hasIntensityControl, pattern.canInvert);
         } catch (error) {
             console.error("Error parsing play data from state:", error);
-            // TODO: Error
-            throw error;
+            if (!this.isStabilizing)
+                this.enterStableState();
+            return;
         }
 
-        // Update relative range
-        this.relativeRangeSlider.setValues({
+        // Description
+        this.elements.descriptionText.textContent = pattern.description;
+
+        // Invert toggle
+        if (pattern.canInvert) {
+            this.elements.invertToggle.checked = playState.invert!;
+            this.elements.invertToggle.classList.remove("hidden");
+        } else {
+            this.elements.invertToggle.classList.add("hidden");
+        }
+
+        // Intensity slider
+        if (pattern.hasIntensityControl)
+            this.elements.intensitySlider.classList.remove("hidden");
+        else
+            this.elements.intensitySlider.classList.add("hidden");
+
+        // Range
+        this.relativeRangeControl.setValues({
             from: playState.minDepth,
             to: playState.maxDepth
         });
 
-        // Update relative speed
+        // Speed
         this.relativeSpeedSlider.setValue(playState.speed);
 
-        // Update intensity
+        // Intensity
         if (pattern.hasIntensityControl)
             this.intensitySlider.setValue(playState.intensity!);
-
-        // Update invert button
-        if (pattern.canInvert)
-            this.elements.invertToggle.checked = playState.invert!;
-
-        if (isDevMode)
-            console.log("Controls updated successfully");
     }
+    //#endregion
+    // #endregion
 }
 
 document.addEventListener("DOMContentLoaded", async () => await OssmWebControl.initialize());

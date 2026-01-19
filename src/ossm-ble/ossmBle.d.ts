@@ -18,7 +18,6 @@ type OssmEventCallbackParameters = {
   event: OssmEventType;
   [OssmEventType.StateChanged]?: {
     newState: OssmState;
-    oldState: OssmState | null;
   };
 };
 type OssmEventCallback = (data: OssmEventCallbackParameters) => Promise<any> | any;
@@ -212,6 +211,7 @@ declare class OssmBle implements Disposable {
   private ossmServices;
   private lastPoll;
   private cachedState;
+  private pendingStateTarget;
   private cachedPatternList;
   private lastFixedPosition;
   commandProcessDelayMs: number;
@@ -221,6 +221,7 @@ declare class OssmBle implements Disposable {
   private connect;
   private throwIfNotReady;
   private onDisconnected;
+  private isIntermediateValue;
   private onCurrentStateChanged;
   /**
   * Begins automatic connection management.

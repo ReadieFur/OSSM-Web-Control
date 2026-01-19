@@ -5,6 +5,16 @@ type WindowWithStyles = Window & typeof globalThis & {
 };
 const windowWithStyles = window as WindowWithStyles;
 
+export class Helpers {
+    static isMobileUI(): boolean {
+        return window.getComputedStyle(document.documentElement).getPropertyValue("--is-mobile-ui") === "true";
+    }
+
+    static isPortrait(): boolean {
+        return window.getComputedStyle(document.documentElement).getPropertyValue("--is-portrait") === "true";
+    }
+}
+
 export enum TransitionDirection {
     In = "in",
     Out = "out",
@@ -88,13 +98,13 @@ export class InputRangeDouble {
     
     //Based on: https://troll-winner.com/blog/one-more-dual-range-slider
     private readonly containerObserver = new MutationObserver(this.onContainerMutated.bind(this));
+    private readonly externalCallbacks: Map<string, Array<() => void>> = new Map();
     private readonly fromSlider: HTMLInputElement;
     private readonly toSlider: HTMLInputElement;
-    private readonly externalCallbacks: Map<string, Array<(sender?: any) => void>> = new Map();
 
     constructor(
         private readonly container: HTMLElement
-    ){
+    ) {
         if (InputRangeDouble.getInstances().has(container))
             throw new Error("InputRangeDouble instance already exists for this container");
 
@@ -170,7 +180,7 @@ export class InputRangeDouble {
 
         this.updateStyles();
         
-        this.dispatchEvent("input", this.fromSlider);
+        this.dispatchEvent("input");
     }
 
     private onMaxSliderInput(): void {
@@ -180,15 +190,15 @@ export class InputRangeDouble {
         
         this.updateStyles();
 
-        this.dispatchEvent("input", this.toSlider);
+        this.dispatchEvent("input");
     }
 
     private onMinSliderChange(): void {
-        this.dispatchEvent("change", this.fromSlider);
+        this.dispatchEvent("change");
     }
     
     private onMaxSliderChange(): void {
-        this.dispatchEvent("change", this.toSlider);
+        this.dispatchEvent("change");
     }
 
     private updateStyles(): void {
@@ -210,12 +220,12 @@ export class InputRangeDouble {
         this.container.style.setProperty("--range-to-value", `${toPositionPercent}%`);
     }
 
-    private dispatchEvent(event: "input" | "change", sender?: any): void {
+    private dispatchEvent(event: "input" | "change"): void {
         const callbacks = this.externalCallbacks.get(event);
         if (!callbacks)
             return;
         for (const callback of callbacks)
-            callback(sender);
+            callback();
     }
 
     getValues(): { from: number; to: number } {
@@ -246,8 +256,8 @@ export class InputRangeDouble {
 
         this.updateStyles();
 
-        this.dispatchEvent("input", this);
-        this.dispatchEvent("change", this);
+        this.dispatchEvent("input");
+        this.dispatchEvent("change");
     }
 
     getMinMax(): { min: number; max: number } {
@@ -301,6 +311,158 @@ export class InputRangeDouble {
         const index = callbacks.indexOf(callback);
         if (index !== -1)
             callbacks.splice(index, 1);
+    }
+}
+
+export class DualSliderWithNumber {
+    static createFromExisting(container: HTMLElement): void {
+        const rangeContainer = container.querySelector(".input-container-range-double");
+        if (!rangeContainer || !(rangeContainer instanceof HTMLDivElement))
+            throw new Error("SliderComponent: Could not find required range container element");
+
+        const rangeInstance = InputRangeDouble.getOrCreateInstance(rangeContainer);
+
+        const numberInputs = container.querySelectorAll("input[type='number']");
+        if (numberInputs.length < 2)
+            throw new Error("SliderComponent: Could not find required number input elements");
+
+        const numberInputA = numberInputs[0] as HTMLInputElement;
+        const numberInputB = numberInputs[1] as HTMLInputElement;
+
+        const refreshNumberInputs = () => {
+            let minInput: HTMLInputElement, maxInput: HTMLInputElement;
+            if (Helpers.isPortrait()) {
+                minInput = numberInputB;
+                maxInput = numberInputA;
+            } else {
+                minInput = numberInputA;
+                maxInput = numberInputB;
+            }
+
+            const minMax = rangeInstance.getMinMax();
+            minInput.min = minMax.min.toString();
+            minInput.max = minMax.max.toString();
+            maxInput.min = minMax.min.toString();
+            maxInput.max = minMax.max.toString();
+
+            const values = rangeInstance.getValues();
+            minInput.value = values.from.toString();
+            maxInput.value = values.to.toString();
+        };
+
+        const onWindowResize = () => {
+            const wasPortrait = rangeContainer.getAttribute("orientation") === "vertical";
+            const isPortrait = Helpers.isPortrait();
+
+            if (wasPortrait === isPortrait)
+                return;
+
+            if (isPortrait)
+                rangeContainer.setAttribute("orientation", "vertical");
+            else
+                rangeContainer.removeAttribute("orientation");
+
+            refreshNumberInputs();
+        };
+
+        window.addEventListener("resize", onWindowResize);
+
+        rangeInstance.addEventListener("input", () => {
+            refreshNumberInputs();
+        });
+
+        rangeInstance.addEventListener("change", () => {
+            // No need to refresh numbers as this will have been done when the input event fires which always comes first.
+            // this.refreshNumberInputs();
+        });
+
+        numberInputA.addEventListener("change", () => {
+            let from: number | undefined = undefined;
+            let to: number | undefined = undefined;
+
+            if (Helpers.isPortrait())
+                to = parseFloat(numberInputA.value);
+            else
+                from = parseFloat(numberInputA.value);
+
+            rangeInstance.setValues({ from, to });
+        });
+
+        numberInputB.addEventListener("change", () => {
+            let from: number | undefined = undefined;
+            let to: number | undefined = undefined;
+
+            if (Helpers.isPortrait())
+                from = parseFloat(numberInputB.value);
+            else
+                to = parseFloat(numberInputB.value);
+
+            rangeInstance.setValues({ from, to });
+        });
+
+        refreshNumberInputs();
+        onWindowResize();
+    }
+}
+
+export class SliderWithNumber {
+    static createFromExisting(container: HTMLElement): void {
+        const numberInputs = container.querySelectorAll("input[type='number']");
+        if (numberInputs.length < 2)
+            throw new Error("SliderComponent: Could not find required number input elements");
+        const rangeInput = container.querySelector("input[type='range']");
+        if (!rangeInput || !(rangeInput instanceof HTMLInputElement))
+            throw new Error("SliderComponent: Could not find required range input element");
+        
+        const numberInputA = numberInputs[0] as HTMLInputElement;
+        const numberInputB = numberInputs[1] as HTMLInputElement;
+
+        numberInputA.min = rangeInput.min;
+        numberInputA.max = rangeInput.max;
+        numberInputB.min = rangeInput.min;
+        numberInputB.max = rangeInput.max;
+        numberInputA.valueAsNumber = rangeInput.valueAsNumber;
+        numberInputB.valueAsNumber = rangeInput.valueAsNumber;
+
+        rangeInput.addEventListener("input", () => {
+            numberInputA.value = rangeInput.value;
+            numberInputB.value = rangeInput.value;
+        });
+        rangeInput.addEventListener("change", () => {
+            numberInputA.value = rangeInput.value;
+            numberInputB.value = rangeInput.value;
+        });
+        numberInputA.addEventListener("change", () => {
+            const value = parseFloat(numberInputA.value);
+            rangeInput.valueAsNumber = value;
+            numberInputB.value = value.toString();
+            rangeInput.dispatchEvent(new Event("input", { bubbles: true }));
+            rangeInput.dispatchEvent(new Event("change", { bubbles: true }));
+        });
+        numberInputB.addEventListener("change", () => {
+            const value = parseFloat(numberInputB.value);
+            rangeInput.valueAsNumber = value;
+            numberInputA.value = value.toString();
+            rangeInput.dispatchEvent(new Event("input", { bubbles: true }));
+            rangeInput.dispatchEvent(new Event("change", { bubbles: true }));
+        });
+
+        const onWindowResize = () => {
+            const isPortrait = Helpers.isPortrait();
+
+            if (isPortrait) {
+                rangeInput.setAttribute("orientation", "vertical");
+                numberInputA.classList.add("hidden");
+                numberInputB.classList.remove("hidden");
+            }
+            else {
+                rangeInput.removeAttribute("orientation");
+                numberInputA.classList.remove("hidden");
+                numberInputB.classList.add("hidden");
+            }
+        };
+        window.addEventListener("resize", onWindowResize);
+        onWindowResize();
     }
 }
 

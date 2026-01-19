@@ -1085,6 +1085,7 @@ footer {
         ready: $green,
         disconnected: $red,
         connecting: $yellow,
+        waiting: $yellow,
         calibrating: $accent-2
     );
     @each $state, $color in $states {
