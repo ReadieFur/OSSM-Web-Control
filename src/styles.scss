@@ -1450,11 +1450,8 @@ footer {
     }
 
     .invert-intensity {
-        position: absolute;
+        justify-content: center;
         font-size: 1.75em;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%);
     }
 }
 // #endregion

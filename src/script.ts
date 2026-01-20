@@ -15,8 +15,7 @@ import {
     InfoContainerState,
     TransitionDirection,
     InputRangeDouble,
-    SliderWithNumber,
-    DualSliderWithNumber,
+    Helpers as StyleHelpers,
 } from "./styles.js";
 import type {
     BeforeInstallPromptEvent
@@ -171,6 +170,185 @@ const initializeComponent = () => {
 };
 //#endregion
 
+//#region Element wrappers
+class ControlsDualSlider {
+    static createFromExisting(container: HTMLElement): void {
+        const rangeContainer = container.querySelector(".input-container-range-double");
+        if (!rangeContainer || !(rangeContainer instanceof HTMLDivElement))
+            throw new Error("SliderComponent: Could not find required range container element");
+
+        const rangeInstance = InputRangeDouble.getOrCreateInstance(rangeContainer);
+
+        const numberInputs = container.querySelectorAll("input[type='number']");
+        if (numberInputs.length < 2)
+            throw new Error("SliderComponent: Could not find required number input elements");
+
+        const numberInputA = numberInputs[0] as HTMLInputElement;
+        const numberInputB = numberInputs[1] as HTMLInputElement;
+
+        const refreshNumberInputs = () => {
+            let minInput: HTMLInputElement, maxInput: HTMLInputElement;
+            if (StyleHelpers.isPortrait()) {
+                minInput = numberInputB;
+                maxInput = numberInputA;
+            } else {
+                minInput = numberInputA;
+                maxInput = numberInputB;
+            }
+
+            const minMax = rangeInstance.getMinMax();
+            const values = rangeInstance.getValues();
+
+            minInput.min = minMax.min.toString();
+            minInput.max = values.to.toString();
+            maxInput.min = values.from.toString();
+            maxInput.max = minMax.max.toString();
+
+            minInput.value = values.from.toString();
+            maxInput.value = values.to.toString();
+        };
+
+        const onWindowResize = () => {
+            const wasPortrait = rangeContainer.getAttribute("orientation") === "vertical";
+            const isPortrait = StyleHelpers.isPortrait();
+
+            if (wasPortrait === isPortrait)
+                return;
+
+            if (isPortrait)
+                rangeContainer.setAttribute("orientation", "vertical");
+            else
+                rangeContainer.removeAttribute("orientation");
+
+            refreshNumberInputs();
+        };
+
+        window.addEventListener("resize", onWindowResize);
+
+        rangeInstance.addEventListener("input", () => {
+            refreshNumberInputs();
+        });
+
+        rangeInstance.addEventListener("change", () => {
+            // No need to refresh numbers as this will have been done when the input event fires which always comes first.
+            // this.refreshNumberInputs();
+        });
+
+        numberInputA.addEventListener("change", () => {
+            let from: number | undefined = undefined;
+            let to: number | undefined = undefined;
+
+            if (StyleHelpers.isPortrait())
+                to = parseFloat(numberInputA.value);
+            else
+                from = parseFloat(numberInputA.value);
+
+            // Enforce gap
+            const gap = rangeInstance.getMinGap();
+            const values = rangeInstance.getValues();
+            if (from !== undefined && values.to - from < gap) {
+                from = values.to - gap;
+                numberInputA.value = from.toString();
+            }
+            if (to !== undefined && to - values.from < gap) {
+                to = values.from + gap;
+                numberInputA.value = to.toString();
+            }
+
+            rangeInstance.setValues({ from, to });
+        });
+
+        numberInputB.addEventListener("change", () => {
+            let from: number | undefined = undefined;
+            let to: number | undefined = undefined;
+
+            if (StyleHelpers.isPortrait())
+                from = parseFloat(numberInputB.value);
+            else
+                to = parseFloat(numberInputB.value);
+
+            const gap = rangeInstance.getMinGap();
+            const values = rangeInstance.getValues();
+            if (from !== undefined && values.to - from < gap) {
+                from = values.to - gap;
+                numberInputB.value = from.toString();
+            }
+            if (to !== undefined && to - values.from < gap) {
+                to = values.from + gap;
+                numberInputB.value = to.toString();
+            }
+
+            rangeInstance.setValues({ from, to });
+        });
+
+        refreshNumberInputs();
+        onWindowResize();
+    }
+}
+
+class ControlsSingleSlider {
+    static createFromExisting(container: HTMLElement): void {
+        if (container.children.length !== 3)
+            throw new Error(`SliderComponent: Unexpected number of child elements in container` +
+                ` (${container.children.length} found, 3 expected)`);
+        const originalElementOrder = Array.from(container.children);
+
+        const numberInput = container.querySelector("input[type='number']") as HTMLInputElement;
+        if (!numberInput)
+            throw new Error("SliderComponent: Could not find required number input element");
+        const rangeInput = container.querySelector("input[type='range']") as HTMLInputElement;
+        if (!rangeInput)
+            throw new Error("SliderComponent: Could not find required range input element");
+
+        numberInput.min = rangeInput.min;
+        numberInput.max = rangeInput.max;
+        numberInput.valueAsNumber = rangeInput.valueAsNumber;
+
+        rangeInput.addEventListener("input", () => {
+            numberInput.value = rangeInput.value;
+        });
+        rangeInput.addEventListener("change", () => {
+            numberInput.value = rangeInput.value;
+        });
+        numberInput.addEventListener("change", () => {
+            const value = parseFloat(numberInput.value);
+            rangeInput.valueAsNumber = value;
+            // Do not bubbles event as range input is internal to this component (otherwise this would cause the event to fire twice)
+            rangeInput.dispatchEvent(new Event("input"));
+            rangeInput.dispatchEvent(new Event("change"));
+        });
+
+        const onWindowResize = () => {
+            const isPortrait = StyleHelpers.isPortrait();
+
+            if (isPortrait) {
+                /* Place items in this order:
+                 * - Other element [0]
+                 * - Range input (vertical) [1]
+                 * - Number input [2]
+                 */
+
+                container.insertBefore(originalElementOrder[0], originalElementOrder[1]);
+                rangeInput.setAttribute("orientation", "vertical");
+                container.appendChild(originalElementOrder[2]);
+            }
+            else {
+                /* Place items in this order:
+                 * - Number input [2]
+                 * - Range input (horizontal) [1]
+                 * - Other element [0]
+                 */
+                container.insertBefore(originalElementOrder[2], originalElementOrder[1]);
+                rangeInput.removeAttribute("orientation");
+                container.appendChild(originalElementOrder[0]);
+            }
+        };
+        window.addEventListener("resize", onWindowResize);
+        onWindowResize();
+    }
+}
+//#endregion
+
 // TODO: Add UI support for connecting multiple devices.
 class OssmWebControl {
     //#region Static (singleton) members
@@ -205,9 +383,9 @@ class OssmWebControl {
             this.relativeRangeControl = InputRangeDouble.getOrCreateInstance(
                 this.elements.relativeRangeContainer.querySelector(".input-container-range-double") as HTMLDivElement);
             this.relativeRangeControl.setMinGap(1); // Ensure at least a gap of 1 between from and to
-            DualSliderWithNumber.createFromExisting(this.elements.relativeRangeContainer);
-            SliderWithNumber.createFromExisting(this.elements.relativeSpeedContainer);
-            SliderWithNumber.createFromExisting(this.elements.intensityContainer);
+            ControlsDualSlider.createFromExisting(this.elements.relativeRangeContainer);
+            ControlsSingleSlider.createFromExisting(this.elements.relativeSpeedContainer);
+            ControlsSingleSlider.createFromExisting(this.elements.intensityContainer);
         } catch (error) {
             this.elements = {
                 // Try at the very least to get the main container and splash, if this fails then something is seriously wrong.
