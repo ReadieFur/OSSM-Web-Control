@@ -73,6 +73,12 @@ export class InputRangeDouble {
         toInput.type = "range";
         toInput.dataset.component = "to";
 
+        if (container.hasAttribute("autocomplete")) {
+            const autocomplete = container.getAttribute("autocomplete")!;
+            fromInput.setAttribute("autocomplete", autocomplete);
+            toInput.setAttribute("autocomplete", autocomplete);
+        }
+
         container.appendChild(fromInput);
         container.appendChild(toInput);
 
@@ -734,6 +740,28 @@ class StylesScriptAuto {
             }
         };
 
+        const processExtraClasses = () => {
+            if (numberElement.classList.contains("hidden"))
+                container.classList.add("hidden");
+            else
+                container.classList.remove("hidden");
+
+            if (numberElement.hasAttribute("data-class")) {
+                const dataClasses = numberElement.getAttribute("data-class")!.split(" ");
+                const containerDataClasses = container.getAttribute("data-class")?.split(" ") ?? [];
+
+                // Remove any classes that are no longer present
+                for (const existingClass of containerDataClasses)
+                    if (!dataClasses.includes(existingClass))
+                        container.classList.remove(existingClass);
+
+                // Add any new classes
+                for (const newClass of dataClasses)
+                    if (!container.classList.contains(newClass))
+                        container.classList.add(newClass);
+            }
+        };
+
         const wrapObserver = StylesScript.wrapElement(numberElement, container, reorderElements);
 
         // Observe for attribute changes on the input element (class and disabled)
@@ -743,14 +771,8 @@ class StylesScriptAuto {
                     if (mutation.attributeName === "class") {
                         // Wrap observer must be disconnected here as reorderElements modifies the DOM
                         wrapObserver.disconnect();
-                        
                         reorderElements();
-                        
-                        if (numberElement.classList.contains("hidden"))
-                            container.classList.add("hidden");
-                        else
-                            container.classList.remove("hidden");
-
+                        processExtraClasses();
                         wrapObserver.observe(document.body, { childList: true, subtree: true });
                     } else if (mutation.attributeName === "disabled") {
                         const disabled = numberElement.disabled;
@@ -763,6 +785,7 @@ class StylesScriptAuto {
         attributeObserver.observe(numberElement, { attributes: true });
 
         reorderElements();
+        processExtraClasses();
     }
 
     static inputTypeRange(rangeElement: HTMLInputElement): void {

@@ -566,6 +566,7 @@ class OssmWebControl {
             option.id = `pattern-idx-${pattern.idx}`;
             option.value = pattern.idx.toString();
             option.name = "pattern-select";
+            option.autocomplete = "off";
             option.addEventListener("change", this.onPatternSelected.bind(this));
 
             let patternInfo: PatternInfo = {
