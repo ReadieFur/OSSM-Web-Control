@@ -51,7 +51,7 @@
             <!-- TODO: Split each section into its own glass-card -->
             <div class="status card">
                 <div>
-                    <p id="state-indicator" data-state="disconnected">
+                    <p id="state-indicator" data-state="not-ready" data-text="Disconnected">
                         <span class="material-symbol fill small" data-icon="circle"></span>
                     </p>
                 </div>
@@ -109,7 +109,7 @@
                         <input type="number" class="spin-split" autocomplete="off" readonly>
                     </div>
                     <div id="intensity-container">
-                        <input id="invert-toggle" type="checkbox" class="invert-intensity icon" data-checked-icon="change_circle" data-unchecked-icon="change_circle" autocomplete="off">
+                        <input id="invert-toggle" type="checkbox" class="invert-intensity icon" data-checked-icon="flip" data-unchecked-icon="flip" autocomplete="off">
                         <div class="glass-border">
                             <input id="intensity-slider" type="range" min="0" max="100" autocomplete="off">
                             <span class="material-symbol no-offset" data-icon="nest_true_radiant"></span>

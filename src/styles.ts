@@ -334,6 +334,10 @@ export class InputRangeDouble {
         if (index !== -1)
             callbacks.splice(index, 1);
     }
+
+    repaint(): void {
+        this.updateStyles();
+    }
 }
 
 export class StylesScript {
@@ -644,6 +648,7 @@ class StylesScriptAuto {
             rangeElement.style.setProperty("--range-value", `${valuePercent}%`);
         };
         rangeElement.addEventListener("input", updateValue);
+        rangeElement.addEventListener("repaint", updateValue);
         updateValue();
     }
 

@@ -22,11 +22,11 @@ $mobile-height-threshold: 1000;
 $material-symbols: (
     "arrow_range",
     "bluetooth_searching",
-    "change_circle",
     "circle",
     "dangerous",
     "dashboard",
     "deployed_code_update",
+    "flip",
     "logout",
     "nest_true_radiant",
     "next_plan",
@@ -197,7 +197,6 @@ $material-symbols-url: build-material-symbol-url();
 }
 
 @mixin glass-border {
-    // TODO: Add this to more elements
     position: absolute;
     z-index: -1;
     inset: 0;
@@ -787,7 +786,7 @@ footer {
     --range-from-value: 20%;
     --range-to-value: 80%;
 
-    // TODO: Make this more transparent
+    // TODO: Make this more transparent without getting "muddy"
     $track-background: hsl(from $surface-2 h s l / 0.5);
     $track-fill: hsl(from $accent-1 h s l / 0.5);
 
@@ -950,6 +949,11 @@ footer {
     &[data-state="warning"]::before {
         content: "⚠️ Warning!";
     }
+}
+
+.highlight {
+    background-color: hsl(from $accent-2 h s l / 0.9);
+    animation: opacity-pulse 2s ease-in-out infinite;
 }
 // #endregion
 
@@ -1215,34 +1219,29 @@ footer {
     $gap: 0.2em;
 
     $margin-property: if($text-placement == "before", "margin-right", "margin-left");
+    &::#{$text-placement} {
+        content: attr(data-text);
+        #{$margin-property}: $gap;
+        // font-size: 0.9rem
+    }
+
     $states: (
-        ready: $green,
-        disconnected: $red,
-        connecting: $yellow,
-        waiting: $yellow,
-        calibrating: $accent-2
+        ok: $green,
+        warning: $yellow,
+        not-ready: $red,
+        processing: $accent-2
     );
     @each $state, $color in $states {
         &[data-state="#{$state}"] {
             > span {
                 color: hsl(from $color h s l / 1);
             }
-
-            &::#{$text-placement} {
-                $text-capitalized: string.to-upper-case(string.slice("#{$state}", 1, 1)) + string.slice("#{$state}", 2);
-                content: "#{$text-capitalized}";
-                #{$margin-property}: $gap;
-                // font-size: 0.9rem
-            }
         }
     }
 
-    &[data-state="connecting"],
-    &[data-state="calibrating"] {
-        color: $text-2;
-        
+    &[data-state="processing"] {
         > span {
-            animation: opacity-pulse 3s ease-in-out infinite;
+            animation: opacity-pulse 2s ease-in-out infinite;
             @media (prefers-reduced-motion: reduce) {
                 animation: none;
             }
@@ -1450,8 +1449,22 @@ footer {
     }
 
     .invert-intensity {
+        $size: 1.5em;
+
         justify-content: center;
-        font-size: 1.75em;
+        font-size: $size;
+
+        &::after {
+            width: $size;
+            height: $size;
+            line-height: $size !important;
+            // I originally wanted this to fade to the new rotation instead of spin however the spin is a good indicator for what it does.
+            transition: transform 0.4s ease, background-color 0.2s ease;
+        }
+
+        &:checked::after {
+            transform: rotateY(180deg);
+        }
     }
 }
 // #endregion

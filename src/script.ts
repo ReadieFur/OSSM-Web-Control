@@ -310,11 +310,18 @@ class ControlsSingleSlider {
         rangeInput.addEventListener("change", () => {
             numberInput.value = rangeInput.value;
         });
+        rangeInput.addEventListener("repaint", () => {
+            numberInput.value = rangeInput.value;
+        });
+        numberInput.addEventListener("input", () => {
+            const value = parseFloat(numberInput.value);
+            rangeInput.valueAsNumber = value;
+            rangeInput.dispatchEvent(new Event("input"));
+        });
         numberInput.addEventListener("change", () => {
             const value = parseFloat(numberInput.value);
             rangeInput.valueAsNumber = value;
             // Do not bubbles event as range input is internal to this component (otherwise this would cause the event to fire twice)
-            rangeInput.dispatchEvent(new Event("input"));
             rangeInput.dispatchEvent(new Event("change"));
         });
 
@@ -454,7 +461,6 @@ class OssmWebControl {
                         state: InfoContainerState.Error,
                         title: "Unsupported Browser",
                         message: "Your browser does not support the required Bluetooth features",
-                        // TODO: Change this message to detect client for specifics
                         extraContent: content
                     }),
                     this.elements.pairScreen
@@ -530,6 +536,7 @@ class OssmWebControl {
         this.relativeRangeControl.addEventListener("change", this.onRelativeRangeChanged.bind(this));
         this.elements.relativeSpeedSlider.addEventListener("change", this.onRelativeSpeedChanged.bind(this));
         this.elements.intensitySlider.addEventListener("change", this.onIntensityChanged.bind(this));
+        this.elements.invertToggle.addEventListener("change", this.onInvertToggled.bind(this));
 
         startupAnimation();
     }
@@ -546,6 +553,87 @@ class OssmWebControl {
         this.deleteInfoContainer(key);
         this.infoContainers.set(key, container);
         parent.appendChild(container);
+    }
+
+    private populatePatternList(patterns: OssmPattern[], selectedPatternId: number): void {
+        this.elements.patternSelect.innerHTML = "";
+        for (const pattern of patterns) {
+            const option = document.createElement("input");
+            option.type = "radio";
+            option.id = `pattern-idx-${pattern.idx}`;
+            option.value = pattern.idx.toString();
+            option.name = "pattern-select";
+            option.autocomplete = "off";
+            option.addEventListener("change", this.onPatternSelected.bind(this));
+
+            let patternInfo: PatternInfo = {
+                idx: pattern.idx,
+                name: pattern.name,
+                description: pattern.description,
+                hasIntensityControl: true,
+                canInvert: false,
+            };
+
+            // Check if there is override information to use instead.
+            for (const knownPatternInfo of Object.values(KNOWN_PATTERNS) as Partial<PatternInfo>[]) {
+                if (pattern.name === undefined || pattern.name !== knownPatternInfo.name)
+                    continue;
+                patternInfo = {
+                    idx: pattern.idx,
+                    name: knownPatternInfo.name,
+                    description: knownPatternInfo?.description ?? pattern.description,
+                    hasIntensityControl: knownPatternInfo?.hasIntensityControl ?? patternInfo.hasIntensityControl,
+                    canInvert: knownPatternInfo?.canInvert ?? patternInfo.canInvert,
+                };
+                break;
+            }
+            
+            const label = document.createElement("label");
+            label.htmlFor = option.id;
+            label.textContent = patternInfo.name;
+
+            this.elements.patternSelect.appendChild(option);
+            this.elements.patternSelect.appendChild(label);
+
+            this.patternRadioButtons.set(pattern.idx, { element: option, pattern: patternInfo });
+
+            // Do first initial selection
+            if (selectedPatternId === pattern.idx)
+                option.checked = true;
+        }
+    }
+
+    private async endSessionNow(): Promise<void> {
+        try {
+            await this.ossmBle?.stop(); // Forcefully stop any movement
+        } catch {}
+
+        // Return to pair screen
+        this.ossmBle?.removeEventListener(OssmEventType.Connected, this.onConnected.bind(this));
+        this.ossmBle?.removeEventListener(OssmEventType.Disconnected, this.onDisconnected.bind(this));
+        this.ossmBle?.removeEventListener(OssmEventType.StateChanged, this.onStateChanged.bind(this));
+
+        this.ossmBle?.[Symbol.dispose]();
+        this.ossmBle = undefined;
+        this.lastOssmStatus = undefined;
+        debugLog("OssmBle instance disposed");
+
+        await StylesScript.transitionFade({
+            element: this.elements.mainContent,
+            direction: TransitionDirection.Out,
+            durationMs: 500
+        });
+        this.restorePairScreenLayout();
+        this.elements.controlScreen.classList.add("hidden");
+        this.elements.mainContent.classList.remove("fill-page");
+        this.elements.pairScreen.classList.remove("hidden");
+        await StylesScript.transitionFade({
+            element: this.elements.mainContent,
+            direction: TransitionDirection.In,
+            durationMs: 500
+        });
+
+        this.elements.optionsAndControls.classList.remove("scale-pulse");
     }
     //#endregion
 
@@ -642,6 +730,7 @@ class OssmWebControl {
             );
         }
 
+        // Wait until one state update has been received (see onStateChanged for UI refresh)
         /* Upon first startup of the device the state of the depth/stroke can be invalid (as far as what I consider that to be)
          * See this thread: https://discord.com/channels/559409652425687041/1462645505287917730
          * For now manually set the device into a known valid state
@@ -680,7 +769,48 @@ class OssmWebControl {
             );
         }
 
-        // Wait until one state update has been received (see onStateChanged for UI refresh)
+        // If the device is in on the Menu page then transition to the StrokeEngine state since it is likely that the device has just started up.
+        try {
+            if (await this.ossmBle.getCurrentPage() === OssmPage.Menu) {
+                debugLog("Device is on Menu page, navigating to Stroke Engine page");
+
+                const navigationPromise = (async (instance: OssmBle) => {
+                    // await instance.navigateTo(OssmPage.Menu);
+                    // await instance.waitForStatus([
+                    //     OssmStatus.Idle,
+                    //     OssmStatus.Menu,
+                    //     OssmStatus.MenuIdle
+                    // ], 1_000);
+
+                    await instance.navigateTo(OssmPage.StrokeEngine);
+                    await instance.waitForStatus([
+                        OssmStatus.StrokeEngine,
+                        OssmStatus.StrokeEngineIdle,
+                        OssmStatus.StrokeEnginePreflight,
+                        OssmStatus.StrokeEnginePattern
+                    ], 30_000);
+                })(this.ossmBle);
+                
+                // Don't wait for the page (via status event) here
+                // await navigationPromise;
+
+                console.log(navigationPromise);
+            }
+        } catch (error) {
+            console.error("Error navigating to Stroke Engine page:", error);
+            this.setInfoContainer(
+                this.infoKeyPairingScreen,
+                StylesScript.createInfoContainer({
+                    state: InfoContainerState.Error,
+                    title: "Connection Error",
+                    message: `Failed to activate device controls`,
+                }),
+                this.elements.pairScreen
+            );
+        }
+        //#endregion
+
+        //#region Setup control screen
         let currentState: OssmState;
         try {
             currentState = await this.ossmBle.getState(5_000);
@@ -696,15 +826,12 @@ class OssmWebControl {
                 this.elements.pairScreen
             );
 
-            await this.ossmBle.end();
             this.ossmBle?.[Symbol.dispose]();
             this.ossmBle = undefined;
             this.restorePairScreenLayout();
             return;
         }
-        //#endregion
 
-        //#region Setup control screen
         if (isDevMode) {
             console.log("Fetching pattern list...");
             this.setInfoContainer(
@@ -731,68 +858,23 @@ class OssmWebControl {
                 this.elements.pairScreen
             );
 
-            await this.ossmBle.end();
             this.ossmBle?.[Symbol.dispose]();
             this.ossmBle = undefined;
             this.restorePairScreenLayout();
             return;
         }
-        this.elements.patternSelect.innerHTML = "";
-        for (const pattern of patterns) {
-            const option = document.createElement("input");
-            option.type = "radio";
-            option.id = `pattern-idx-${pattern.idx}`;
-            option.value = pattern.idx.toString();
-            option.name = "pattern-select";
-            option.autocomplete = "off";
-            option.addEventListener("change", this.onPatternSelected.bind(this));
-
-            let patternInfo: PatternInfo = {
-                idx: pattern.idx,
-                name: pattern.name,
-                description: pattern.description,
-                hasIntensityControl: true,
-                canInvert: false,
-            };
-
-            // Check if there is override information to use instead.
-            for (const knownPatternInfo of Object.values(KNOWN_PATTERNS) as Partial<PatternInfo>[]) {
-                if (pattern.name === undefined || pattern.name !== knownPatternInfo.name)
-                    continue;
-                patternInfo = {
-                    idx: pattern.idx,
-                    name: knownPatternInfo.name,
-                    description: knownPatternInfo?.description ?? pattern.description,
-                    hasIntensityControl: knownPatternInfo?.hasIntensityControl ?? patternInfo.hasIntensityControl,
-                    canInvert: knownPatternInfo?.canInvert ?? patternInfo.canInvert,
-                };
-                break;
-            }
-            
-            const label = document.createElement("label");
-            label.htmlFor = option.id;
-            label.textContent = patternInfo.name;
-
-            this.elements.patternSelect.appendChild(option);
-            this.elements.patternSelect.appendChild(label);
-
-            this.patternRadioButtons.set(pattern.idx, { element: option, pattern: patternInfo });
-
-            // Do first initial selection
-            if (currentState.pattern === pattern.idx)
-                option.checked = true;
-        }
+        this.populatePatternList(patterns, currentState.pattern);
 
         // Manually trigger an update of the UI
         this.ossmBle.addEventListener(OssmEventType.Connected, this.onConnected.bind(this));
         this.ossmBle.addEventListener(OssmEventType.Disconnected, this.onDisconnected.bind(this));
         this.ossmBle.addEventListener(OssmEventType.StateChanged, this.onStateChanged.bind(this));
         try {
-            this.onConnected({ event: OssmEventType.Connected });
-            this.onStateChanged({
+            await this.onConnected({ event: OssmEventType.Connected });
+            await this.onStateChanged({
                 event: OssmEventType.StateChanged,
                 [OssmEventType.StateChanged]: {
-                    newState: currentState
+                    newState: await this.ossmBle.getState(500),
                 }
             });
         } catch (error) {
@@ -806,7 +888,6 @@ class OssmWebControl {
                 }),
                 this.elements.pairScreen
             );
-            await this.ossmBle.end();
             this.ossmBle?.[Symbol.dispose]();
             this.ossmBle = undefined;
             this.restorePairScreenLayout();
@@ -882,9 +963,7 @@ class OssmWebControl {
     }
 
     private async onDisconnectButtonClicked(): Promise<void> {
-        await this.ossmBle?.stop(); // Forcefully stop any movement
-        this.ossmBle?.end();
-        // See onDisconnected for UI handling
+        await this.endSessionNow();
     }
 
     private async onRecalibrateButtonClicked(): Promise<void> {
@@ -892,8 +971,29 @@ class OssmWebControl {
             return;
         this.elements.recalibrateButton.disabled = true;
 
+        debugLog("Starting recalibration process");
+
         // onStateChanged will handle the UI updates
         
+        const endSession = (error?: any) => {
+            console.error("Error during recalibration:", error);
+
+            this.elements.recalibrateButton.disabled = false;
+
+            this.setInfoContainer(
+                this.infoKeyPairingScreen,
+                StylesScript.createInfoContainer({
+                    state: InfoContainerState.Error,
+                    title: "Recalibration Error",
+                    message: `Failed to recalibrate`,
+                    extraContent: `<p><small>Re-connect to reset</small></p>`
+                }),
+                this.elements.controlScreen
+            );
+
+            this.endSessionNow();
+        };
+
         try {
             await this.ossmBle.navigateTo(OssmPage.Menu);
             await this.ossmBle.waitForStatus([
@@ -902,9 +1002,8 @@ class OssmWebControl {
                 OssmStatus.MenuIdle
             ], 1_000);
         } catch (error) {
-            // TODO: Error
-            this.elements.recalibrateButton.disabled = false;
-            throw error;
+            endSession(error);
+            return;
         }
 
         try {
@@ -917,45 +1016,49 @@ class OssmWebControl {
                 OssmStatus.StrokeEnginePattern
             ], 30_000);
         } catch (error) {
-            // TODO: Error
-            this.elements.recalibrateButton.disabled = false;
-            throw error;
+            endSession(error);
+            return;
         }
 
         // Additionally reset speed to 0 for safety
         try {
-            await this.ossmBle.setSpeed(0);
+            await this.enterStableState();
         } catch (error) {
-            // TODO: Error
-            this.elements.recalibrateButton.disabled = false;
-            throw error;
+            endSession(error);
         }
+
         debugLog("Recalibration complete");
 
         this.elements.recalibrateButton.disabled = false;
     }
 
     private async onPatternSelected(event: Event): Promise<void> {
-        // Stop event propagation as update should be handled by API callback.
+        // Stop event propagation, update should be handled by API callback.
         // event.stopImmediatePropagation();
 
         const target = event.target;
         if (!(target instanceof HTMLInputElement))
             return;
 
-        const patternInfo = this.patternRadioButtons.values().find(p => p.element === target)?.pattern;
-        if (!patternInfo) {
-            console.error("No pattern info found for selected pattern");
-            // TODO: Error
-            return;
-        }
+        const patternInfo = this.patternRadioButtons.values().find(p => p.element === target)!.pattern;
 
         try {
             await this.ossmBle?.setPattern(patternInfo.idx);
         } catch (error) {
             console.error("Error setting pattern on device:", error);
-            // TODO: Error
-            throw error;
+            
+            this.setInfoContainer(
+                this.infoKeyPairingScreen,
+                StylesScript.createInfoContainer({
+                    state: InfoContainerState.Error,
+                    title: "Set Pattern Error",
+                    message: `Failed to set pattern`,
+                    extraContent: `<p><small>Re-connect to reset</small></p>`
+                }),
+                this.elements.controlScreen
+            );
+
+            await this.endSessionNow();
         }
     }
 
@@ -972,6 +1075,12 @@ class OssmWebControl {
     }
 
     private async onIntensityChanged(): Promise<void> {
+        this.controlScreenSkipRepaintFor.intensity = true;
+        await this.onPlayControlChanged();
+        this.controlScreenSkipRepaintFor.intensity = false;
+    }
+
+    private async onInvertToggled(): Promise<void> {
         this.controlScreenSkipRepaintFor.intensity = true;
         await this.onPlayControlChanged();
         this.controlScreenSkipRepaintFor.intensity = false;
@@ -997,9 +1106,11 @@ class OssmWebControl {
             }
         }
         if (!pattern) {
+            // Shouldn't occur but just to be safe
             console.error("No pattern selected when updating play controls");
-            // TODO: Error
-            return;
+
+            // Pick first available pattern
+            pattern = this.patternRadioButtons.values().next().value!.pattern;
         }
 
         let playState: PatternHelper;
@@ -1014,7 +1125,7 @@ class OssmWebControl {
             );
         } catch (error) {
             console.error("Error creating play state from control values:", error);
-            // TODO: Error
+            // State is invalid, silently fail
             return;
         }
 
@@ -1022,6 +1133,27 @@ class OssmWebControl {
             await this.ossmBle.runStrokeEnginePattern(playState);
         } catch (error) {
             console.error("Error sending play state to device:", error);
+
+            // Silently fail, repaint UI with old device state
+            try {
+                await this.updateControlsState(await this.ossmBle.getState(500));
+            } catch (error) {
+                // Severe error, end session.
+                console.error("Error retrieving device state after failed play control update:", error);
+
+                this.setInfoContainer(
+                    this.infoKeyPairingScreen,
+                    StylesScript.createInfoContainer({
+                        state: InfoContainerState.Error,
+                        title: "Play Control Error",
+                        message: `Application in a stale state`,
+                        extraContent: `<p><small>Re-connect to reset</small></p>`
+                    }),
+                    this.elements.controlScreen
+                );
+                await this.endSessionNow();
+            }
+
             return;
         }
     }
@@ -1029,7 +1161,8 @@ class OssmWebControl {
 
     //#region API handlers
     private async onConnected(data: OssmEventCallbackParameters): Promise<void> {
-        this.elements.stateIndicator.dataset.state = "ready";
+        this.elements.stateIndicator.dataset.state = "ok";
+        this.elements.stateIndicator.dataset.text = "Connected";
         this.elements.optionsAndControls.classList.remove("scale-pulse");
         try {
             if (await this.ossmBle?.getSpeedKnobConfig())
@@ -1041,38 +1174,15 @@ class OssmWebControl {
 
     private async onDisconnected(data: OssmEventCallbackParameters): Promise<void> {
         const willReconnect = this.ossmBle?.willAutoReconnect() ?? false;
-        this.elements.stateIndicator.dataset.state = willReconnect ? "connecting" : "disconnected";
+
+        this.elements.stateIndicator.dataset.state = willReconnect ? "warning" : "not-ready";
+        this.elements.stateIndicator.dataset.text = willReconnect ? "Reconnecting" : "Disconnected";
 
         if (willReconnect) {
             // Stay on control screen and wait for reconnection
             this.elements.optionsAndControls.classList.add("scale-pulse");
         } else {
-            // Return to pair screen
-            this.ossmBle?.removeEventListener(OssmEventType.Connected, this.onConnected.bind(this));
-            this.ossmBle?.removeEventListener(OssmEventType.Disconnected, this.onDisconnected.bind(this));
-            this.ossmBle?.removeEventListener(OssmEventType.StateChanged, this.onStateChanged.bind(this));
-
-            this.ossmBle?.[Symbol.dispose]();
-            this.ossmBle = undefined;
-            this.lastOssmStatus = undefined;
-            debugLog("OssmBle instance disposed");
-
-            await StylesScript.transitionFade({
-                element: this.elements.mainContent,
-                direction: TransitionDirection.Out,
-                durationMs: 500
-            });
-            this.restorePairScreenLayout();
-            this.elements.controlScreen.classList.add("hidden");
-            this.elements.mainContent.classList.remove("fill-page");
-            this.elements.pairScreen.classList.remove("hidden");
-            await StylesScript.transitionFade({
-                element: this.elements.mainContent,
-                direction: TransitionDirection.In,
-                durationMs: 500
-            });
-
-            this.elements.optionsAndControls.classList.remove("scale-pulse");
+            await this.endSessionNow();
         }
     }
 
@@ -1143,7 +1253,7 @@ class OssmWebControl {
             case OssmStatus.StrokeEnginePreflight:
             case OssmStatus.StrokeEnginePattern:
                 // Always send new state to controls
-                this.updateControlsState(data[OssmEventType.StateChanged].newState);
+                await this.updateControlsState(data[OssmEventType.StateChanged].newState);
                 break;
             default:
                 break;
@@ -1174,10 +1284,11 @@ class OssmWebControl {
 
         debugLog("Waiting for external interaction");
 
-        this.elements.stateIndicator.dataset.state = "waiting";
+        this.elements.stateIndicator.dataset.state = "warning";
+        this.elements.stateIndicator.dataset.text = "Waiting";
         this.elements.optionsAndControls.classList.add("scale-pulse");
+        this.elements.recalibrateButton.classList.add("highlight"); //Use this to help indicate that it can be pressed to return to a known state
 
-        // TODO: Show info box here
         this.elements.optionsAndControls.querySelectorAll("*").forEach(el => {
             if (el instanceof HTMLInputElement || el instanceof HTMLButtonElement) {
                 el.disabled = true;
@@ -1188,11 +1299,12 @@ class OssmWebControl {
     private async stateHoming(): Promise<void> {
         debugLog("Homing in progress...");
 
-        this.elements.stateIndicator.dataset.state = "calibrating";
+        this.elements.stateIndicator.dataset.state = "processing";
+        this.elements.stateIndicator.dataset.text = "Homing";
         this.elements.optionsAndControls.classList.add("scale-pulse");
         this.elements.recalibrateButton.disabled = true;
+        this.elements.recalibrateButton.classList.remove("highlight");
 
-        // TODO: Show info box here
         this.elements.optionsAndControls.querySelectorAll("*").forEach(el => {
             if (el instanceof HTMLInputElement || el instanceof HTMLButtonElement) {
                 el.disabled = true;
@@ -1203,9 +1315,11 @@ class OssmWebControl {
     private async stateStrokeEngine(): Promise<void> {
         debugLog("Stroke Engine active");
 
-        this.elements.stateIndicator.dataset.state = "ready";
+        this.elements.stateIndicator.dataset.state = "ok";
+        this.elements.stateIndicator.dataset.text = "Ready";
         this.elements.optionsAndControls.classList.remove("scale-pulse");
         this.elements.recalibrateButton.disabled = false;
+        this.elements.recalibrateButton.classList.remove("highlight");
 
         this.elements.optionsAndControls.querySelectorAll("*").forEach(el => {
             if (el instanceof HTMLInputElement || el instanceof HTMLButtonElement) {
@@ -1219,9 +1333,7 @@ class OssmWebControl {
 
         // Disconnect and return to pair screen with error
         try {
-            await this.ossmBle?.stop();
-            await this.ossmBle?.end();
-            // Disposal handled by onDisconnected
+            await this.endSessionNow();
         } catch (error) {
             console.error("Error stopping/ending connection during device error handling:", error);
         }
@@ -1241,8 +1353,7 @@ class OssmWebControl {
         debugLog("Device is in unknown state");
 
         try {
-            await this.ossmBle?.stop();
-            await this.ossmBle?.end();
+            await this.endSessionNow();
         } catch (error) {
             console.error("Error stopping/ending connection during unknown state handling:", error);
         }
@@ -1265,41 +1376,90 @@ class OssmWebControl {
 
         debugLog("Entering stable state...");
 
-        await this.ossmBle.setSpeed(0);
-        await this.ossmBle.setStroke(10);
-        await this.ossmBle.setDepth(10);
+        // Force override UI elements
+        this.relativeRangeControl.setValues({ from: 0, to: 10 });
+        this.elements.relativeSpeedSlider.valueAsNumber = 0;
+        this.elements.relativeSpeedSlider.dispatchEvent(new Event("repaint"));
+        this.elements.intensitySlider.valueAsNumber = 10;
+        this.elements.relativeSpeedSlider.dispatchEvent(new Event("repaint"));
+        this.elements.invertToggle.checked = false;
+
+        await this.ossmBle.batchSet([
+            ["speed", 0],
+            ["stroke", 10],
+            ["depth", 10],
+            ["sensation", 50]
+        ]);
 
         this.isEnteringStableState = false;
     }
 
-    private updateControlsState(state: OssmState): void {
-        if (!this.ossmBle || this.isTransitioningPage || this.isRecalibrating)
+    private async updateControlsState(state: OssmState): Promise<void> {
+        if (!this.ossmBle)
             return;
         
         debugLog("Updating controls from device");
 
-        // Find selected pattern info
-        let pattern: PatternInfo | undefined = undefined;
-        for (const [key, value] of this.patternRadioButtons) {
-            if (value.pattern.idx === state.pattern) {
-                value.element.checked = true;
-                pattern = value.pattern;
-                this.elements.descriptionText.textContent = value.pattern.description;
-            }
+        if (state.status === OssmStatus.StrokeEngine ||
+            state.status === OssmStatus.StrokeEngineIdle ||
+            state.status === OssmStatus.StrokeEnginePreflight ||
+            state.status === OssmStatus.StrokeEnginePattern
+        ) {
+            this.elements.stateIndicator.dataset.text = state.speed > 0 ? "Active" : "Paused";
         }
+
+        // Find selected pattern info
+
+        const getPattern = () => {
+            for (const [key, value] of this.patternRadioButtons) {
+                if (value.pattern.idx === state.pattern) {
+                    value.element.checked = true;
+                    this.elements.descriptionText.textContent = value.pattern.description;
+                    return value.pattern;
+                }
+            }
+            return undefined;
+        };
+
+        let pattern = getPattern();
+        
         if (!pattern) {
             console.error("Current pattern not found in pattern list:", state.pattern);
-            // TODO: Error
-            return;
+
+            try {
+                const patterns = await this.ossmBle.getPatternList();
+                this.populatePatternList(patterns, state.pattern);
+
+                pattern = getPattern();
+                if (pattern === undefined)
+                    throw new Error("Pattern still not found after re-querying pattern list");
+            } catch (error) {
+                console.error("Error re-querying pattern list:", error);
+
+                // Critical error, end session
+                this.setInfoContainer(
+                    this.infoKeyPairingScreen,
+                    StylesScript.createInfoContainer({
+                        state: InfoContainerState.Error,
+                        title: "Data Error",
+                        message: `Provided pattern data is invalid`,
+                        extraContent: `<p><small>Re-connect to reset</small></p>`
+                    }),
+                    this.elements.controlScreen
+                );
+                await this.endSessionNow();
+                return;
+            }
         }
 
         let playState: PatternHelper;
         try {
             playState = PatternHelper.fromPlayData(state, pattern.hasIntensityControl, pattern.canInvert);
         } catch (error) {
+            // TODO: Stop this error from occurring when inputs are made in rapid succession
             console.error("Error parsing play data from state:", error);
-            if (!this.isEnteringStableState)
-                this.enterStableState();
+            // if (!this.isEnteringStableState)
+            //     this.enterStableState();
             return;
         }
 
@@ -1331,12 +1491,16 @@ class OssmWebControl {
         // Speed
         if (!this.controlScreenSkipRepaintFor.speed) {
             this.elements.relativeSpeedSlider.valueAsNumber = playState.speed;
+            this.elements.relativeSpeedSlider.dispatchEvent(new Event("repaint"));
         }
 
         // Intensity
         if (!this.controlScreenSkipRepaintFor.intensity) {
-            if (pattern.hasIntensityControl)
+            if (pattern.hasIntensityControl) {
                 this.elements.intensitySlider.valueAsNumber = playState.intensity!;
+                this.elements.invertToggle.checked = playState.invert!;
+                this.elements.intensitySlider.dispatchEvent(new Event("repaint"));
+            }
         }
     }
     //#endregion
