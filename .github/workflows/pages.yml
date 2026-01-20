@@ -45,7 +45,7 @@ jobs:
             --exclude='*.d.ts' \
             --exclude='*.scss' \
             --exclude='*.map' \
-            --exclude'SOURCE' \
+            --exclude='SOURCE' \
 
       - name: Copy LICENSE to dist root
         run: |
