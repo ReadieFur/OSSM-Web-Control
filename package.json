@@ -2,5 +2,9 @@
   "devDependencies": {
     "@types/web-bluetooth": "^0.0.21",
     "user-agent-data-types": "^0.4.2"
+  },
+  "scripts": {
+    "build:scss": "sass --silence-deprecation=if-function src",
+    "build:ts": "tsc -p tsconfig.json"
   }
 }
