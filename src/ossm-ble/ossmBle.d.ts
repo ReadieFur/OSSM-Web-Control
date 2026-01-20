@@ -14,14 +14,13 @@ declare enum OssmEventType {
   */
   StateChanged = 2,
 }
-type OSSMEventCallbackParameters = {
+type OssmEventCallbackParameters = {
   event: OssmEventType;
   [OssmEventType.StateChanged]?: {
     newState: OssmState;
-    oldState: OssmState | null;
   };
 };
-type OssmEventCallback = (data: OSSMEventCallbackParameters) => Promise<any> | any;
+type OssmEventCallback = (data: OssmEventCallbackParameters) => Promise<any> | any;
 declare enum OssmStatus {
   /** Initializing */
   Idle = "idle",
@@ -144,8 +143,8 @@ declare enum KnownPattern {
   */
   TeasingPounding = 1,
   /**
-  * Full and half depth strokes alternate
-  * @param intensity how pronounced the half/full depth effect is, lower is more robotic, higher is smoother
+  * Robotic-style strokes with abrupt starts and stops
+  * @param intensity how pronounced the effect is, lower is more robotic, higher is smoother
   * @param canInvert `false`
   */
   RoboStroke = 2,
@@ -212,6 +211,7 @@ declare class OssmBle implements Disposable {
   private ossmServices;
   private lastPoll;
   private cachedState;
+  private pendingStateTarget;
   private cachedPatternList;
   private lastFixedPosition;
   commandProcessDelayMs: number;
@@ -221,8 +221,9 @@ declare class OssmBle implements Disposable {
   private connect;
   private throwIfNotReady;
   private onDisconnected;
+  private isIntermediateValue;
+  private waitForPendingTargetsToSettle;
   private onCurrentStateChanged;
-  private sendCommand;
   /**
   * Begins automatic connection management.
   * A call to {@link waitForReady()} is recommended after this to ensure the library is ready before sending commands
@@ -232,6 +233,17 @@ declare class OssmBle implements Disposable {
   * Ends automatic connection management and disconnects from the device
   */
   end(): void;
+  /**
+  * Send a raw command to the OSSM device
+  * @param value The command string to send
+  * @param speedup When `true`, the command is sent without waiting for and validating the response
+  */
+  sendCommand(value: string, speedup?: boolean): Promise<void>;
+  /**
+  * Checks whether automatic reconnection will occur upon disconnection
+  * @returns `true` if auto-reconnect is enabled, `false` otherwise
+  */
+  willAutoReconnect(): boolean;
   /**
   * Adds an event listener for the specified event type
   * @param eventType one of {@link OssmEventType}
@@ -354,6 +366,13 @@ declare class OssmBle implements Disposable {
   * @requires being on the Stroke Engine page
   */
   moveToPosition(position: number, speed: number): Promise<void>;
+  /**
+  * Batch set multiple OssmPlayData settings in one go.  
+  * *Note:* It is advised you use runStrokeEnginePattern where possible instead of this method to apply settings in a safe order.
+  * @param data An array of tuples containing the key and value to set
+  * @throws Error if the same key is set multiple times in the batch
+  */
+  batchSet(data: Array<[keyof OssmPlayData, number]>): Promise<void>;
   debug: boolean;
   private debugLog;
   private debugLogIf;
@@ -361,4 +380,4 @@ declare class OssmBle implements Disposable {
   private debugLogTableIf;
 }
 //#endregion
-export { KnownPattern, OssmBle, type OssmEventCallback, OssmEventType, OssmPage, type OssmPattern, type OssmState, OssmStatus, PatternHelper, mapRational };
+export { KnownPattern, OssmBle, type OssmEventCallback, type OssmEventCallbackParameters, OssmEventType, OssmPage, type OssmPattern, type OssmState, OssmStatus, PatternHelper, mapRational };

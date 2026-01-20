@@ -1,0 +1,1470 @@
+// Some components are dynamically built, see styles.ts for functionality of these components
+
+// #region Imports
+@use "sass:map";
+@use "sass:list";
+@use "sass:color";
+@use "sass:math";
+@use "sass:meta";
+@use "sass:string";
+// #endregion
+
+// #region Theme variables
+/* Site is designed mobile first & dark first
+ * Inspired by the following:
+ * https://codepen.io/kevinpowell/pen/XJJwaxG?editors=1100
+ * https://www.youtube.com/watch?v=_ZFghigBmqo
+ */
+
+$mobile-width-threshold: 500;
+$mobile-height-threshold: 1000;
+
+$material-symbols: (
+    "arrow_range",
+    "bluetooth_searching",
+    "circle",
+    "dangerous",
+    "dashboard",
+    "deployed_code_update",
+    "flip",
+    "logout",
+    "nest_true_radiant",
+    "next_plan",
+    "reset_settings",
+    "share",
+    "speed",
+);
+
+$material-symbols-options: (
+    "FILL": "0..1",
+);
+
+// #020817
+$primary-900: hsl(256, 43%, 7%);
+$primary-800: hsl(240, 24%, 13%);
+$primary-700: hsl(243, 26%, 15%);
+$primary-600: hsl(252, 9%, 22%);
+$primary-500: hsl(259, 13%, 28%);
+$primary-400: hsl(254, 22%, 32%);
+$primary-300: hsl(251, 13%, 68%);
+$primary-200: hsl(240, 15%, 76%);
+$primary-100: hsl(240, 21%, 88%);
+
+$neutral-900: hsl(0, 0%, 0%);
+$neutral-100: hsl(0, 0%, 100%);
+
+$accent-1: hsl(275, 100%, 69%);
+$accent-2: hsl(204, 85%, 60%);
+
+$font-family: system-ui;
+$text-1: var(--text-1);
+$text-2: var(--text-2);
+$text-3: var(--text-3);
+
+$surface-1: var(--surface-1);
+$surface-2: var(--surface-2);
+$surface-3: var(--surface-3);
+
+$border-1: var(--border-1);
+$border-2: var(--border-2);
+
+$radius-800: 1em;
+$radius-600: 0.75em;
+$radius-400: 0.5em;
+$radius-200: 0.25em;
+
+$blur: 12px;
+
+$green: hsl(135, 64%, 50%);
+$red: hsl(352, 100%, 61%);
+$yellow: hsl(48, 100%, 50%);
+
+$theme-rules: (
+    text-1: (
+        dark: $neutral-100,
+        light: $neutral-900,
+    ),
+    text-2: (
+        dark: $primary-100,
+        light: $primary-900,
+    ),
+    text-3: (
+        dark: $primary-200,
+        light: $primary-800,
+    ),
+    surface-1: (
+        dark: $primary-900,
+        light: $primary-100,
+    ),
+    surface-2: (
+        dark: $primary-800,
+        light: $primary-200,
+    ),
+    surface-3: (
+        dark: $primary-700,
+        light: $primary-300,
+    ),
+    border-1: (
+        dark: $primary-500,
+        light: $primary-400,
+    ),
+    border-2: (
+        dark: $primary-600,
+        light: $primary-500,
+    ),
+);
+// #endregion
+
+// #region Generators
+$desktop-media-query: "(min-width: #{$mobile-width-threshold + 1}px) and (min-height: #{$mobile-height-threshold + 1}px)";
+$mobile-media-query: "(max-width: #{$mobile-width-threshold}px), (max-height: #{$mobile-height-threshold}px)";
+$landscape-media-query: "(orientation: landscape)";
+
+@function generate-theme($mode) {
+    $result: ();
+
+    @each $key, $colors in $theme-rules {
+        @if map.has-key($colors, $mode) {
+            $result: map.merge($result, ($key: map.get($colors, $mode)));
+        }
+    }
+
+    @return $result;
+}
+
+:root {
+    --is-mobile-ui: true;
+    --is-portrait: true;
+
+    @each $name, $value in generate-theme(dark) {
+        --#{$name}: #{$value};
+    }
+
+    @media (prefers-color-scheme: light) {
+        @each $name, $value in generate-theme(light) {
+            --#{$name}: #{$value};
+        }
+    }
+
+    @media #{$desktop-media-query} {
+        --is-mobile: false;
+    }
+    
+    @media #{$landscape-media-query} {
+        --is-portrait: false;
+    }
+}
+
+@function build-material-symbol-url() {
+    @if list.length($material-symbols) == 0 {
+        @return null;
+    }
+
+    $base-url: "https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:";
+    
+    $symbol-list: "";
+    @each $symbol in $material-symbols {
+        $separator: if($symbol-list == "", "", ",");
+        $symbol-list: #{$symbol-list}#{$separator}#{$symbol};
+    }
+
+    // Must be in alphabetical order
+    $correct-order: ("opsz", "wght", "FILL", "GRAD");
+    $opt-keys: "";
+    $opt-vals: "";
+    @each $key in $correct-order {
+        @if map.has-key($material-symbols-options, $key) {
+            $separator: if($opt-keys == "", "", ",");
+            $opt-keys: #{$opt-keys}#{$separator}#{$key};
+            $opt-vals: #{$opt-vals}#{$separator}#{map.get($material-symbols-options, $key)};
+        }
+    }
+
+    @return "#{$base-url}#{$opt-keys}@#{$opt-vals}&icon_names=#{$symbol-list}&display=block";
+}
+$material-symbols-url: build-material-symbol-url();
+@if $material-symbols-url {
+    @import url(#{$material-symbols-url});
+}
+// #endregion
+
+// #region Helpers
+@mixin border-debug($color: null) {
+    @if $color == null {
+        $color: hsl(math.random(360), 100%, 50%);
+    }
+    border: 1px solid $color !important;
+}
+
+@mixin glass-border {
+    position: absolute;
+    z-index: -1;
+    inset: 0;
+    border-radius: inherit;
+    border: 1px solid transparent;
+    background: linear-gradient($border-1, $border-2) border-box;
+    mask: linear-gradient(black, black) border-box,
+        linear-gradient(black, black) padding-box;
+    mask-composite: subtract;
+}
+
+@mixin range-track {
+    // These must be separate for some reason, comma separated browser selectors don't seem to work.
+    &::-webkit-slider-runnable-track {
+        @content;
+    }
+
+    &::-moz-range-track {
+        @content;
+    }
+
+    &::-ms-track {
+        @content;
+    }
+}
+
+@mixin range-thumb {
+    &::-webkit-slider-thumb {
+        appearance: none;
+        @content;
+    }
+
+    &::-moz-range-thumb {
+        @content;
+    }
+
+    &::-ms-thumb {
+        @content;
+    }
+}
+
+@mixin range-vertical {
+    // https://stackoverflow.com/questions/15935837/how-to-display-a-range-input-slider-vertically
+    writing-mode: vertical-lr;
+    direction: rtl;
+
+    min-width: 1rem;
+    // height: 100%;
+
+    @include range-track {
+        $track-background: hsl(from $surface-2 h s l / 0.5);
+        $track-fill: hsl(from $accent-1 h s l / 0.5);
+        width: var(--range-track-thickness);
+        transition: background 0.5s ease;
+        background:
+            linear-gradient(
+                to top,
+                $track-fill 0%,
+                $track-fill var(--range-value),
+                $track-background var(--range-value),
+                $track-background 100%
+            ) center / var(--range-track-thickness) 100% no-repeat;
+    }
+}
+
+@mixin input-checkbox-radio-box {
+    content: "";
+    display: inline-block;
+    width: 1em;
+    height: 1em;
+    vertical-align: middle;
+    background-color: hsl(from $surface-1 h s l / 0.5);
+    transition: background-color 0.2s ease, border-color 0.2s ease;
+    // border-radius: inherit;
+    // @include glass-border;
+}
+
+@mixin input-checkbox-radio-checked {
+    // background-color: hsl(from $surface-2 h s l / 0.5);
+    background-color: hsl(from $accent-1 h s l / 0.5);
+    background-repeat: no-repeat;
+    background-position: center;
+}
+
+@mixin input-checkbox-radio-hover {
+    background-color: hsl(from $surface-2 h s l / 0.5);
+}
+
+@mixin input-checkbox-radio-checked-hover {
+    background-color: hsl(from $accent-1 h s l / 0.3);
+}
+
+@mixin input-checkbox-radio {
+    $cursor: pointer;
+    cursor: $cursor;
+
+    &:has(+label) {
+        display: inline;
+
+        +label {
+            cursor: $cursor;
+            vertical-align: middle;
+        }
+    }
+
+    // Standalone input
+    &:not(:has(+label)) {
+        // Keep the original input visible but visually hidden, required to still display the custom input and receive click events
+        // SCSS automatically handles the other browser appearance properties (webkit, moz)
+        appearance: none;
+
+        &:after {
+            @include input-checkbox-radio-box;
+            width: 1.2em; //Standalone boxes are slightly smaller when there is no accompanying label so increase by 20%~ (seems to be ok)
+            height: 1.2em;
+            @content("box");
+        }
+
+        &:checked:after {
+            @include input-checkbox-radio-checked;
+            @content("checked");
+        }
+
+        &:hover:after {
+            @include input-checkbox-radio-hover;
+            @content("hover");
+        }
+
+        &:checked:hover:after {
+            @include input-checkbox-radio-checked-hover;
+            @content("checked-hover");
+        }
+    }
+
+    &:has(+label) {
+        // Input (left) with label (right)
+        &:not(.after-label) {
+            // Set checkbox on the label
+            // Hide the original input entirely, the click events are tied to the attached label
+            display: none;
+
+            +label:before {
+                @include input-checkbox-radio-box;
+                margin-right: calc(1rem / 2);
+                @content("box");
+            }
+
+            &:checked+label:before {
+                @include input-checkbox-radio-checked;
+                @content("checked");
+            }
+
+            &:hover+label:before {
+                @include input-checkbox-radio-hover;
+                @content("hover");
+            }
+
+            &:checked:hover+label:before {
+                @include input-checkbox-radio-checked-hover;
+                @content("checked-hover");
+            }
+
+            // Set checkbox on the input
+            // appearance: none;
+            
+            // &+label {
+            //     margin-left: calc(1rem / 4);
+            // }
+
+            // &:after {
+            //     @include input-checkbox-radio-box;
+            //     @content("box");
+            // }
+
+            // &:checked:after {
+            //     @include input-checkbox-radio-checked;
+            //     @content("checked");
+            // }
+
+            // &:hover:after {
+            //     @include input-checkbox-radio-hover;
+            //     @content("hover");
+            // }
+
+            // &:checked:hover:after {
+            //     @include input-checkbox-radio-checked-hover;
+            //     @content("checked-hover");
+            // }
+        }
+    }
+
+    // Input (right) with label (left)
+    &.after-label {
+        display: none;
+
+        +label:after {
+            @include input-checkbox-radio-box;
+            margin-left: calc(1rem / 2);
+            @content("box");
+        }
+
+        &:checked+label:after {
+            @include input-checkbox-radio-checked;
+            @content("checked");
+        }
+
+        &:hover+label:after {
+            @include input-checkbox-radio-hover;
+            @content("hover");
+        }
+
+        &:checked:hover+label:after {
+            @include input-checkbox-radio-checked-hover;
+            @content("checked-hover");
+        }
+    }
+
+    &.hidden {
+        display: none;
+
+        +label {
+            display: none;
+        }
+    }
+
+    &.icon {
+        $icon-offset: 1.2em;
+
+        // Remove default checked styling and set to font icon
+        +label:before,
+        +label:after,
+        &::after {
+            background-image: none !important;
+            font-family: "Material Symbols Outlined";
+            font-size: 1em;
+            text-align: center;
+        }
+
+        &:checked {
+            +label:before,
+            +label:after,
+            &::after {
+                background-image: none !important;
+            }
+        }
+
+        // Standalone input
+        &:not(:has(+label)) {
+            &:after {
+                line-height: $icon-offset;
+                content: attr(data-unchecked-icon);
+            }
+
+            &:checked:after {
+                content: attr(data-checked-icon);
+            }
+        }
+
+        // TODO: Try and hack around the requirement on this one where the data attributes have to be on the label instead of the input
+        // Input (left) with label (right)
+        &:has(+label):not(.after-label) {
+            +label:before {
+                line-height: $icon-offset;
+                content: attr(data-unchecked-icon);
+            }
+
+            &:checked+label:before {
+                content: attr(data-checked-icon);
+            }
+        }
+
+        // Input (right) with label (left)
+        &.after-label {
+            +label:after {
+                line-height: $icon-offset;
+                content: attr(data-unchecked-icon);
+            }
+
+            &:checked+label:after {
+                content: attr(data-checked-icon);
+            }
+        }
+    }
+}
+// #endregion
+
+// #region Element defaults
+// Reset base styles
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    color: inherit;
+
+    // Remove touch device highlight on press
+    outline: none;
+    -webkit-tap-highlight-color: transparent;
+}
+
+html, body {
+    margin: 0;
+    padding: 0;
+    width: 100dvw;
+    height: 100dvh;
+    overflow: hidden;
+}
+
+body {
+    // Layout
+    display: flex;
+    justify-content: center;
+    align-items: center;
+
+    // Font settings
+    color: $text-1;
+    font-family: $font-family;
+
+    // Mobile save area padding (since we extend into the system area such as where the camera punch-hole is).
+    // padding-top: env(safe-area-inset-top);
+    // padding-left: env(safe-area-inset-left);
+    padding-bottom: env(safe-area-inset-bottom); // Chrome will only expand down?
+    // padding-right: env(safe-area-inset-right);
+}
+
+button,
+a.button {
+    padding: 1rem;
+    border: none;
+    border-radius: $radius-600;
+    transition: background 0.2s ease;
+    text-decoration: none;
+    background-color: hsl(from $surface-1 h s l / 0.5);
+    color: $text-1;
+
+    &:hover:not([disabled]) {
+        background-color: hsl(from $surface-2 h s l / 0.5);
+        cursor: pointer;
+    }
+
+    &[disabled] {
+        opacity: 0.5;
+        cursor: not-allowed;
+    }
+}
+
+input {
+    &:focus {
+        outline: none;
+    }
+
+    &[type="text"],
+    &[type="password"],
+    &[type="email"],
+    &[type="number"] {
+        background-color: transparent;
+        border: none;
+        border-radius: $radius-600;
+        padding: 0.75rem;
+        background-color: hsl(from $surface-1 h s l / 0.5);
+        transition: background-color 0.2s ease, border-color 0.2s ease;
+
+        // &:hover:not([disabled]),
+        // &:focus:not([disabled]) {
+        //     background-color: hsl(from $surface-2 h s l / 0.5);
+        // }
+    }
+
+    &[type="checkbox"] {
+        border-radius: $radius-200;
+
+        @include input-checkbox-radio using ($content) {
+            @if $content == "box" {
+                border-radius: $radius-200; //Must explicitly be set again here
+            }
+
+            @if $content == "checked" {
+                background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='white'%3E%3Cpath d='M20.285 6.709l-11.025 11.025-5.285-5.285 1.414-1.414 3.871 3.871 9.611-9.611z'/%3E%3C/svg%3E");
+            }
+        }
+    }
+
+    &[type="radio"] {
+        border-radius: 100%;
+
+        @include input-checkbox-radio using ($content) {
+            @if $content == "box" {
+                border-radius: 100%;
+            }
+
+            @if $content == "checked" {
+                background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='white'%3E%3Ccircle cx='12' cy='12' r='6'/%3E%3C/svg%3E");
+            }
+        }
+    }
+
+    &[type="range"] {
+        // Set in script
+        --range-value: 50%;
+        --range-track-thickness: 100%;
+
+        border-radius: $radius-600;
+        appearance: none;
+        background: transparent;
+        cursor: pointer;
+
+        @include range-track {
+            // TODO: Fix this not working if the track is smaller than the thumb (cause: gradient hack)
+            border-radius: $radius-600;
+            transition: background 0.2s ease;
+        }
+
+        @include range-thumb {
+            width: 0;
+            height: 0;
+            border: none;
+        }
+        
+        &:active {
+            cursor: grabbing;
+        }
+
+        // Horizontal
+        &:not([orientation="vertical"]) {
+            min-height: 1rem;
+
+            @include range-track {
+                $track-background: hsl(from $surface-2 h s l / 0.5);
+                $track-fill: hsl(from $accent-1 h s l / 0.5);
+                // In order to set the proper bounding box, we set the height to the larger of the track thickness or thumb size
+                height: var(--range-track-thickness);
+                // We then set the background to a gradient that is centered vertically, with the height of the desired track thickness
+                background:
+                    linear-gradient(
+                        to right,
+                        $track-fill 0%,
+                        $track-fill var(--range-value),
+                        $track-background var(--range-value),
+                        $track-background 100%
+                    ) center / 100% var(--range-track-thickness) no-repeat;
+            }
+        }
+
+        // Vertical in a mixin because it needs to be repeated elsewhere
+        &[orientation="vertical"] {
+            @include range-vertical;
+            // width: fit-content;
+        }
+    }
+}
+
+section {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    padding: 1.5rem;
+}
+
+p {
+    line-height: 1.5;
+}
+
+footer {
+    // Position
+    position: absolute; //Makes sure it doesn't affect main content size
+    left: 0;
+    right: 0;
+
+    // Layout
+    text-align: center;
+    font-size: 0.75rem;
+    color: $text-2;
+
+    transition: opacity 0.2s ease;
+}
+// #endregion
+
+// #region Reusable classes
+.material-symbol {
+    // Make larger icon not take up extra space
+    display: inline-block;
+    width: 1.5em; //1.5x the inherited font size
+    height: 0;
+    line-height: 0;
+    vertical-align: middle;
+    font-family: "Material Symbols Outlined";
+    font-size: 1.5em;
+    overflow: visible;
+
+    &.fill {
+        font-variation-settings: 'FILL' 1;
+    }
+
+    &.small {
+        width: 1em;
+        font-size: 1em;
+    }
+
+    &::before {
+        content: attr(data-icon);
+        display: block;
+        transform: translateY(-0.075em);
+    }
+
+    &.no-offset::before {
+        transform: translateY(0);
+    }
+}
+
+.no-border {
+    border: none !important;
+}
+
+.space-between {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.input-container-number {
+    display: inline-flex;
+    border-radius: $radius-400;
+    overflow: hidden;
+
+    [type="number"] {
+        flex: 1;
+        min-width: 0;
+        appearance: textfield;
+        border-radius: 0;
+
+        &::-webkit-inner-spin-button,
+        &::-webkit-outer-spin-button {
+            -webkit-appearance: none;
+        }
+    }
+
+    >button {
+        padding: 0.2rem 0.5rem;
+        border-radius: 0;
+    }
+
+    &:has(>input[type="number"].spin-left) {
+        >input[type="number"] {
+            text-align: left;
+            // border-radius: 0 $radius-400 $radius-400 0;
+        }
+
+        >button {
+            &:first-of-type {
+                // border-radius: $radius-400 0 0 $radius-400;
+            }
+        }
+    }
+
+    &:has(>input[type="number"].spin-right) {
+        >input[type="number"] {
+            text-align: right;
+            // border-radius: $radius-400 0 0 $radius-400;
+        }
+
+        >button {
+            &:last-of-type {
+                // border-radius: 0 $radius-400 $radius-400 0;
+            }
+        }
+    }
+
+    &:has(>input[type="number"].spin-split) {
+        >input[type="number"] {
+            text-align: center;
+            // border-radius: 0;
+        }
+
+        >button {
+            &:first-of-type {
+                // border-radius: $radius-400 0 0 $radius-400;
+            }
+
+            &:last-of-type {
+                // border-radius: 0 $radius-400 $radius-400 0;
+            }
+        }
+    }
+}
+
+.input-container-range-double {
+    // Set in script
+    --range-from-value: 20%;
+    --range-to-value: 80%;
+
+    // TODO: Make this more transparent without getting "muddy"
+    $track-background: hsl(from $surface-2 h s l / 0.5);
+    $track-fill: hsl(from $accent-1 h s l / 0.5);
+
+    position: relative;
+    display: inline-flex;
+    flex-wrap: wrap;
+
+    > input[type="range"] {
+        position: relative;
+        flex: 100%;
+
+        &[data-component="from"] {
+            position: absolute;
+            top: 0;
+            right: 0;
+            bottom: 0;
+            left: 0;
+            z-index: 1;
+        }
+    }
+
+    &:not([orientation="vertical"]) {
+        >input[type="range"] {
+            // Left side
+            &[data-component="from"] {
+                $offset: calc(100% - var(--range-to-value) + ((var(--range-to-value) - var(--range-from-value)) / 2));
+                $handle-offset: 0;
+                $left-offset: $offset; //These two would be flipped if direction was right-to-left
+                $right-offset: 0;
+                clip-path: inset($handle-offset $left-offset $handle-offset $right-offset);
+
+                @include range-track {
+                    background: transparent;
+                }
+            }
+
+            // Right side
+            &[data-component="to"]:not(:disabled) {
+                @include range-track {
+                    background:
+                        linear-gradient(
+                            to right,
+                            $track-background 0%,
+                            $track-background var(--range-from-value),
+                            $track-fill var(--range-from-value),
+                            $track-fill var(--range-to-value),
+                            $track-background var(--range-to-value),
+                            $track-background 100%
+                        ) center / 100% var(--range-track-thickness) no-repeat;
+                }
+            }
+        }
+    }
+
+    &[orientation="vertical"] {
+        // width: fit-content;
+
+        >input[type="range"]
+        {
+            @include range-vertical;
+
+            height: initial;
+
+            // Bottom side
+            &[data-component="from"] {
+                $offset: calc(100% - var(--range-to-value) + ((var(--range-to-value) - var(--range-from-value)) / 2));
+                $handle-offset: 0;
+                $top-offset: 0; //These two would be flipped if direction was top-to-bottom
+                $bottom-offset: $offset;
+                clip-path: inset($bottom-offset $handle-offset $top-offset $handle-offset);
+
+                @include range-track {
+                    background: transparent;
+                }
+            }
+
+            // Top side
+            &[data-component="to"]:not(:disabled) {
+                @include range-track {
+                    background:
+                        linear-gradient(
+                            to top,
+                            $track-background 0%,
+                            $track-background var(--range-from-value),
+                            $track-fill var(--range-from-value),
+                            $track-fill var(--range-to-value),
+                            $track-background var(--range-to-value),
+                            $track-background 100%
+                        ) center / var(--range-track-thickness) 100% no-repeat;
+                }
+            }
+        }
+    }
+}
+
+.glass-border {
+    &::before {
+        content: "";
+        @include glass-border;
+    }
+}
+
+.card {
+    border-radius: $radius-800;
+    background: hsl(from $surface-3 h s l / 0.25);
+    backdrop-filter: blur($blur);
+
+    &::before {
+        content: "";
+        @include glass-border;
+    }
+}
+
+.hidden {
+    display: none !important;
+    opacity: 0 !important;
+}
+
+.info-container {
+    // Container styling
+    border: none;
+    border-radius: $radius-600;
+    border-left: calc($radius-600 - 1px) solid hsl(from $text-1 h s l / 0.7);
+    background-color: hsl(from $surface-2 h s l / 0.5);
+
+    // Content layout
+    display: flex;
+    flex-direction: column;
+    text-align: center;
+    gap: 1rem;
+    padding: 1rem;
+
+    // State-based styling
+    $states: (
+        success: $green,
+        error:   $red,
+        warning: $yellow
+    );
+    @each $state, $color in $states {
+        &[data-state="#{$state}"] {
+            border-left-color: hsl(from $color h s l / 0.8);
+            background: hsl(from $color h s l / 0.05);
+
+            &::before {
+                //h2
+                font-size: 1.5rem;
+                font-weight: bold;
+            }
+        }
+    }
+
+    &[data-state="success"]::before {
+        content: "✅ Success!";
+    }
+
+    &[data-state="error"]::before {
+        content: "❌ Error!";
+    }
+
+    &[data-state="warning"]::before {
+        content: "⚠️ Warning!";
+    }
+}
+
+.highlight {
+    background-color: hsl(from $accent-2 h s l / 0.9);
+    animation: opacity-pulse 2s ease-in-out infinite;
+}
+// #endregion
+
+// #region Animations
+.transition-bounds {
+    transition: width 0.5s ease, height 0.5s ease;
+    // https://www.youtube.com/watch?v=JN-nme9oF10
+    // I would program this in script but I can't be arsed and given that this app requires WebBLE it will only run on chrome anyway.
+    interpolate-size: allow-keywords;
+    // width: calc-size(auto);
+    // height: calc-size(auto);
+
+    @media (prefers-reduced-motion: reduce) {
+        transition: none;
+        interpolate-size: none;
+    }
+}
+
+@keyframes fade-in {
+    from {
+        opacity: 0;
+        transform: scale(0.9);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+@keyframes fade-out {
+    from {
+        opacity: 1;
+        transform: scale(1);
+    }
+    to {
+        opacity: 0;
+        transform: scale(0.9);
+    }
+}
+
+.transition-fade {
+    // Set in script
+    --transition-fade-duration: 0.5s;
+
+    animation-duration: var(--transition-fade-duration);
+    animation-timing-function: ease;
+
+    &[data-transition-fade="in"] {
+        animation-name: fade-in;
+    }
+
+    &[data-transition-fade="out"] {
+        animation-name: fade-out;
+    }
+}
+
+@keyframes grain-fade {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0; }
+}
+
+@keyframes opacity-pulse {
+    0%, 100% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.7;
+    }
+}
+
+@keyframes scale-pulse {
+    0%, 100% {
+        transform: scale(1);
+    }
+    50% {
+        transform: scale(0.975);
+    }
+}
+
+.scale-pulse {
+    animation: scale-pulse 2s ease-in-out infinite;
+
+    @media (prefers-reduced-motion: reduce) {
+        animation: none;
+    }
+}
+// #endregion
+
+// #region Specific styles
+#background {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: -1;
+    inset: 0;
+    isolation: isolate;
+    pointer-events: none;
+
+    // Background
+    // TODO: Slowly animate these radials around the page
+    background-color: $surface-1;
+    background:
+        radial-gradient(
+            circle at bottom left,
+            hsl(from $accent-2 h s l / 0.2),
+            transparent 20%
+        ),
+        radial-gradient(
+            circle at bottom right,
+            hsl(from $accent-1 h s l / 0.2),
+            transparent 40%
+        ),
+        $surface-1;
+    background-size: cover;
+    background-attachment: fixed;
+
+    &::before,
+    &::after {
+        content: "";
+        position: fixed;
+        inset: 0;
+        pointer-events: none;
+        
+        background-image: url('./noise.svg');
+        background-repeat: repeat;
+        background-size: 100px;
+
+        mix-blend-mode: overlay;
+        filter: contrast(220%) brightness(90%);
+    }
+
+    /* TODO: Re-enable animation once performance impact issue is resolved.
+     * Seems to heavily load the GPU at least on Firefox.
+     * While this may be of no concern on desktop or Chrome (since chrome is the target browser),
+     * it could have negative effects on battery life and performance on mobile devices.
+     */
+    // Doing this seems to create quite a nice, yet subtile "flame" effect (is what I'll call it) on the background of the blurred elements
+    $animation-duration: 5s;
+    &::before {
+        // animation: grain-fade $animation-duration ease-in-out infinite;
+    }
+    &::after {
+        background-position: 50px -50px;
+        // animation: grain-fade $animation-duration ease-in-out infinite;
+        animation-delay: calc(-1 * #{$animation-duration} / 2);
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+        .grain::before,
+        .grain::after {
+            animation: none;
+        }
+    }
+}
+
+#style-guide {
+    padding: 15px 20px;
+    width: 100%;
+    height: 100%;
+
+    display: flex;
+    flex-direction: column;
+    flex-wrap: wrap;
+    align-content: flex-start;
+    gap: 1rem;
+
+    #container {
+        position: fixed;
+        $size: 10dvw;
+        left: $size;
+        right: $size;
+        bottom: $size;
+        height: $size * 2;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+    }
+
+    > div {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+        width: fit-content;
+    }
+
+    > footer {
+        position: absolute;
+        bottom: 10px;
+        left: 50%;
+        transform: translateX(-50%);
+        font-size: 0.75rem;
+    }
+}
+
+#main-content {
+    // Position
+    $page-offset: 100px;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+
+    // Layout
+    text-align: center;
+    max-width: 100dvw;
+    max-height: 100dvh;
+
+    &:not(.fill-page) {
+        width: fit-content;
+        height: fit-content;
+        padding: calc(#{$page-offset} / 2);
+
+        > footer {
+            top: calc(100% - (#{$page-offset} / 2)); // Positions it starting at the bottom of main
+            margin-top: 1rem;
+        }
+    }
+
+    &.fill-page {
+        width: 100dvw;
+        height: 100dvh;
+
+        > footer {
+            display: none;
+
+            @media #{$desktop-media-query} {
+                display: unset;
+                // Position equally between bottom of main and bottom of viewport
+                top: calc(100% + (#{$page-offset} / 4));
+                transform: translateY(-50%);
+            }
+        }
+
+        @media #{$desktop-media-query} {
+            width: calc(100dvw - $page-offset);
+            height: calc(100dvh - $page-offset);
+        }
+    }
+}
+
+#control-screen {
+    // Layout
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-grow: 1;
+    flex-direction: column;
+    gap: 1rem;
+
+    div.card {
+        padding: 1rem;
+    }
+
+    @media #{$mobile-media-query} {
+        border: none;
+        border-radius: 0;
+    }
+}
+
+#state-indicator {
+    $text-placement: "after"; // "before" or "after"
+    $gap: 0.2em;
+
+    $margin-property: if($text-placement == "before", "margin-right", "margin-left");
+    &::#{$text-placement} {
+        content: attr(data-text);
+        #{$margin-property}: $gap;
+        // font-size: 0.9rem
+    }
+
+    $states: (
+        ok: $green,
+        warning: $yellow,
+        not-ready: $red,
+        processing: $accent-2
+    );
+    @each $state, $color in $states {
+        &[data-state="#{$state}"] {
+            > span {
+                color: hsl(from $color h s l / 1);
+            }
+        }
+    }
+
+    &[data-state="processing"] {
+        > span {
+            animation: opacity-pulse 2s ease-in-out infinite;
+            @media (prefers-reduced-motion: reduce) {
+                animation: none;
+            }
+        }
+    }
+}
+
+.status {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.5rem 0.75rem !important;
+
+    > div {
+        display: flex;
+        gap: 0.5rem;
+    }
+
+    button {
+        padding: 0.75rem 0.5rem;
+
+        &#stop-button {
+            padding: 0.75rem 1.5rem;
+            background-color: hsl(from $red h s l / 0.7);
+        }
+
+        &:last-child {
+            margin-right: -0.25rem;
+        }
+    }
+}
+
+#options-and-controls {
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    gap: 1rem;
+    $controls-size: 70%;
+    user-select: none;
+
+    > .options {
+        flex: 1 1 auto;
+        min-height: 0;
+    }
+
+    > .controls {
+        flex: 0 0 $controls-size;
+    }
+
+    @media #{$landscape-media-query} {
+        flex-direction: row;
+
+        > .options {
+            flex: 1 1 auto;
+            min-width: 0;
+        }
+
+        > .controls {
+            flex: 0 0 $controls-size;
+        }
+    }
+}
+
+.options {
+    display: flex;
+}
+
+#patterns-panel {
+    display: flex;
+    flex-direction: row;
+    gap: 0.5rem;
+    text-align: left;
+
+    > div {
+        flex: 1 1 0;
+    }
+
+    > .pattern-list {
+        display: flex;
+        flex-direction: column;
+        gap: inherit;
+        overflow: hidden;
+
+        > #pattern-select {
+            display: inherit;
+            flex-direction: inherit;
+            gap: inherit;
+            min-height: 0;
+            overflow-y: auto;
+            scrollbar-gutter: stable;
+        }
+    }
+
+    > .pattern-settings {
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        gap: inherit;
+
+        > #description-text {
+            margin-bottom: auto;
+        }
+
+        > #apply-pattern-button {
+            padding: 0.75rem;
+        }
+    }
+
+    @media #{$landscape-media-query} {
+        flex-direction: column;
+    }
+}
+
+#dashboard-panel {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    justify-content: space-evenly;
+    gap: 0.5rem;
+}
+
+.controls {
+    $column-max-width: 6rem;
+
+    // #region Layout
+    height: 100%;
+    display: grid;
+    grid-template-rows: auto 1fr auto;
+    grid-auto-flow: column;
+    grid-template-columns: repeat(auto-fit, minmax(0, 1fr));
+    justify-items: center;
+    justify-content: space-evenly; // Column alignment
+    align-content: space-evenly; // Row alignment
+    align-items: center; // Content alignment
+    gap: 1rem;
+
+    // Column
+    > div {
+        min-width: 0;
+        display: contents;
+
+        // Rows
+        @for $i from 1 through 3 {
+            > :nth-child(#{$i}) {
+                display: flex;
+                position: relative;
+                grid-row: $i;
+            }
+        }
+
+        > :nth-child(2) {
+            width: 100%;
+            height: 100%
+        }
+
+        > * {
+            max-width: $column-max-width;
+        }
+    }
+
+    @media #{$landscape-media-query} {
+        // Flip layout direction in landscape mode
+        grid-template-rows: auto;
+        grid-template-columns: auto 1fr auto;
+
+        // Column becomes row
+        > div {
+            // Row becomes column
+            @for $i from 1 through 3 {
+                > :nth-child(#{$i}) {
+                    grid-column: $i;
+                    grid-row: auto;
+                }
+            }
+
+            > :nth-child(2) {
+                max-width: unset;
+            }
+        }
+    }
+    // #endregion
+
+    > div > :nth-child(2) {
+        border-radius: $radius-600;
+
+        > .input-container-range-double,
+        > input[type="range"] {
+            flex: 1;
+        }
+
+        > .material-symbol {
+            position: absolute;
+            pointer-events: none;
+            left: 50%;
+            transform: translateX(-50%);
+            color: hsl(from $text-1 h s l / 0.7);
+            bottom: min(10%, 3rem);
+
+            @media #{$landscape-media-query} {
+                bottom: unset;
+                top: 50%;
+                left: min(15%, 2rem);
+            }
+        }
+    }
+
+    .invert-intensity {
+        $size: 1.5em;
+
+        justify-content: center;
+        font-size: $size;
+
+        &::after {
+            width: $size;
+            height: $size;
+            line-height: $size !important;
+            // I originally wanted this to fade to the new rotation instead of spin however the spin is a good indicator for what it does.
+            transition: transform 0.4s ease, background-color 0.2s ease;
+        }
+
+        &:checked::after {
+            transform: rotateY(180deg);
+        }
+    }
+}
+// #endregion

@@ -2,14 +2,127 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Document</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="color-scheme" content="dark light">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-title" content="OSSM Control">
+    <meta property="og:site_name" content="OSSM Web Control">
+    <meta property="og:title" content="OSSM Web Control">
+    <meta property="og:description" content="Control your OSSM device over Bluetooth from your browser!">
+    <!-- <meta property="og:image" content="./favicon.png"/> -->
+    <!-- <meta property="og:image:type" content="image/png"> -->
+    <!-- <meta property="og:url" content="."> -->
+    <title>OSSM Web Control</title>
+    <link rel="icon" type="image/png" href="favicon.png">
+    <link rel="manifest" href="manifest.json">
+    <script src="pwa.js" type="module"></script>
     <link rel="stylesheet" href="styles.css">
+    <script src="styles.js" type="module" defer></script>
     <script src="script.js" type="module" defer></script>
     <script>
         console.log(`👁️🦌👁️! What are you doing here?`); // This is cursed lmao
     </script>
 </head>
 <body>
+    <div id="background"></div>
+    <!-- Opacity set to 0 in html initially for fastest load of the hidden style which is then animated out of in script -->
+    <div id="main-content" style="opacity: 0;">
+        <section id="pair-screen" class="card transition-bounds">
+            <h1>OSSM Web Control</h1>
+            <button id="pair-device-button" class="space-between hidden"><span class="material-symbol" data-icon="bluetooth_searching"></span>Connect OSSM</button>
+            <button id="install-pwa-button" class="space-between hidden"><span class="material-symbol" data-icon="deployed_code_update"></span>Install PWA</button>
+            <noscript>
+                <style>
+                    #main-content {
+                        /* Override inline style to ensure visibility when JavaScript is disabled */
+                        opacity: 1 !important;
+                    }
+                </style>
+                <div class="info-container" data-state="error">
+                    <p><strong>JavaScript is required</strong></p>
+                    <p>Please enable JavaScript in your browser to continue</p>
+                </div>
+            </noscript>
+        </section>
+
+        <!-- TODO: Add a tutorial card -->
+
+        <section id="control-screen" class="hidden">
+            <!-- TODO: Split each section into its own glass-card -->
+            <div class="status card">
+                <div>
+                    <p id="state-indicator" data-state="not-ready" data-text="Disconnected">
+                        <span class="material-symbol fill small" data-icon="circle"></span>
+                    </p>
+                </div>
+                <div>
+                    <!-- TODO: Future feature; session sharing -->
+                    <!-- <button id="share-button"><span class="material-symbol" data-icon="share"></span>Share control</button> -->
+                    <button id="recalibrate-button"><span class="material-symbol" data-icon="reset_settings"></span></button>
+                    <button id="disconnect-button"><span class="material-symbol" data-icon="logout"></span></button>
+                    <button id="stop-button"><span class="material-symbol" data-icon="dangerous"></span></button>
+                    <!-- <button id="dashboard-button"><span class="material-symbol" data-icon="dashboard"></span></button> -->
+                </div>
+            </div>
+
+            <div id="options-and-controls">
+                <div class="options card">
+
+                    <div id="patterns-panel">
+                        <div class="pattern-list">
+                            <h3>Patterns</h3>
+                            <!-- <select id="pattern-select"></select> -->
+                            <div id="pattern-select">
+                                <input type="radio" name="pattern" id="pattern-0" checked>
+                                <label for="pattern-0">Pattern 1</label>
+                                <input type="radio" name="pattern" id="pattern-1">
+                                <label for="pattern-1">Pattern 2</label>
+                                <input type="radio" name="pattern" id="pattern-2">
+                                <label for="pattern-2">Pattern 3</label>
+                            </div>
+                        </div>
+                        <div class="pattern-settings">
+                            <p id="description-text">[Description] Lorem ipsum dolor sit amet, consectetur adipiscing elit.</p>
+                            <!-- <button id="apply-pattern-button">Apply</button> -->
+                        </div>
+                    </div>
+
+                    <!-- <div id="dashboard-panel"></div> -->
+                </div>
+
+                <div class="controls card">
+                    <!-- TODO: Place icons inside the sliders to indicate their purpose -->
+                    <div id="relative-range-container">
+                        <input type="number" class="spin-split" autocomplete="off" readonly>
+                        <div class="glass-border">
+                            <div class="input-container-range-double" autocomplete="off"></div>
+                            <span class="material-symbol no-offset" data-icon="arrow_range"></span>
+                        </div>
+                        <input type="number" class="spin-split" autocomplete="off" readonly>
+                    </div>
+                    <div id="relative-speed-container">
+                        <div></div>
+                        <div class="glass-border">
+                            <input id="relative-speed-slider" type="range" min="0" max="100" autocomplete="off">
+                            <span class="material-symbol no-offset" data-icon="speed"></span>
+                        </div>
+                        <input type="number" class="spin-split" autocomplete="off" readonly>
+                    </div>
+                    <div id="intensity-container">
+                        <input id="invert-toggle" type="checkbox" class="invert-intensity icon" data-checked-icon="flip" data-unchecked-icon="flip" autocomplete="off">
+                        <div class="glass-border">
+                            <input id="intensity-slider" type="range" min="0" max="100" autocomplete="off">
+                            <span class="material-symbol no-offset" data-icon="nest_true_radiant"></span>
+                        </div>
+                        <input type="number" class="spin-split" autocomplete="off" readonly>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <footer id="footer">
+            <p>Made with ❤️ by <a href="https://github.com/ReadieFur" target="_blank" rel="noopener noreferrer">ChloeDoe</a> 🦌!</p>
+        </footer>
+    </div>
 </body>
 </html>

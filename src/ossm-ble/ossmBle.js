@@ -234,8 +234,8 @@ let KnownPattern = /* @__PURE__ */ function(KnownPattern$1) {
 	*/
 	KnownPattern$1[KnownPattern$1["TeasingPounding"] = 1] = "TeasingPounding";
 	/**
-	* Full and half depth strokes alternate
-	* @param intensity how pronounced the half/full depth effect is, lower is more robotic, higher is smoother
+	* Robotic-style strokes with abrupt starts and stops
+	* @param intensity how pronounced the effect is, lower is more robotic, higher is smoother
 	* @param canInvert `false`
 	*/
 	KnownPattern$1[KnownPattern$1["RoboStroke"] = 2] = "RoboStroke";
@@ -299,7 +299,7 @@ var OssmBle = class OssmBle {
 	* @returns `true` if supported, `false` otherwise
 	*/
 	static isClientSupported() {
-		return !!navigator.bluetooth;
+		return !(!navigator.bluetooth || !navigator.bluetooth.requestDevice);
 	}
 	/**
 	* Prompts the user via the browser to pair with an OSSM BLE device
@@ -321,6 +321,7 @@ var OssmBle = class OssmBle {
 	ossmServices = null;
 	lastPoll = 0;
 	cachedState = null;
+	pendingStateTarget = {};
 	cachedPatternList = null;
 	lastFixedPosition = null;
 	commandProcessDelayMs = BASE_COMMAND_PROCESS_DELAY_MS;
@@ -388,6 +389,24 @@ var OssmBle = class OssmBle {
 			i++;
 		}
 	}
+	isIntermediateValue(key, incoming, expected) {
+		if (typeof incoming !== "number" || typeof expected !== "number") return false;
+		return incoming === expected - 1;
+	}
+	waitForPendingTargetsToSettle(timeout = Number.POSITIVE_INFINITY) {
+		return new Promise((resolve, reject) => {
+			const checkInterval = setInterval(() => {
+				if (Object.keys(this.pendingStateTarget).length === 0) {
+					clearInterval(checkInterval);
+					resolve();
+				}
+			}, 50);
+			setTimeout(() => {
+				clearInterval(checkInterval);
+				reject(/* @__PURE__ */ new Error("Timeout waiting for pending targets to settle"));
+			}, timeout);
+		});
+	}
 	onCurrentStateChanged(event) {
 		this.lastPoll = Date.now();
 		const oldState = this.cachedState;
@@ -396,29 +415,39 @@ var OssmBle = class OssmBle {
 			status: state,
 			...rest
 		};
-		if (oldState && JSON.stringify(oldState) === JSON.stringify(remappedStateObj)) return;
+		const whatsChanged = {};
+		for (const k in remappedStateObj) {
+			const key = k;
+			if (remappedStateObj[key] !== oldState?.[key]) whatsChanged[key] = remappedStateObj[key];
+		}
+		if (Object.keys(whatsChanged).length === 0) return;
+		for (const k in this.pendingStateTarget) {
+			const key = k;
+			const pendingTarget = this.pendingStateTarget[key];
+			const changedValue = whatsChanged[key];
+			if (pendingTarget === void 0 || changedValue === void 0) continue;
+			if (changedValue === pendingTarget) {
+				delete this.pendingStateTarget[key];
+				this.debugLog(`Pending target for ${key} reached: ${changedValue}`);
+				continue;
+			}
+			if (this.isIntermediateValue(key, changedValue, pendingTarget)) {
+				this.debugLog(`Pending target for ${key} not yet reached (intermediate value): ${changedValue} (target: ${pendingTarget})`);
+				return;
+			}
+			this.debugLog(`Pending target for ${key} cleared due to external change: ${changedValue} (target was: ${pendingTarget})`);
+			delete this.pendingStateTarget[key];
+		}
+		if (Object.keys(this.pendingStateTarget).length > 0) {
+			this.debugLog("Pending targets remain, waiting for next update.");
+			return;
+		}
 		this.cachedState = remappedStateObj;
-		this.debugLogTable({
-			"New state": remappedStateObj,
-			"Old state": this.cachedState
-		});
+		this.debugLogTable({ "New state": remappedStateObj });
 		this.dispatchEvent({
 			event: OssmEventType.StateChanged,
-			[OssmEventType.StateChanged]: {
-				newState: remappedStateObj,
-				oldState
-			}
+			[OssmEventType.StateChanged]: { newState: remappedStateObj }
 		});
-	}
-	async sendCommand(value) {
-		this.throwIfNotReady();
-		const returnedValue = await this.bleTaskQueue.enqueue(async () => {
-			await this.ossmServices.primary.characteristics.command.writeValue(TEXT_ENCODER.encode(value));
-			await delay(this.commandProcessDelayMs);
-			return TEXT_DECODER.decode((await this.ossmServices.primary.characteristics.command.readValue()).buffer);
-		});
-		if (returnedValue === `fail:${value}`) throw new DOMException(`OSSM failed to process command: ${value}`, DOMExceptionError.OperationError);
-		else if (returnedValue !== `${value}`) throw new DOMException(`OSSM returned unexpected response for command "${value}": ${returnedValue}`, DOMExceptionError.DataError);
 	}
 	/**
 	* Begins automatic connection management.
@@ -441,6 +470,32 @@ var OssmBle = class OssmBle {
 		};
 		if (this.isReady) this.stop().finally(doDisconnect);
 		else doDisconnect();
+	}
+	/**
+	* Send a raw command to the OSSM device
+	* @param value The command string to send
+	* @param speedup When `true`, the command is sent without waiting for and validating the response
+	*/
+	async sendCommand(value, speedup = false) {
+		this.throwIfNotReady();
+		if (speedup) {
+			await this.ossmServices.primary.characteristics.command.writeValue(TEXT_ENCODER.encode(value));
+			return;
+		}
+		const returnedValue = await this.bleTaskQueue.enqueue(async () => {
+			await this.ossmServices.primary.characteristics.command.writeValue(TEXT_ENCODER.encode(value));
+			await delay(this.commandProcessDelayMs);
+			return TEXT_DECODER.decode((await this.ossmServices.primary.characteristics.command.readValue()).buffer);
+		});
+		if (returnedValue === `fail:${value}`) throw new DOMException(`OSSM failed to process command: ${value}`, DOMExceptionError.OperationError);
+		else if (returnedValue !== `${value}`) throw new DOMException(`OSSM returned unexpected response for command "${value}": ${returnedValue}`, DOMExceptionError.DataError);
+	}
+	/**
+	* Checks whether automatic reconnection will occur upon disconnection
+	* @returns `true` if auto-reconnect is enabled, `false` otherwise
+	*/
+	willAutoReconnect() {
+		return this.autoReconnect;
 	}
 	/**
 	* Adds an event listener for the specified event type
@@ -471,7 +526,13 @@ var OssmBle = class OssmBle {
 	async setSpeed(speed) {
 		if (speed < 0 || speed > 100 || !Number.isInteger(speed)) throw new RangeError("Speed must be an integer between 0 and 100.");
 		if (this.cachedState?.speed === speed) return;
-		await this.sendCommand(`set:speed:${speed}`);
+		this.debugLog(`Setting speed to ${speed}`);
+		this.pendingStateTarget.speed = speed;
+		try {
+			await this.sendCommand(`set:speed:${speed}`);
+		} finally {
+			delete this.pendingStateTarget.speed;
+		}
 	}
 	/**
 	* Set stroke length percentage
@@ -482,8 +543,14 @@ var OssmBle = class OssmBle {
 	async setStroke(stroke) {
 		if (stroke < 0 || stroke > 100 || !Number.isInteger(stroke)) throw new RangeError("Stroke must be an integer between 0 and 100.");
 		if (this.cachedState?.stroke === stroke) return;
-		if (stroke > 0 && stroke < 100) stroke -= 1;
-		await this.sendCommand(`set:stroke:${stroke}`);
+		this.debugLog(`Setting stroke to ${stroke}`);
+		this.pendingStateTarget.stroke = stroke;
+		const apiValue = stroke > 0 && stroke < 100 ? stroke - 1 : stroke;
+		try {
+			await this.sendCommand(`set:stroke:${apiValue}`);
+		} finally {
+			delete this.pendingStateTarget.stroke;
+		}
 	}
 	/**
 	* Set penetration depth percentage
@@ -494,8 +561,14 @@ var OssmBle = class OssmBle {
 	async setDepth(depth) {
 		if (depth < 0 || depth > 100 || !Number.isInteger(depth)) throw new RangeError("Depth must be an integer between 0 and 100.");
 		if (this.cachedState?.depth === depth) return;
-		if (depth > 0 && depth < 100) depth -= 1;
-		await this.sendCommand(`set:depth:${depth}`);
+		this.debugLog(`Setting depth to ${depth}`);
+		this.pendingStateTarget.depth = depth;
+		const apiValue = depth > 0 && depth < 100 ? depth - 1 : depth;
+		try {
+			await this.sendCommand(`set:depth:${apiValue}`);
+		} finally {
+			delete this.pendingStateTarget.depth;
+		}
 	}
 	/**
 	* Set sensation intensity percentage
@@ -506,8 +579,14 @@ var OssmBle = class OssmBle {
 	async setSensation(sensation) {
 		if (sensation < 0 || sensation > 100 || !Number.isInteger(sensation)) throw new RangeError("Sensation must be an integer between 0 and 100.");
 		if (this.cachedState?.sensation === sensation) return;
-		if (sensation > 0 && sensation < 100) sensation -= 1;
-		await this.sendCommand(`set:sensation:${sensation}`);
+		this.debugLog(`Setting sensation to ${sensation}`);
+		this.pendingStateTarget.sensation = sensation;
+		const apiValue = sensation > 0 && sensation < 100 ? sensation - 1 : sensation;
+		try {
+			await this.sendCommand(`set:sensation:${apiValue}`);
+		} finally {
+			delete this.pendingStateTarget.sensation;
+		}
 	}
 	/**
 	* Set stroke pattern (see {@link getPatternList} for available patterns)
@@ -518,7 +597,14 @@ var OssmBle = class OssmBle {
 		if (patternId < 0 || !Number.isInteger(patternId)) throw new RangeError("Pattern ID must be a non-negative integer.");
 		if (this.cachedPatternList === null) await this.getPatternList();
 		if (this.cachedPatternList && !this.cachedPatternList.find((p) => p.idx === patternId)) throw new RangeError(`Pattern ID ${patternId} is not in the available pattern list.`);
-		await this.sendCommand(`set:pattern:${patternId}`);
+		if (this.cachedState?.pattern === patternId) return;
+		this.debugLog(`Setting pattern to ID ${patternId}`);
+		this.pendingStateTarget.pattern = patternId;
+		try {
+			await this.sendCommand(`set:pattern:${patternId}`);
+		} finally {
+			delete this.pendingStateTarget.pattern;
+		}
 	}
 	/**
 	* Navigate to a specific menu page
@@ -688,25 +774,38 @@ var OssmBle = class OssmBle {
 		const oldMax = oldDepth;
 		const oldSpeed = capturedState.speed;
 		if (currentPage !== OssmPage.StrokeEngine) throw new DOMException("Must be on Stroke Engine page to set simple stroke.", DOMExceptionError.InvalidState);
-		if (currentPattern !== data.pattern) await this.setPattern(data.pattern);
-		if (data.speed < oldSpeed) {
-			this.debugLog("strokeEngineSetSimpleStroke:", "Safe case: Decreasing speed");
-			await this.setSpeed(data.speed);
-			await this.setDepth(data.depth);
-			await this.setStroke(data.stroke);
-			await this.setSensation(data.sensation);
-		} else if (data.speed > oldSpeed && (min < oldMin || data.depth > oldMax)) {
-			this.debugLog("strokeEngineSetSimpleStroke:", "Risky case: Increasing speed with extended range");
-			await this.setDepth(data.depth);
-			await this.setStroke(data.stroke);
-			await this.setSpeed(data.speed);
-			await this.setSensation(data.sensation);
-		} else {
-			this.debugLog("strokeEngineSetSimpleStroke:", "Neutral case");
-			await this.setDepth(data.depth);
-			await this.setStroke(data.stroke);
-			await this.setSpeed(data.speed);
-			await this.setSensation(data.sensation);
+		if (capturedState.pattern !== data.pattern) this.pendingStateTarget.pattern = data.pattern;
+		if (capturedState.speed !== data.speed) this.pendingStateTarget.speed = data.speed;
+		if (capturedState.stroke !== data.stroke) this.pendingStateTarget.stroke = data.stroke;
+		if (capturedState.depth !== data.depth) this.pendingStateTarget.depth = data.depth;
+		if (capturedState.sensation !== data.sensation) this.pendingStateTarget.sensation = data.sensation;
+		try {
+			if (currentPattern !== data.pattern) await this.setPattern(data.pattern);
+			if (data.speed < oldSpeed) {
+				this.debugLog("runStrokeEnginePattern:", "Safe case: Decreasing speed");
+				await this.setSpeed(data.speed);
+				await this.setDepth(data.depth);
+				await this.setStroke(data.stroke);
+				await this.setSensation(data.sensation);
+			} else if (data.speed > oldSpeed && (min < oldMin || data.depth > oldMax)) {
+				this.debugLog("runStrokeEnginePattern:", "Risky case: Increasing speed with extended range");
+				await this.setDepth(data.depth);
+				await this.setStroke(data.stroke);
+				await this.setSpeed(data.speed);
+				await this.setSensation(data.sensation);
+			} else {
+				this.debugLog("runStrokeEnginePattern:", "Neutral case");
+				await this.setDepth(data.depth);
+				await this.setStroke(data.stroke);
+				await this.setSpeed(data.speed);
+				await this.setSensation(data.sensation);
+			}
+		} finally {
+			delete this.pendingStateTarget.pattern;
+			delete this.pendingStateTarget.speed;
+			delete this.pendingStateTarget.stroke;
+			delete this.pendingStateTarget.depth;
+			delete this.pendingStateTarget.sensation;
 		}
 	}
 	/**
@@ -720,23 +819,126 @@ var OssmBle = class OssmBle {
 		if (this.getCurrentPage(currentState) !== OssmPage.StrokeEngine) throw new DOMException("Must be on Stroke Engine page to set simple stroke.", DOMExceptionError.InvalidState);
 		if (currentState.pattern !== KnownPattern.Insist || currentState.sensation !== 100 || currentState.stroke !== 100) {
 			this.debugLog("setPosition:", "Not pre-configured (slowest)");
-			await this.setSpeed(0);
-			await this.setPattern(KnownPattern.Insist);
-			await this.setSensation(100);
-			await this.setStroke(100);
-			await this.setDepth(position);
-			await this.setSpeed(speed);
+			try {
+				this.pendingStateTarget.speed = 0;
+				this.pendingStateTarget.pattern = KnownPattern.Insist;
+				await this.setSpeed(0);
+				await this.setPattern(KnownPattern.Insist);
+			} finally {
+				delete this.pendingStateTarget.speed;
+				delete this.pendingStateTarget.pattern;
+			}
+			try {
+				this.pendingStateTarget.sensation = 100;
+				this.pendingStateTarget.stroke = 100;
+				this.pendingStateTarget.depth = position;
+				this.pendingStateTarget.speed = speed;
+				await this.setSensation(100);
+				await this.setStroke(100);
+				await this.setDepth(position);
+				await this.setSpeed(speed);
+			} finally {
+				delete this.pendingStateTarget.sensation;
+				delete this.pendingStateTarget.stroke;
+				delete this.pendingStateTarget.depth;
+				delete this.pendingStateTarget.speed;
+			}
 		} else if (this.lastFixedPosition === currentState.depth) {
 			this.debugLog("setPosition:", "Pre-configured (faster)");
-			await this.setSpeed(speed);
-			await this.setDepth(position);
+			try {
+				this.pendingStateTarget.speed = speed;
+				this.pendingStateTarget.depth = position;
+				await this.setSpeed(speed);
+				await this.setDepth(position);
+			} finally {
+				delete this.pendingStateTarget.speed;
+				delete this.pendingStateTarget.depth;
+			}
 		} else {
 			this.debugLog("setPosition:", "Pre-configured (slower)");
-			await this.setSpeed(0);
-			await this.setDepth(position);
-			await this.setSpeed(speed);
+			try {
+				this.pendingStateTarget.speed = 0;
+				await this.setSpeed(0);
+			} finally {
+				delete this.pendingStateTarget.speed;
+			}
+			try {
+				this.pendingStateTarget.depth = position;
+				this.pendingStateTarget.speed = speed;
+				await this.setDepth(position);
+				await this.setSpeed(speed);
+			} finally {
+				delete this.pendingStateTarget.depth;
+				delete this.pendingStateTarget.speed;
+			}
 		}
 		this.lastFixedPosition = position;
+	}
+	/**
+	* Batch set multiple OssmPlayData settings in one go.  
+	* *Note:* It is advised you use runStrokeEnginePattern where possible instead of this method to apply settings in a safe order.
+	* @param data An array of tuples containing the key and value to set
+	* @throws Error if the same key is set multiple times in the batch
+	*/
+	async batchSet(data) {
+		let speed;
+		let stroke;
+		let sensation;
+		let depth;
+		let pattern;
+		for (const [key, value] of data) switch (key) {
+			case "speed":
+				if (speed !== void 0) throw new Error("Speed has already been set in this batch.");
+				speed = value;
+				break;
+			case "stroke":
+				if (stroke !== void 0) throw new Error("Stroke has already been set in this batch.");
+				stroke = value;
+				break;
+			case "sensation":
+				if (sensation !== void 0) throw new Error("Sensation has already been set in this batch.");
+				sensation = value;
+				break;
+			case "depth":
+				if (depth !== void 0) throw new Error("Depth has already been set in this batch.");
+				depth = value;
+				break;
+			case "pattern":
+				if (pattern !== void 0) throw new Error("Pattern has already been set in this batch.");
+				pattern = value;
+				break;
+		}
+		const capturedState = await this.getState();
+		if (speed !== void 0 && capturedState.speed !== speed) this.pendingStateTarget.speed = speed;
+		if (stroke !== void 0 && capturedState.stroke !== stroke) this.pendingStateTarget.stroke = stroke;
+		if (sensation !== void 0 && capturedState.sensation !== sensation) this.pendingStateTarget.sensation = sensation;
+		if (depth !== void 0 && capturedState.depth !== depth) this.pendingStateTarget.depth = depth;
+		if (pattern !== void 0 && capturedState.pattern !== pattern) this.pendingStateTarget.pattern = pattern;
+		try {
+			for (const [key, value] of data) switch (key) {
+				case "speed":
+					await this.setSpeed(value);
+					break;
+				case "stroke":
+					await this.setStroke(value);
+					break;
+				case "sensation":
+					await this.setSensation(value);
+					break;
+				case "depth":
+					await this.setDepth(value);
+					break;
+				case "pattern":
+					await this.setPattern(value);
+					break;
+			}
+		} finally {
+			delete this.pendingStateTarget.speed;
+			delete this.pendingStateTarget.stroke;
+			delete this.pendingStateTarget.sensation;
+			delete this.pendingStateTarget.depth;
+			delete this.pendingStateTarget.pattern;
+		}
 	}
 	debug = false;
 	debugLog(...args) {
