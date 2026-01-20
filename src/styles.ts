@@ -101,6 +101,7 @@ export class InputRangeDouble {
     private readonly externalCallbacks: Map<string, Array<() => void>> = new Map();
     private readonly fromSlider: HTMLInputElement;
     private readonly toSlider: HTMLInputElement;
+    private minGap: number = 0;
 
     constructor(
         private readonly container: HTMLElement
@@ -177,6 +178,8 @@ export class InputRangeDouble {
         const values = this.getValues();
         if (values.from > values.to)
             this.fromSlider.value = values.to.toString();
+        if (values.to - values.from < this.minGap)
+            this.fromSlider.value = (values.to - this.minGap).toString();
 
         this.updateStyles();
         
@@ -187,6 +190,8 @@ export class InputRangeDouble {
         const values = this.getValues();
         if (values.from > values.to)
             this.toSlider.value = values.from.toString();
+        if (values.to - values.from < this.minGap)
+            this.toSlider.value = (values.from + this.minGap).toString();
         
         this.updateStyles();
 
@@ -243,6 +248,8 @@ export class InputRangeDouble {
             throw new Error(`From value ${data.from} is less than minimum value ${min}`);
         if (data.to !== undefined && data.to > max)
             throw new Error(`To value ${data.to} is greater than maximum value ${max}`);
+        if (data.from !== undefined && data.to !== undefined && data.to - data.from < this.minGap)
+            throw new Error(`The gap between from value ${data.from} and to value ${data.to} is less than the minimum gap of ${this.minGap}`);
 
         // Avoid unnecessary updates
         const oldValues = this.getValues();
@@ -298,6 +305,15 @@ export class InputRangeDouble {
         this.toSlider.step = step.toString();
     }
 
+    getMinGap(): number {
+        return this.minGap;
+    }
+
+    setMinGap(gap: number): void {
+        this.minGap = gap;
+        // TODO: Enforce gap immediately
+    }
+
     addEventListener(event: "input" | "change", callback: (sender?: any) => PromiseLike<void> | void): void {
         if (!this.externalCallbacks.has(event))
             this.externalCallbacks.set(event, []);
@@ -340,12 +356,13 @@ export class DualSliderWithNumber {
             }
 
             const minMax = rangeInstance.getMinMax();
+            const values = rangeInstance.getValues();
+
             minInput.min = minMax.min.toString();
-            minInput.max = minMax.max.toString();
-            maxInput.min = minMax.min.toString();
+            minInput.max = values.to.toString();
+            maxInput.min = values.from.toString();
             maxInput.max = minMax.max.toString();
 
-            const values = rangeInstance.getValues();
             minInput.value = values.from.toString();
             maxInput.value = values.to.toString();
         };
@@ -385,6 +402,18 @@ export class DualSliderWithNumber {
             else
                 from = parseFloat(numberInputA.value);
 
+            // Enforce gap
+            const gap = rangeInstance.getMinGap();
+            const values = rangeInstance.getValues();
+            if (from !== undefined && values.to - from < gap) {
+                from = values.to - gap;
+                numberInputA.value = from.toString();
+            }
+            if (to !== undefined && to - values.from < gap) {
+                to = values.from + gap;
+                numberInputA.value = to.toString();
+            }
+
             rangeInstance.setValues({ from, to });
         });
 
@@ -396,6 +425,17 @@ export class DualSliderWithNumber {
                 from = parseFloat(numberInputB.value);
             else
                 to = parseFloat(numberInputB.value);
+
+            const gap = rangeInstance.getMinGap();
+            const values = rangeInstance.getValues();
+            if (from !== undefined && values.to - from < gap) {
+                from = values.to - gap;
+                numberInputB.value = from.toString();
+            }
+            if (to !== undefined && to - values.from < gap) {
+                to = values.from + gap;
+                numberInputB.value = to.toString();
+            }
 
             rangeInstance.setValues({ from, to });
         });
@@ -436,15 +476,16 @@ export class SliderWithNumber {
             const value = parseFloat(numberInputA.value);
             rangeInput.valueAsNumber = value;
             numberInputB.value = value.toString();
-            rangeInput.dispatchEvent(new Event("input", { bubbles: true }));
-            rangeInput.dispatchEvent(new Event("change", { bubbles: true }));
+            // Do not bubbles event as range input is internal to this component (otherwise this would cause the event to fire twice)
+            rangeInput.dispatchEvent(new Event("input"));
+            rangeInput.dispatchEvent(new Event("change"));
         });
         numberInputB.addEventListener("change", () => {
             const value = parseFloat(numberInputB.value);
             rangeInput.valueAsNumber = value;
             numberInputA.value = value.toString();
-            rangeInput.dispatchEvent(new Event("input", { bubbles: true }));
-            rangeInput.dispatchEvent(new Event("change", { bubbles: true }));
+            rangeInput.dispatchEvent(new Event("input"));
+            rangeInput.dispatchEvent(new Event("change"));
         });
 
         const onWindowResize = () => {

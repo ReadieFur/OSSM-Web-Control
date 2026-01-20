@@ -222,6 +222,7 @@ declare class OssmBle implements Disposable {
   private throwIfNotReady;
   private onDisconnected;
   private isIntermediateValue;
+  private waitForPendingTargetsToSettle;
   private onCurrentStateChanged;
   /**
   * Begins automatic connection management.
@@ -365,6 +366,13 @@ declare class OssmBle implements Disposable {
   * @requires being on the Stroke Engine page
   */
   moveToPosition(position: number, speed: number): Promise<void>;
+  /**
+  * Batch set multiple OssmPlayData settings in one go.  
+  * *Note:* It is advised you use runStrokeEnginePattern where possible instead of this method to apply settings in a safe order.
+  * @param data An array of tuples containing the key and value to set
+  * @throws Error if the same key is set multiple times in the batch
+  */
+  batchSet(data: Array<[keyof OssmPlayData, number]>): Promise<void>;
   debug: boolean;
   private debugLog;
   private debugLogIf;
