@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Logo</title>
+    <link rel="stylesheet" href="logo.css">
+    <script src="../src/styles.js" type="module" defer></script>
+    <script type="importmap">
+        {
+            "imports": {
+                "html-to-image": "https://esm.sh/html-to-image",
+                "jszip": "https://esm.sh/jszip"
+            }
+        }
+    </script>
+    <script src="logo.js" type="module" defer></script>
+</head>
+<body id="logo-html">
+    <h4>Native:</h4>
+    <div id="native-container" class="image-container">
+        <div class="logo">
+            <div class="background">
+                <div class="grain"></div>
+                <div class="grain"></div>
+            </div>
+            <div class="ossm">
+                <div class="fill"></div>
+                <div class="outline"></div>
+            </div>
+        </div>
+    </div>
+
+    <h4>Output:</h4>
+    <div id="output-options">
+        <!-- Populated in logo.ts -->
+    </div>
+    <!-- <div id="output-container" class="image-container"></div> -->
+</body>
+</html>

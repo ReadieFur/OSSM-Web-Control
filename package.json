@@ -6,7 +6,11 @@
     "user-agent-data-types": "^0.4.2"
   },
   "scripts": {
-    "build:scss": "sass --silence-deprecation=if-function src",
-    "build:ts": "tsc -p tsconfig.json"
+    "build:scss": "sass --silence-deprecation=if-function --no-source-map src",
+    "build:ts": "tsc -p tsconfig.json --sourceMap false"
+  },
+  "dependencies": {
+    "html-to-image": "^1.11.13",
+    "jszip": "^3.10.1"
   }
 }
