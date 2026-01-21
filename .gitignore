@@ -3,5 +3,8 @@ node_modules/
 src/*.map
 src/*.js
 src/*.css
+dev/*.map
+dev/*.js
+dev/*.css
 tsconfig.tsbuildinfo
 .vscode/

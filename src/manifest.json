@@ -4,26 +4,21 @@
     "description": "Web-based control interface for OSSM devices.",
     "start_url": "./index.html",
     "display": "standalone",
-    "background_color": "#343541",
+    "background_color": "#19112f",
     "icons": [
         {
-            "src": "./favicon.png",
+            "src": "./assets/logo_dark_square_256x256.png",
             "type": "image/png",
             "sizes": "256x256",
-            "purpose": "any"
-        },
-        {
-            "src": "./favicon.png",
-            "type": "image/png",
-            "sizes": "256x256",
-            "purpose": "maskable"
+            "purpose": "any maskable",
+            "media": "(prefers-color-scheme: dark)"
         }
     ],
     "share_target": {
         "action": "./",
         "method": "GET",
         "params": {
-            "text": "shared"
+            "text": "session"
         }
     }
 }

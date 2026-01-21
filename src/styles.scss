@@ -1043,16 +1043,25 @@ footer {
 // #endregion
 
 // #region Specific styles
-#background {
+%background-grain {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+
+    background-image: url("./assets/noise.svg");
+    background-repeat: repeat;
+    background-size: 100px;
+
+    mix-blend-mode: overlay;
+    filter: contrast(220%) brightness(90%);
+}
+
+%background-base {
     position: absolute;
     top: 0;
     left: 0;
     width: 100%;
     height: 100%;
-    z-index: -1;
-    inset: 0;
-    isolation: isolate;
-    pointer-events: none;
 
     // Background
     // TODO: Slowly animate these radials around the page
@@ -1070,21 +1079,25 @@ footer {
         ),
         $surface-1;
     background-size: cover;
+}
+
+#background {
+    @extend %background-base;
+    z-index: -1;
+    inset: 0;
+    isolation: isolate;
+    pointer-events: none;
+
     background-attachment: fixed;
 
     &::before,
     &::after {
         content: "";
-        position: fixed;
-        inset: 0;
-        pointer-events: none;
-        
-        background-image: url('./noise.svg');
-        background-repeat: repeat;
-        background-size: 100px;
+        @extend %background-grain;
+    }
 
-        mix-blend-mode: overlay;
-        filter: contrast(220%) brightness(90%);
+    &::after {
+        background-position: 50px -50px;
     }
 
     /* TODO: Re-enable animation once performance impact issue is resolved.
@@ -1094,59 +1107,20 @@ footer {
      */
     // Doing this seems to create quite a nice, yet subtile "flame" effect (is what I'll call it) on the background of the blurred elements
     $animation-duration: 5s;
-    &::before {
-        // animation: grain-fade $animation-duration ease-in-out infinite;
-    }
-    &::after {
-        background-position: 50px -50px;
-        // animation: grain-fade $animation-duration ease-in-out infinite;
-        animation-delay: calc(-1 * #{$animation-duration} / 2);
-    }
+    // &::before {
+    //     animation: grain-fade $animation-duration ease-in-out infinite;
+    // }
+
+    // &::after {
+    //     animation: grain-fade $animation-duration ease-in-out infinite;
+    //     animation-delay: calc(-1 * #{$animation-duration} / 2);
+    // }
 
     @media (prefers-reduced-motion: reduce) {
         .grain::before,
         .grain::after {
             animation: none;
         }
-    }
-}
-
-#style-guide {
-    padding: 15px 20px;
-    width: 100%;
-    height: 100%;
-
-    display: flex;
-    flex-direction: column;
-    flex-wrap: wrap;
-    align-content: flex-start;
-    gap: 1rem;
-
-    #container {
-        position: fixed;
-        $size: 10dvw;
-        left: $size;
-        right: $size;
-        bottom: $size;
-        height: $size * 2;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-    }
-
-    > div {
-        display: flex;
-        flex-direction: column;
-        gap: 0.5rem;
-        width: fit-content;
-    }
-
-    > footer {
-        position: absolute;
-        bottom: 10px;
-        left: 50%;
-        transform: translateX(-50%);
-        font-size: 0.75rem;
     }
 }
 

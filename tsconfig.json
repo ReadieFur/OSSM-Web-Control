@@ -41,5 +41,8 @@
     "watchFile": "dynamicPriorityPolling",
     "watchDirectory": "dynamicPriorityPolling"
   },
-  "include": ["src/**/*.ts"]
+  "include": [
+    "src/**/*.ts",
+    "dev/**/*.ts"
+  ]
 }

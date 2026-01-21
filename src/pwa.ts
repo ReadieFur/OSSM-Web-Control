@@ -1,14 +1,17 @@
-const CACHE_NAME = 'ossm-web-control-cache-v1';
+const CACHE_NAME = 'ossm-web-control-cache-v2';
 
 /* Don't cache the PWA script, the browser handles this
  * See: //https://stackoverflow.com/questions/55027512/should-i-cache-the-serviceworker-file-in-a-pwa
  */
 const INCLUDE_CACHE_LOCAL_URLS: string[] = [
+    "./assets/logo_dark_circle_256x256.png",
+    "./assets/logo_dark_square_256x256.png",
+    "./assets/logo_light_circle_256x256.png",
+    "./assets/logo_light_square_256x256.png",
+    "./assets/noise.svg",
     "./ossm-ble/ossmBle.js",
-    "./favicon.png",
     "./index.html",
     "./manifest.json",
-    "./noise.svg",
     "./offline.html",
     "./script.js",
     "./styles.css",

@@ -1,0 +1,132 @@
+@use "../src/styles.scss" as *;
+
+#logo-html {
+    padding: 0.5rem;
+    gap: 0.5rem;
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    justify-content: flex-start;
+    align-items: flex-start;
+    align-content: flex-start;
+    overflow: auto;
+
+    background-color: black;
+
+    @media (prefers-color-scheme: light) {
+        background-color: white;
+    }
+}
+
+h4 {
+    width: 100%;
+}
+
+.image-container {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.logo {
+    position: relative;
+    width: var(--width, 512px);
+    height: var(--height, 512px);
+    aspect-ratio: 1 / 1;
+    flex-shrink: 0;
+    overflow: hidden;
+
+    &.circle {
+        border-radius: 100%;
+    }
+
+    > .background {
+        @extend %background-base;
+        position: absolute;
+        inset: 0;
+        background-attachment: scroll;
+        background:
+            radial-gradient(
+                circle at bottom left,
+                hsl(from $accent-2 h s l / 0.2),
+                transparent calc(20% * 1.5)
+            ),
+            radial-gradient(
+                circle at bottom right,
+                hsl(from $accent-1 h s l / 0.2),
+                transparent calc(40% * 1.5)
+            ),
+            $surface-1;
+
+        &::before,
+        &::after {
+            display: none; //html-to-image can't handle pseudo-elements
+        }
+
+        > .grain {
+            @extend %background-grain;
+            background-image: url("../src/assets/noise.svg"); // Override since the @use will resolve the wrong path
+
+            &:nth-child(2) {
+                background-position: 50px -50px;
+            }
+        }
+    }
+
+    > .ossm {
+        position: relative;
+        width: 100%;
+        height: 100%;
+
+        > .fill,
+        > .outline {
+            position: absolute;
+            inset: 0;
+            mask-position: center;
+            mask-repeat: no-repeat;
+            mask-size: 105%;
+        }
+
+        > .fill {
+            background: hsl(from $surface-3 h s l / 0.5);
+            backdrop-filter: blur($blur * 2);
+            mask-image: url("../resources/ossm-solid.png");
+        }
+
+        > .outline {
+            background: linear-gradient(
+                hsl(from $text-2 h s l / 0.5),
+                hsl(from $text-3 h s l / 0.5)
+            );
+            mask-image: url("../resources/ossm-freestyle.png");
+        }
+    }
+
+    &.force-theme {
+        &-light * {
+            @each $name, $value in generate-theme(light) {
+                --#{$name}: #{$value} !important;
+            }            
+        }
+
+        &-dark * {
+            @each $name, $value in generate-theme(dark) {
+                --#{$name}: #{$value} !important;
+            }
+        }
+    }
+}
+
+#output-options {
+    width: 100%;
+    display: flex;
+    flex-direction: row;
+    gap: 0.5rem;
+
+    > button {
+        background-color: hsl(from $surface-3 h s l / 1);
+        width: fit-content;
+    }
+}
+

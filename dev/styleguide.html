@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Styles testing</title>
+    <link rel="stylesheet" href="styleguide.css">
+    <script src="../src/styles.js" type="module" defer></script>
+</head>
+<body>
+    <div id="background"></div>
+    <div id="style-guide">
+        <div>
+            <h1>Buttons</h1>
+
+            <button>Regular</button>
+
+            <button class="no-border">No Border</button>
+            <button>
+                <span>
+                    <span>With</span>
+                    <p>Content</p>
+                </span>
+            </button>
+        </div>
+
+        <div>
+            <h1>Inputs</h1>
+            <input type="text" placeholder="Text input">
+
+            <input type="password" placeholder="Password input">
+
+            <input type="number" placeholder="Number input">
+            <input type="number" placeholder="Number input (spin-left)" class="spin-left">
+            <input type="number" placeholder="Number input (spin-right)" class="spin-right">
+            <input type="number" placeholder="Number input (spin-split)" class="spin-split">
+            <input type="number" placeholder="Number input (no spin)">
+
+            <input type="checkbox" id="checkbox1">
+            <label for="checkbox1">Checkbox</label>
+            <input type="checkbox" id="checkbox2" checked>
+            <label for="checkbox2">Checkbox <small>(checked)</small></label>
+            <input type="checkbox" id="checkbox3" class="after-label">
+            <label for="checkbox3">Checkbox <small>(right)</small></label>
+            <input type="checkbox" id="checkbox4" class="after-label" checked>
+            <label for="checkbox4">Checkbox <small>(checked right)</small></label>
+            <input type="checkbox" id="checkbox5">
+            <input type="checkbox" id="checkbox6" class="icon" data-checked-icon="change_circle" data-unchecked-icon="change_circle" style="font-size: 2rem;">
+            <input type="checkbox" id="checkbox7" class="icon" data-checked-icon="change_circle" data-unchecked-icon="change_circle" checked>
+            <label for="checkbox7">Checkbox <small>(icon checked)</small></label>
+
+            <input type="radio" id="radio1" name="radio-group">
+            <label for="radio1">Radio</label>
+            <input type="radio" id="radio2" name="radio-group" checked>
+            <label for="radio2">Radio <small>(selected)</small></label>
+            <input type="radio" id="radio3" class="after-label" name="radio-group-2">
+            <label for="radio3">Radio <small>(right)</small></label>
+            <input type="radio" id="radio4" class="after-label" name="radio-group-2" checked>
+            <label for="radio4">Radio <small>(selected right)</small></label>
+            <input type="range" id="range1" min="0" max="100" value="25">
+            <input type="range" orientation="vertical" id="range2" min="0" max="100" value="75">
+            <span class="input-container-range-double" from="20" to="80"></span>
+            <span class="input-container-range-double" orientation="vertical" from="20" to="80"></span>
+        </div>
+
+        <div>
+            <div id="container" class="card">Container</div>
+        </div>
+
+        <div>
+            <h1>Info Container</h1>
+            <div class="info-container" data-state="">
+                <p><strong>Title</strong></p>
+                <p>Message</p>
+            </div>
+            <div class="info-container" data-state="success">
+                <p><strong>Title</strong></p>
+                <p>Message</p>
+            </div>
+            <div class="info-container" data-state="error">
+                <p><strong>Title</strong></p>
+                <p>Message</p>
+            </div>
+            <div class="info-container" data-state="warning">
+                <p><strong>Title</strong></p>
+                <p>Message</p>
+            </div>
+        </div>
+
+        <footer>
+            <p>Made with ❤️ by ChloeDoe 🦌!</p>
+        </footer>
+    </div>
+</body>
+</html>
