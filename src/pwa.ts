@@ -1,4 +1,4 @@
-const CACHE_NAME = 'ossm-web-control-cache-v2';
+const CACHE_NAME = 'ossm-web-control-cache-v2.1';
 
 /* Don't cache the PWA script, the browser handles this
  * See: //https://stackoverflow.com/questions/55027512/should-i-cache-the-serviceworker-file-in-a-pwa
