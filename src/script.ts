@@ -372,6 +372,7 @@ class OssmWebControl {
     private readonly elements: Elements;
     private readonly infoContainers: Map<string, HTMLElement> = new Map();
     private ossmBle?: OssmBle;
+    private wakeLock?: WakeLockSentinel;
 
     private constructor() {
         const startupAnimation = async () => {
@@ -538,6 +539,11 @@ class OssmWebControl {
         this.elements.intensitySlider.addEventListener("change", this.onIntensityChanged.bind(this));
         this.elements.invertToggle.addEventListener("change", this.onInvertToggled.bind(this));
 
+        document.addEventListener("visibilitychange", () => {
+            if (document.visibilityState === "visible")
+                this.requestWakeLock(); // Won't acquire wakeLock until session is ready
+        });
+
         startupAnimation();
     }
 
@@ -634,6 +640,25 @@ class OssmWebControl {
         });
 
         this.elements.optionsAndControls.classList.remove("scale-pulse");
+    }
+
+    private async requestWakeLock() {
+        if (this.wakeLock || !this.ossmBle || !("wakeLock" in navigator))
+            return;
+
+        try {
+            this.wakeLock = await navigator.wakeLock.request("screen");
+            debugLog("Wake lock acquired");
+            this.wakeLock.addEventListener("release", () => {
+                debugLog("Wake lock released");
+                if (this.ossmBle) {
+                    this.wakeLock = undefined;
+                    this.requestWakeLock();
+                }
+            });
+        } catch (error) {
+            console.error("Error requesting wake lock:", error);
+        }
     }
     //#endregion
 
@@ -925,7 +950,8 @@ class OssmWebControl {
 
         this.deleteInfoContainer(this.infoKeyPairingScreen);
         this.elements.pairScreen.classList.remove("scale-pulse");
-        // this.restorePairScreenLayout();
+
+        this.requestWakeLock();
         //#endregion
     }
 
@@ -939,6 +965,9 @@ class OssmWebControl {
             this.elements.installPwaButton.disabled = false;
             this.elements.installPwaButton.classList.remove("hidden");
         }
+
+        this.wakeLock?.release();
+        this.wakeLock = undefined;
     }
     //#endregion
 
