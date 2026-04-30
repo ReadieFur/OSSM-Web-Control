@@ -189,6 +189,12 @@ $material-symbols-url: build-material-symbol-url();
 // #endregion
 
 // #region Helpers
+@mixin ifWebKit {
+    @supports (-webkit-touch-callout: none) {
+        @content;
+    }
+}
+
 @mixin border-debug($color: null) {
     @if $color == null {
         $color: hsl(math.random(360), 100%, 50%);
@@ -225,7 +231,14 @@ $material-symbols-url: build-material-symbol-url();
 
 @mixin range-thumb {
     &::-webkit-slider-thumb {
-        appearance: none;
+        // appearance: none;
+
+        // Apple/WebKit fixes.
+        @include ifWebKit {
+            -webkit-appearance: none;
+            border: none;
+        }
+
         @content;
     }
 
@@ -448,6 +461,12 @@ $material-symbols-url: build-material-symbol-url();
             &:after {
                 line-height: $icon-offset;
                 content: attr(data-unchecked-icon);
+
+                // Apple/WebKit fixes.
+                @include ifWebKit {
+                    padding-left: 0.25em;
+                    padding-right: 0.25em;
+                }
             }
 
             &:checked:after {
@@ -601,6 +620,7 @@ input {
         appearance: none;
         background: transparent;
         cursor: pointer;
+        user-select: none;
 
         @include range-track {
             // TODO: Fix this not working if the track is smaller than the thumb (cause: gradient hack)
@@ -609,9 +629,18 @@ input {
         }
 
         @include range-thumb {
-            width: 0;
-            height: 0;
-            border: none;
+            opacity: 0;
+
+            @include ifWebKit {
+                width: 1rem;
+                height: var(--range-track-thickness);
+            }
+        }
+
+        @include ifWebKit {
+            touch-action: none; // Controlled by script.
+            -webkit-user-select: none; // Disable text selection when clicking and dragging (since this functionality is required for out custom input code in script and we don't want to end up enabling the text selection dialog).
+            -webkit-touch-callout: none;
         }
         
         &:active {
@@ -639,8 +668,15 @@ input {
             }
         }
 
-        // Vertical in a mixin because it needs to be repeated elsewhere
         &[orientation="vertical"] {
+            @include range-thumb {
+                @include ifWebKit {
+                    width: var(--range-track-thickness);
+                    height: 1rem;
+                }
+            }
+
+            // Vertical in a mixin because it needs to be repeated elsewhere
             @include range-vertical;
             // width: fit-content;
         }
@@ -847,6 +883,13 @@ footer {
         >input[type="range"]
         {
             @include range-vertical;
+            
+            @include range-thumb {
+                @include ifWebKit {
+                    width: var(--range-track-thickness);
+                    height: 1rem;
+                }
+            }
 
             height: initial;
 

@@ -1,0 +1,18 @@
+input[type="range"] {
+    min-height: 5rem !important;
+    min-width: 15rem !important;
+
+    &[orientation="vertical"] {
+        min-width: 5rem !important;
+        min-height: 15rem !important;
+    }
+}
+
+.input-container-range-double {
+    &[orientation="vertical"] {
+        >input[type="range"] {
+            min-width: 5rem !important;
+            min-height: 15rem !important;
+        }
+    }
+}
