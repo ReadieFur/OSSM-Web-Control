@@ -39,8 +39,8 @@ jobs:
       - name: Copy LICENSE
         run: cp LICENSE dist/
 
-      - name: Upload build artifact
-        uses: actions/upload-artifact@v4
+      # IMPORTANT: Pages artifact (NOT upload-artifact)
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
         with:
-          name: dist
           path: dist
