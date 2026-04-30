@@ -9,7 +9,7 @@ It is accessible through your browser at [ossm-web.forestpuppy.pet](https://ossm
 ### Compatibility & Features:  
 - [x] **Desktop:** Chrome, Edge, Opera, and other Chromium-based browsers
 - [x] **Android:** Chrome
-- [ ] **iOS/iPadOS:** [Bluefy](https://apps.apple.com/us/app/bluefy-web-ble-browser/id1492822055) *(Experimental, may not work properly, medium priority)*
+- [x] **iOS/iPadOS:** [Bluefy](https://apps.apple.com/us/app/bluefy-web-ble-browser/id1492822055)
 - [x] Speed & stroke control
 - [x] Pattern & intensity control
 - [ ] State checking *(Safety features [1 bug], work in progress, high priority)*
