@@ -13,6 +13,10 @@ export class Helpers {
     static isPortrait(): boolean {
         return window.getComputedStyle(document.documentElement).getPropertyValue("--is-portrait") === "true";
     }
+
+    static isWebKit(): boolean {
+        return CSS.supports('-webkit-touch-callout', 'none');
+    }
 }
 
 export enum TransitionDirection {
@@ -616,6 +620,83 @@ class StylesScriptAuto {
     }
 
     static inputTypeRange(rangeElement: HTMLInputElement): void {
+        //#region WebKit patching
+        if (Helpers.isWebKit() && rangeElement.dataset.webkitPatched !== "true") {
+            rangeElement.dataset.webkitPatched = "true";
+
+            const orientationElement = rangeElement.parentElement?.classList.contains("input-container-range-double") ? rangeElement.parentElement! : rangeElement;
+
+            //#region Click & drag on the entire track
+            // This is a workaround for WebKit browsers where clicking and dragging on the track of a range input does not move the thumb.
+            const calculatePositionFromEvent = (event: PointerEvent): number => {
+                const rect = rangeElement.getBoundingClientRect();
+                const orientation = orientationElement.getAttribute("orientation") ?? "horizontal";
+                let positionPercent: number;
+                if (orientation === "vertical") {
+                    const offsetY = event.clientY - rect.top;
+                    positionPercent = 1 - (offsetY / rect.height); // Invert due to CSS using rtl/v-lr to flip the input for vertical orientation. 
+                } else {
+                    const offsetX = event.clientX - rect.left;
+                    positionPercent = offsetX / rect.width;
+                }
+
+                positionPercent = Math.max(0, Math.min(1, positionPercent));
+
+                const min = Number(rangeElement.min) || 0;
+                const max = Number(rangeElement.max) || 100;
+                const stepAttr = rangeElement.step;
+
+                let value = min + positionPercent * (max - min);
+
+                if (stepAttr && stepAttr !== "any") {
+                    const step = Number(stepAttr);
+                    if (step > 0) {
+                        const steps = Math.round((value - min) / step);
+                        value = min + steps * step;
+                    }
+                }
+
+                return Math.max(min, Math.min(max, value));
+            };
+
+            let isDragging = false;
+
+            rangeElement.addEventListener("pointerdown", (event) => {
+                event.preventDefault(); // Prevent default single-snapping.
+
+                rangeElement.setPointerCapture(event.pointerId); // Capture pointer to continue receiving events even if the pointer goes outside the element (required for the release to work properly).
+                isDragging = true;
+
+                // Fire input event for immediate update.
+                rangeElement.value = calculatePositionFromEvent(event).toString();
+                rangeElement.dispatchEvent(new Event("input", { bubbles: true }));
+
+                // A repaint is not required since the other custom input code attaches to the change event and will update the styles on input as well. 
+            });
+
+            rangeElement.addEventListener("pointermove", (event) => {
+                if (!isDragging) return;
+                rangeElement.value = calculatePositionFromEvent(event).toString();
+                rangeElement.dispatchEvent(new Event("input", { bubbles: true }));
+            });
+
+            rangeElement.addEventListener("pointerup", (event) => {
+                if (!isDragging) return;
+                isDragging = false;
+                rangeElement.releasePointerCapture(event.pointerId);
+
+                // Fire change event for final update after dragging.
+                rangeElement.value = calculatePositionFromEvent(event).toString();
+                rangeElement.dispatchEvent(new Event("change", { bubbles: true }));
+            });
+
+            rangeElement.addEventListener("pointercancel", (event) => {
+                isDragging = false;
+            });
+            //#endregion
+        }
+        //#endregion
+
         // Ignore if the range is a double range (handled elsewhere)
         if (rangeElement.parentElement?.classList.contains("input-container-range-double")) {
             rangeElement.dataset.styled = "false";
@@ -624,6 +705,7 @@ class StylesScriptAuto {
 
         rangeElement.dataset.styled = "true";
 
+        //#region Value binding
         // const onResize = () => {
         //     if (!rangeElement.isConnected)
         //         return;
@@ -650,6 +732,7 @@ class StylesScriptAuto {
         rangeElement.addEventListener("input", updateValue);
         rangeElement.addEventListener("repaint", updateValue);
         updateValue();
+        //#endregion
     }
 
     static inputTypeRangeDouble(container: HTMLElement): void {
