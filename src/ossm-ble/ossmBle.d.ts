@@ -191,6 +191,11 @@ declare function mapRational(x: number, k?: number): number;
 //#endregion
 //#region src/ossmBle.d.ts
 declare class OssmBle implements Disposable {
+  static readonly LIB_VERSION: {
+    readonly MAJOR: 1;
+    readonly MINOR: 1;
+    readonly PATCH: 2;
+  };
   /**
   * Checks if the current browser supports all the required Web APIs for this library
   * @returns `true` if supported, `false` otherwise
