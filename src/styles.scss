@@ -31,6 +31,7 @@ $material-symbols: (
     "nest_true_radiant",
     "next_plan",
     "reset_settings",
+    "settings",
     "share",
     "speed",
 );
@@ -119,6 +120,7 @@ $theme-rules: (
 $desktop-media-query: "(min-width: #{$mobile-width-threshold + 1}px) and (min-height: #{$mobile-height-threshold + 1}px)";
 $mobile-media-query: "(max-width: #{$mobile-width-threshold}px), (max-height: #{$mobile-height-threshold}px)";
 $landscape-media-query: "(orientation: landscape)";
+$portrait-media-query: "(orientation: portrait)";
 
 @function generate-theme($mode) {
     $result: ();
@@ -551,7 +553,9 @@ a.button {
     color: $text-1;
 
     &:hover:not([disabled]) {
-        background-color: hsl(from $surface-2 h s l / 0.5);
+        @media #{$desktop-media-query} {
+            background-color: hsl(from $surface-2 h s l / 0.5);
+        }
         cursor: pointer;
     }
 
@@ -998,6 +1002,22 @@ footer {
     background-color: hsl(from $accent-2 h s l / 0.9);
     animation: opacity-pulse 2s ease-in-out infinite;
 }
+
+.collapsed {
+    display: none;
+}
+
+.portrait-only {
+    @media #{$landscape-media-query} {
+        display: none;
+    }
+}
+
+.landscape-only {
+    @media #{$portrait-media-query} {
+        display: none;
+    }
+}
 // #endregion
 
 // #region Animations
@@ -1266,11 +1286,26 @@ footer {
     }
 }
 
-.status {
-    display: flex;
-    justify-content: space-between;
+#main-header {
+    display: grid;
+    grid-template-columns: auto 1fr auto; 
     align-items: center;
     padding: 0.5rem 0.75rem !important;
+
+    > *:nth-child(1) { 
+        justify-self: start; 
+    }
+    
+    > *:nth-child(2) { 
+        justify-self: stretch; 
+        display: flex;
+        justify-content: center;
+        align-items: center;
+    }
+    
+    > *:nth-child(3) { 
+        justify-self: end; 
+    }
 
     > div {
         display: flex;
@@ -1280,14 +1315,35 @@ footer {
     button {
         padding: 0.75rem 0.5rem;
 
-        &#stop-button {
-            padding: 0.75rem 1.5rem;
-            background-color: hsl(from $red h s l / 0.7);
-        }
-
         &:last-child {
             margin-right: -0.25rem;
         }
+    }
+}
+
+.stop-button {
+    background-color: hsl(from $red h s l / 0.7);
+
+    transition: background 0.2s ease, color 0.2s ease;
+
+    &::before {
+        content: "";
+        @include glass-border;
+    }
+
+    &:disabled {
+        // background-color: hsl(from $red h s l / 0.3);
+        background: hsl(from $surface-3 h s l / 0.25);
+    }
+
+    &#stop-button-header {
+        width: 75%;
+    }
+
+    &#stop-button-footer {
+        // From .card
+        border-radius: $radius-800;
+        backdrop-filter: blur($blur);
     }
 }
 

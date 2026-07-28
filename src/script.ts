@@ -39,7 +39,9 @@ const __elements = {
     // shareSessionButton: HTMLButtonElement,
     recalibrateButton: HTMLButtonElement,
     disconnectButton: HTMLButtonElement,
-    stopButton: HTMLButtonElement,
+
+    stopButtonHeader: HTMLButtonElement,
+    stopButtonFooter: HTMLButtonElement,
 
     //#region Options and Controls
     optionsAndControls: HTMLDivElement,
@@ -530,7 +532,9 @@ class OssmWebControl {
             }
         });
 
-        this.elements.stopButton.addEventListener("click", this.onStopButtonClicked.bind(this));
+        this.elements.stopButtonHeader.addEventListener("click", this.onStopButtonClicked.bind(this));
+        this.elements.stopButtonFooter.addEventListener("click", this.onStopButtonClicked.bind(this));
+
         this.elements.disconnectButton.addEventListener("click", this.onDisconnectButtonClicked.bind(this));
         this.elements.recalibrateButton.addEventListener("click", this.onRecalibrateButtonClicked.bind(this));
 
@@ -543,6 +547,7 @@ class OssmWebControl {
             if (document.visibilityState === "visible")
                 this.requestWakeLock(); // Won't acquire wakeLock until session is ready
         });
+
 
         startupAnimation();
     }

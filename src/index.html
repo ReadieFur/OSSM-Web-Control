@@ -52,19 +52,21 @@
 
         <section id="control-screen" class="hidden">
             <!-- TODO: Split each section into its own glass-card -->
-            <div class="status card">
+            <div id="main-header" class="card">
                 <div>
                     <p id="state-indicator" data-state="not-ready" data-text="Disconnected">
                         <span class="material-symbol fill small" data-icon="circle"></span>
                     </p>
                 </div>
                 <div>
+                    <button id="stop-button-header" class="stop-button landscape-only"><span class="material-symbol" data-icon="dangerous"></span></button>
+                </div>
+                <div>
                     <!-- TODO: Future feature; session sharing -->
                     <!-- <button id="share-button"><span class="material-symbol" data-icon="share"></span>Share control</button> -->
                     <button id="recalibrate-button"><span class="material-symbol" data-icon="reset_settings"></span></button>
                     <button id="disconnect-button"><span class="material-symbol" data-icon="logout"></span></button>
-                    <button id="stop-button"><span class="material-symbol" data-icon="dangerous"></span></button>
-                    <!-- <button id="dashboard-button"><span class="material-symbol" data-icon="dashboard"></span></button> -->
+                    <!-- <button id="dashboard-button"><span class="material-symbol" data-icon="settings"></span></button> -->
                 </div>
             </div>
 
@@ -121,6 +123,8 @@
                     </div>
                 </div>
             </div>
+
+            <button id="stop-button-footer" class="stop-button portrait-only"><span class="material-symbol" data-icon="dangerous"></span></button>
         </section>
 
         <footer id="footer">

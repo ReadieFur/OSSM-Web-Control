@@ -7,7 +7,9 @@
   },
   "scripts": {
     "build:scss": "sass --silence-deprecation=if-function --no-source-map src",
-    "build:ts": "tsc -p tsconfig.json --sourceMap false"
+    "build:ts": "tsc -p tsconfig.json --sourceMap false",
+    "debug:scss:watch": "sass --watch --silence-deprecation=if-function src",
+    "debug:ts:watch": "tsc -p tsconfig.json --watch"
   },
   "dependencies": {
     "html-to-image": "^1.11.13",
