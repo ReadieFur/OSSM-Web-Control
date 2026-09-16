@@ -1,2 +1,10 @@
-<h1>Welcome to SvelteKit</h1>
-<p>Visit <a href="https://svelte.dev/docs/kit">svelte.dev/docs/kit</a> to read the documentation</p>
+<script lang="ts">
+    import { ViewManager } from '$views/ViewManager.svelte.ts';
+    import LandingView from '$views/LandingView.svelte';
+
+    const vmm = new ViewManager();
+</script>
+
+{#if vmm.currentView === 'landing'}
+    <LandingView {vmm} />
+{/if}

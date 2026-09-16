@@ -1,0 +1,181 @@
+// Page layout (for +layout.svelte)
+@use "./global.scss" as *;
+
+// #region DOM
+html, body, main, .app-shell {
+    margin: 0;
+    padding: 0;
+    width: 100dvw;
+    height: 100dvh;
+    overflow: hidden;
+}
+
+body {
+    // Layout
+    display: flex;
+    justify-content: center;
+    align-items: center;
+
+    // Font settings
+    color: $text-1;
+    font-family: $font-family;
+
+    // Mobile save area padding (since we extend into the system area such as where the camera punch-hole is).
+    // padding-top: env(safe-area-inset-top);
+    // padding-left: env(safe-area-inset-left);
+    padding-bottom: env(safe-area-inset-bottom); // Chrome will only expand down?
+    // padding-right: env(safe-area-inset-right);
+}
+// #endregion
+
+// #region Background
+%background-grain {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+
+    background-image: url("./assets/noise.svg");
+    background-repeat: repeat;
+    background-size: 100px;
+
+    mix-blend-mode: overlay;
+    filter: contrast(220%) brightness(90%);
+}
+
+%background-base {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+
+    // Background
+    // TODO: Slowly animate these radials around the page
+    background-color: $surface-1;
+    background:
+        radial-gradient(
+            circle at bottom left,
+            hsl(from $accent-2 h s l / 0.2),
+            transparent 20%
+        ),
+        radial-gradient(
+            circle at bottom right,
+            hsl(from $accent-1 h s l / 0.2),
+            transparent 40%
+        ),
+        $surface-1;
+    background-size: cover;
+}
+
+.app-background {
+    @extend %background-base;
+    z-index: -1;
+    inset: 0;
+    isolation: isolate;
+    pointer-events: none;
+
+    background-attachment: fixed;
+
+    &::before,
+    &::after {
+        content: "";
+        @extend %background-grain;
+    }
+
+    &::after {
+        background-position: 50px -50px;
+    }
+
+    /* TODO: Re-enable animation once performance impact issue is resolved.
+     * Seems to heavily load the GPU at least on Firefox.
+     * While this may be of no concern on desktop or Chrome (since chrome is the target browser),
+     * it could have negative effects on battery life and performance on mobile devices.
+     */
+
+    // Doing this seems to create quite a nice, yet subtile "flame" effect (is what I'll call it) on the background of the blurred elements
+    $animation-duration: 5s;
+    // &::before {
+    //     animation: grain-fade $animation-duration ease-in-out infinite;
+    // }
+
+    // &::after {
+    //     animation: grain-fade $animation-duration ease-in-out infinite;
+    //     animation-delay: calc(-1 * #{$animation-duration} / 2);
+    // }
+
+    @media (prefers-reduced-motion: reduce) {
+        .grain::before,
+        .grain::after {
+            animation: none;
+        }
+    }
+}
+// #endregion
+
+// #region Main content
+$page-bounds-offset: 100px;
+
+.app-shell {
+    // Position
+    position: relative;
+    display: flex;
+    flex-direction: column;
+
+    // Layout
+    text-align: center;
+    max-width: 100dvw;
+    max-height: 100dvh;
+
+    &:not(.fill-page) {
+        width: fit-content;
+        height: fit-content;
+        padding: calc(#{$page-bounds-offset} / 2);
+    }
+
+    &.fill-page {
+        width: 100dvw;
+        height: 100dvh;
+
+        @media #{$desktop-media-query} {
+            width: calc(100dvw - $page-bounds-offset);
+            height: calc(100dvh - $page-bounds-offset);
+        }
+    }
+}
+// #endregion
+
+// #region Footer
+footer {
+    // Position
+    position: absolute; //Makes sure it doesn't affect main content size
+    left: 0;
+    right: 0;
+
+    // Layout
+    text-align: center;
+    font-size: 0.75rem;
+    color: $text-2;
+
+    transition: opacity 0.2s ease;
+}
+
+.app-shell {
+    // Place footer under the main content when not in fill-page mode
+    &:not(.fill-page) > footer {
+        top: calc(100% - (#{$page-bounds-offset} / 2)); // Positions it starting at the bottom of main
+        margin-top: 1rem;
+    }
+
+    // Place the footer equally between the bottom of main and the bottom of the viewport when in fill-page mode
+    &.fill-page > footer {
+        display: none; // Hide footer on mobile in fill-page mode
+
+        @media #{$desktop-media-query} {
+            display: unset;
+            // Position equally between bottom of main and bottom of viewport
+            top: calc(100% + (#{$page-bounds-offset} / 4));
+            transform: translateY(-50%);
+        }
+    }
+}
+// #endregion
