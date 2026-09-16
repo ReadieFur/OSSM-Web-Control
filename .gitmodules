@@ -1,0 +1,3 @@
+[submodule "src/lib/ossm-ble-web"]
+	path = src/lib/ossm-ble-web
+	url = https://github.com/ReadieFur/OSSM-BLE-Web.git
