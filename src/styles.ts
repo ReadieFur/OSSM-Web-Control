@@ -342,6 +342,18 @@ export class InputRangeDouble {
     repaint(): void {
         this.updateStyles();
     }
+
+    getContainer(): HTMLElement {
+        return this.container;
+    }
+
+    getMinSlider(): HTMLInputElement {
+        return this.fromSlider;
+    }
+
+    getMaxSlider(): HTMLInputElement {
+        return this.toSlider;
+    }
 }
 
 export class StylesScript {
@@ -423,7 +435,10 @@ export class StylesScript {
         data.element.dataset.transitionFade = data.direction;
         data.element.style.setProperty("--transition-fade-duration", `${data.durationMs}ms`);
 
-        await new Promise<void>((resolve) => setTimeout(resolve, data.durationMs));
+        // Subtract a small amount of time to avoid flickering on following operations once the transition is complete.
+        let timeoutTime = data.durationMs - 5;
+        if (timeoutTime > 0)
+            await new Promise<void>((resolve) => setTimeout(resolve, timeoutTime));
 
         data.element.classList.remove("transition-fade");
         delete data.element.dataset.transitionFade;

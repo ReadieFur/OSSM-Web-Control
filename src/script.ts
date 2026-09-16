@@ -36,18 +36,38 @@ const __elements = {
     controlScreen: HTMLElement,
 
     stateIndicator: HTMLParagraphElement,
-    // shareSessionButton: HTMLButtonElement,
-    recalibrateButton: HTMLButtonElement,
+    settingsPanelToggle: HTMLInputElement,
     disconnectButton: HTMLButtonElement,
 
     stopButtonHeader: HTMLButtonElement,
     stopButtonFooter: HTMLButtonElement,
 
-    //#region Options and Controls
     optionsAndControls: HTMLDivElement,
+    
+    optionsCard: HTMLDivElement,
+    settingsPanel: HTMLDivElement,
+    recalibrateButton: HTMLButtonElement,
+    // shareSessionButton: HTMLButtonElement,
+    changeLimitRangeToggle: HTMLInputElement,
+    changeLimitRangeInput: HTMLInputElement,
+    changeLimitSpeedToggle: HTMLInputElement,
+    changeLimitSpeedInput: HTMLInputElement,
+    // changeLimitIntensityToggle: HTMLInputElement,
+    // changeLimitIntensityInput: HTMLInputElement,
+
+    limitWarningPanel: HTMLDivElement,
+    limitWarningField: HTMLSpanElement,
+    limitWarningMax: HTMLSpanElement,
+    limitWarningCancelButton: HTMLButtonElement,
+    limitWarningCancelText: HTMLSpanElement,
+    limitWarningApplyCappedButton: HTMLButtonElement,
+    limitWarningApplyCappedText: HTMLSpanElement,
+    limitWarningApplyUncappedButton: HTMLButtonElement,
+    limitWarningApplyUncappedText: HTMLSpanElement,
+
+    patternsPanel: HTMLDivElement,
     patternSelect: HTMLDivElement,
     descriptionText: HTMLParagraphElement,
-    invertToggle: HTMLInputElement,
     // applyPatternButton: HTMLButtonElement,
 
     relativeRangeContainer: HTMLDivElement,
@@ -55,6 +75,7 @@ const __elements = {
     relativeSpeedSlider: HTMLInputElement,
     intensityContainer: HTMLDivElement,
     intensitySlider: HTMLInputElement,
+    invertToggle: HTMLInputElement,
     //#endregion
     //#endregion
 } as const satisfies Record<string, typeof HTMLElement>;
@@ -66,6 +87,12 @@ type PatternInfo = {
     hasIntensityControl: boolean;
     canInvert: boolean;
 };
+
+enum ELimitWarningAction {
+    Cancel,
+    ApplyCapped,
+    ApplyUncapped
+}
 
 // I find that some of the descriptions for the built-in patterns aren't very explanatory, so I've re-written them here.
 const KNOWN_PATTERNS = {
@@ -135,6 +162,72 @@ function debugLog(...args: any[]): void {
 }
 
 debugLog("Dev mode:", isDevMode);
+
+class ExclusiveTaskRunner<T> {
+    private currentAbortController?: AbortController;
+    private isRunning = false;
+    private nextTask?: {
+        task: (ct: AbortSignal) => Promise<T>;
+        resolve: (value: T | PromiseLike<T>) => void;
+        reject: (reason?: any) => void;
+    };
+
+    private async execute(
+        taskFn: (ct: AbortSignal) => Promise<T>,
+        res: (value: T | PromiseLike<T>) => void,
+        rej: (reason?: any) => void
+    ): Promise<void> {
+        this.isRunning = true;
+        const cts = new AbortController();
+        this.currentAbortController = cts;
+
+        try {
+            res(await taskFn(cts.signal));
+        } catch (e) {
+            rej(e);
+        } finally {
+            this.isRunning = false;
+            this.currentAbortController = undefined;
+
+            // If there is a next task, process it
+            if (!this.nextTask)
+                return;
+            const next = this.nextTask;
+            this.nextTask = undefined;
+            this.execute(next.task, next.resolve, next.reject)
+        }
+    }
+
+    async run(task: (ct: AbortSignal) => Promise<T>): Promise<T> {
+        return new Promise<T>((resolve, reject) => {
+            // If a task exists in the queue, reject it as it is superseded by the new task
+            if (this.nextTask)
+                this.nextTask.reject(new DOMException("Superseded by a newer task", DOMExceptionError.AbortError));
+
+            // Set this incoming task as the next task
+            this.nextTask = { task, resolve, reject };
+
+            // Cancel any existing task
+            this.currentAbortController?.abort();
+
+            // If there is no running task, process this one immediately
+            if (!this.isRunning) {
+                this.execute(task, resolve, reject);
+                return;
+            }
+        });
+    }
+
+    clear(): void {
+        // If a task exists in the queue, reject it as it is being discarded
+        if (this.nextTask)
+            this.nextTask.reject(new DOMException("Discarded", DOMExceptionError.AbortError));
+        this.nextTask = undefined;
+
+        // Cancel any existing task
+        this.currentAbortController?.abort();
+    }
+}
 //#endregion
 
 //#region Generators
@@ -416,6 +509,44 @@ class OssmWebControl {
             return;
         }
 
+        this.elements.settingsPanelToggle.addEventListener("change", async () => {
+            const transitionTimeMs = 300 / 2;
+            let inItem: HTMLElement, outItem: HTMLElement;
+
+            if (this.elements.settingsPanelToggle.checked) {
+                inItem = this.elements.settingsPanel;
+                outItem = this.elements.patternsPanel;
+            } else {
+                inItem = this.elements.patternsPanel;
+                outItem = this.elements.settingsPanel;
+            }
+
+            await StylesScript.transitionFade({
+                element: outItem,
+                direction: TransitionDirection.Out,
+                durationMs: transitionTimeMs
+            });
+            outItem.classList.add("hidden");
+            inItem.classList.remove("hidden");
+            await StylesScript.transitionFade({
+                element: inItem,
+                direction: TransitionDirection.In,
+                durationMs: transitionTimeMs
+            });
+        });
+
+        this.elements.stopButtonHeader.addEventListener("click", this.onStopButtonClicked.bind(this));
+        this.elements.stopButtonFooter.addEventListener("click", this.onStopButtonClicked.bind(this));
+
+        this.controlScreenOldValues.range = this.relativeRangeControl.getValues();
+        this.controlScreenOldValues.speed = this.elements.relativeSpeedSlider.valueAsNumber;
+        this.controlScreenOldValues.intensity = this.elements.intensitySlider.valueAsNumber;
+
+        this.relativeRangeControl.addEventListener("change", this.onRelativeRangeChanged.bind(this));
+        this.elements.relativeSpeedSlider.addEventListener("change", this.onRelativeSpeedChanged.bind(this));
+        this.elements.intensitySlider.addEventListener("change", this.onIntensityChanged.bind(this));
+        this.elements.invertToggle.addEventListener("change", this.onInvertToggled.bind(this));
+
         if (isDevMode && new URLSearchParams(window.location.search).has("control-screen")) {
             this.elements.mainContent.style.opacity = "unset";
             // Disable connection functionality and show control screen directly (for development of the UI)
@@ -532,22 +663,13 @@ class OssmWebControl {
             }
         });
 
-        this.elements.stopButtonHeader.addEventListener("click", this.onStopButtonClicked.bind(this));
-        this.elements.stopButtonFooter.addEventListener("click", this.onStopButtonClicked.bind(this));
-
         this.elements.disconnectButton.addEventListener("click", this.onDisconnectButtonClicked.bind(this));
         this.elements.recalibrateButton.addEventListener("click", this.onRecalibrateButtonClicked.bind(this));
-
-        this.relativeRangeControl.addEventListener("change", this.onRelativeRangeChanged.bind(this));
-        this.elements.relativeSpeedSlider.addEventListener("change", this.onRelativeSpeedChanged.bind(this));
-        this.elements.intensitySlider.addEventListener("change", this.onIntensityChanged.bind(this));
-        this.elements.invertToggle.addEventListener("change", this.onInvertToggled.bind(this));
 
         document.addEventListener("visibilitychange", () => {
             if (document.visibilityState === "visible")
                 this.requestWakeLock(); // Won't acquire wakeLock until session is ready
         });
-
 
         startupAnimation();
     }
@@ -986,14 +1108,31 @@ class OssmWebControl {
         speed: false,
         intensity: false,
     };
+    private readonly controlScreenOldValues = {
+        range: { from: 0, to: 0 },
+        speed: 0,
+        intensity: 0,
+    }
     private isTransitioningPage = false;
     private isRecalibrating = false;
     private isEnteringStableState = false;
+    private readonly limitWarningProcessor = new ExclusiveTaskRunner<ELimitWarningAction>();
 
     //#region UI handlers
     private async onStopButtonClicked(): Promise<void> {
+        // Using an explicit try/catch here as opposed to ?, to ensure that any errors during the stop process are logged, but do not prevent the rest of the UI from updating.
+        try {
+            if (!this.ossmBle)
+                throw new Error("OssmBle instance is not initialized");
+            await this.ossmBle.stop();
+        } catch (error) {
+            console.error("Error occurred while stopping the device:", error);
+        }
+
+        // Only log here as we want the stop call to be reached as soon as possible.
         debugLog("Emergency stop button clicked");
-        await this.ossmBle?.stop();
+
+        this.limitWarningProcessor.clear();
     }
 
     private async onDisconnectButtonClicked(): Promise<void> {
@@ -1096,16 +1235,215 @@ class OssmWebControl {
         }
     }
 
+    private async displayLimitWarning(
+        fieldStr: string,
+        thresholdStr: string,
+        previousStr: string,
+        cappedStr: string,
+        uncappedStr: string
+    ): Promise<ELimitWarningAction> {
+        const task = this.limitWarningProcessor.run(async (ct: AbortSignal) => {
+            this.elements.limitWarningField.textContent = fieldStr;
+            this.elements.limitWarningMax.textContent = thresholdStr;
+            this.elements.limitWarningCancelText.textContent = previousStr;
+            this.elements.limitWarningApplyCappedText.textContent = cappedStr;
+            this.elements.limitWarningApplyUncappedText.textContent = uncappedStr;
+
+            let activePanel: HTMLElement | null = null;
+            for (const element of this.elements.optionsCard.children) {
+                if (element === this.elements.limitWarningPanel)
+                    continue;
+
+                if (!element.classList.contains("hidden")) {
+                    activePanel = element as HTMLElement;
+                    break;
+                }
+            }
+            if (activePanel)
+                activePanel.classList.add("hidden");
+            else
+                activePanel = this.elements.patternsPanel;
+
+            this.elements.limitWarningPanel.classList.remove("hidden");
+
+            const userAction = new Promise<ELimitWarningAction>((resolve, reject) => {
+                ct.addEventListener("abort", () => reject(), { once: true });
+                this.elements.limitWarningCancelButton.onclick = () => resolve(ELimitWarningAction.Cancel);
+                this.elements.limitWarningApplyCappedButton.onclick = () => resolve(ELimitWarningAction.ApplyCapped);
+                this.elements.limitWarningApplyUncappedButton.onclick = () => resolve(ELimitWarningAction.ApplyUncapped);
+            });
+
+            let result: ELimitWarningAction;
+            try { result = await userAction; }
+            catch {
+                debugLog("Limit warning aborted");
+                // On failure/abort, immediately return to previous menu
+                this.elements.limitWarningPanel.classList.add("hidden");
+                activePanel.classList.remove("hidden");
+                throw new DOMException("Limit warning aborted", DOMExceptionError.AbortError);
+            }
+
+            // Run animation detached from function task
+            new Promise<void>(async (resolve) => {
+                const transitionTimeMs = 200 / 2;
+
+                await StylesScript.transitionFade({
+                    element: this.elements.limitWarningPanel,
+                    direction: TransitionDirection.Out,
+                    durationMs: transitionTimeMs
+                });
+                this.elements.limitWarningPanel.classList.add("hidden");
+                
+                activePanel.classList.remove("hidden");
+                await StylesScript.transitionFade({
+                    element: activePanel,
+                    direction: TransitionDirection.In,
+                    durationMs: transitionTimeMs
+                });
+
+                resolve();
+            });
+
+            // debugLog("Limit warning user action:", result);
+            return result;
+        });
+        return await task;
+    }
+
     private async onRelativeRangeChanged(): Promise<void> {
+        // (framework + data-binding would make this easier & way tidier, but it has to be done this way due to how this elements wrapper works).
+        if (this.controlScreenSkipRepaintFor.range)
+            return;
+
+        debugLog("Relative range changed");
+        if (this.elements.changeLimitRangeToggle.checked && !this.isEnteringStableState && !this.isUpdatingFromDevice) {
+            const newValues = this.relativeRangeControl.getValues();
+            const oldValues = this.controlScreenOldValues.range;
+            const threshold = this.elements.changeLimitRangeInput.valueAsNumber;
+            const deltaFrom = Math.abs(newValues.from - oldValues.from);
+            const deltaTo = Math.abs(newValues.to - oldValues.to);
+
+            const fromExceedsThreshold = deltaFrom > threshold;
+            const toExceedsThreshold = deltaTo > threshold;
+
+            if (fromExceedsThreshold || toExceedsThreshold) {
+                const cappedValues = {
+                    from: Math.max(Math.min(newValues.from, oldValues.from + threshold), oldValues.from - threshold),
+                    to: Math.max(Math.min(newValues.to, oldValues.to + threshold), oldValues.to - threshold),
+                };
+
+                this.controlScreenSkipRepaintFor.range = true;
+                this.relativeRangeControl.setValues(oldValues);
+                this.controlScreenSkipRepaintFor.range = false;
+
+                let fieldStr = "", oldStr, cappedStr, newStr;
+                if (fromExceedsThreshold && toExceedsThreshold) {
+                    fieldStr += "(min/max)";
+                    oldStr = `${oldValues.from} / ${oldValues.to}`;
+                    cappedStr = `${cappedValues.from} / ${cappedValues.to}`;
+                    newStr = `${newValues.from} / ${newValues.to}`;
+                }
+                else if (fromExceedsThreshold) {
+                    fieldStr += "(min)";
+                    oldStr = `${oldValues.from}`;
+                    cappedStr = `${cappedValues.from}`;
+                    newStr = `${newValues.from}`;
+                }
+                else {
+                    fieldStr += "(max)";
+                    oldStr = `${oldValues.to}`;
+                    cappedStr = `${cappedValues.to}`;
+                    newStr = `${newValues.to}`;
+                }
+
+                let userAction: ELimitWarningAction | null = null;
+                try {
+                    userAction = await this.displayLimitWarning(
+                        "Range " + fieldStr,
+                        threshold.toString(),
+                        oldStr,
+                        cappedStr,
+                        newStr
+                    );
+                } catch (ex) {
+                    debugLog(ex);
+                }
+
+                switch (userAction) {
+                    case ELimitWarningAction.ApplyCapped:
+                        this.controlScreenSkipRepaintFor.range = true;
+                        this.relativeRangeControl.setValues(cappedValues);
+                        this.controlScreenSkipRepaintFor.range = false;
+                        break;
+                    case ELimitWarningAction.ApplyUncapped:
+                        this.controlScreenSkipRepaintFor.range = true;
+                        this.relativeRangeControl.setValues(newValues);
+                        this.controlScreenSkipRepaintFor.range = false;
+                        break;
+                    default:
+                        // Cancel happens by default due to the set above
+                        // Abort happens when an authorized external change occurs OR a new input is made, in which case we don't want to apply any changes
+                        return;
+                }
+            }
+        }
+
         this.controlScreenSkipRepaintFor.range = true;
         await this.onPlayControlChanged();
         this.controlScreenSkipRepaintFor.range = false;
+
+        this.controlScreenOldValues.range = this.relativeRangeControl.getValues();
     }
 
     private async onRelativeSpeedChanged(): Promise<void> {
+        if (this.elements.changeLimitSpeedToggle.checked && !this.isEnteringStableState && !this.isUpdatingFromDevice) {
+            const newVal = this.elements.relativeSpeedSlider.valueAsNumber;
+            const oldVal = this.controlScreenOldValues.speed;
+            const threshold = this.elements.changeLimitSpeedInput.valueAsNumber;
+            const change = newVal - oldVal; // Math.abs for delta (if we cared about decreases, which here we don't)
+
+            // For speed we only care about increases as decreases may be an important safety measure
+            if (change > threshold) {
+                const cappedVal = Math.max(Math.min(newVal, oldVal + threshold), oldVal - threshold);
+
+                this.elements.relativeSpeedSlider.valueAsNumber = oldVal;
+                this.elements.relativeSpeedSlider.dispatchEvent(new Event("repaint"));
+    
+                let userAction: ELimitWarningAction | null = null;
+                try {
+                    userAction = await this.displayLimitWarning(
+                        "Speed",
+                        threshold.toString(),
+                        oldVal.toString(),
+                        cappedVal.toString(),
+                        newVal.toString()
+                    );
+                } catch (ex) {
+                    debugLog(ex); // Occurs when a new input is made OR external update is applied
+                }
+    
+                switch (userAction) {
+                    case ELimitWarningAction.ApplyCapped:
+                        this.elements.relativeSpeedSlider.valueAsNumber = cappedVal;
+                        break;
+                    case ELimitWarningAction.ApplyUncapped:
+                        this.elements.relativeSpeedSlider.valueAsNumber = newVal;
+                        break;
+                    default:
+                        // Cancel happens by default due to the set above
+                        // Abort happens when an authorized external change occurs OR a new input is made, in which case we don't want to apply any changes
+                        return;
+                }
+    
+                this.elements.relativeSpeedSlider.dispatchEvent(new Event("repaint"));
+            }
+        }
+
         this.controlScreenSkipRepaintFor.speed = true;
         await this.onPlayControlChanged();
         this.controlScreenSkipRepaintFor.speed = false;
+
+        this.controlScreenOldValues.speed = this.elements.relativeSpeedSlider.valueAsNumber;
     }
 
     private async onIntensityChanged(): Promise<void> {
@@ -1121,6 +1459,8 @@ class OssmWebControl {
     }
 
     private async onPlayControlChanged(): Promise<void> {
+        this.limitWarningProcessor.clear();
+
         if (!this.ossmBle)
             return;
 
@@ -1194,6 +1534,8 @@ class OssmWebControl {
     //#endregion
 
     //#region API handlers
+    private isUpdatingFromDevice = false;
+
     private async onConnected(data: OssmEventCallbackParameters): Promise<void> {
         this.elements.stateIndicator.dataset.state = "ok";
         this.elements.stateIndicator.dataset.text = "Connected";
@@ -1431,8 +1773,11 @@ class OssmWebControl {
     private async updateControlsState(state: OssmState): Promise<void> {
         if (!this.ossmBle)
             return;
-        
+
         debugLog("Updating controls from device");
+
+        // Authorized external update, clear any pending UI changes.
+        this.limitWarningProcessor.clear();
 
         if (state.status === OssmStatus.StrokeEngine ||
             state.status === OssmStatus.StrokeEngineIdle ||
@@ -1497,6 +1842,8 @@ class OssmWebControl {
             return;
         }
 
+        this.isUpdatingFromDevice = true;
+
         // Pattern
         if (!this.controlScreenSkipRepaintFor.patterns) {
             this.elements.descriptionText.textContent = pattern.description;
@@ -1536,6 +1883,8 @@ class OssmWebControl {
                 this.elements.intensitySlider.dispatchEvent(new Event("repaint"));
             }
         }
+
+        this.isUpdatingFromDevice = false;
     }
     //#endregion
     //#endregion

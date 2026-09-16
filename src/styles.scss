@@ -34,6 +34,7 @@ $material-symbols: (
     "settings",
     "share",
     "speed",
+    "tune"
 );
 
 $material-symbols-options: (
@@ -565,6 +566,12 @@ a.button {
     }
 }
 
+// input[type="checkbox"].button {
+//     // Font size must be increased to make checkbox the same size as a button.
+//     font-size: 1.25em;
+//     border-radius: $radius-600 / 1.5;
+// }
+
 input {
     &:focus {
         outline: none;
@@ -1003,10 +1010,6 @@ footer {
     animation: opacity-pulse 2s ease-in-out infinite;
 }
 
-.collapsed {
-    display: none;
-}
-
 .portrait-only {
     @media #{$landscape-media-query} {
         display: none;
@@ -1234,12 +1237,21 @@ footer {
 
 #control-screen {
     // Layout
+    position: relative;
     width: 100%;
     height: 100%;
     display: flex;
     flex-grow: 1;
     flex-direction: column;
-    gap: 1rem;
+
+    > #floating-panels {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        padding: 1rem;
+    }
 
     div.card {
         padding: 1rem;
@@ -1314,7 +1326,31 @@ footer {
 
     button {
         padding: 0.75rem 0.5rem;
+    }
 
+    input[type="checkbox"] {
+        $size: 1.25em;
+        $padding-vertical: 0.3625em;
+        $padding-horizontal: 0.525em;
+
+        justify-content: center;
+        font-size: $size;
+
+        &::after {
+            width: $size;
+            height: $size;
+            line-height: $size !important;
+            padding: $padding-vertical $padding-horizontal;
+            border-radius: $radius-400;
+            transition: transform 0.2s ease, background-color 0.2s ease;
+        }
+
+        // &:checked::after {
+        //     transform: rotate(45deg);
+        // }
+    }
+
+    button, input[type="checkbox"] {
         &:last-child {
             margin-right: -0.25rem;
         }
@@ -1352,7 +1388,7 @@ footer {
     flex: 1 1 auto;
     flex-direction: column;
     gap: 1rem;
-    $controls-size: 70%;
+    $controls-size: 75%;
     user-select: none;
 
     > .options {
@@ -1380,6 +1416,11 @@ footer {
 
 .options {
     display: flex;
+    flex-direction: column;
+
+    > div {
+        min-height: 0;
+    }
 }
 
 #patterns-panel {
@@ -1389,21 +1430,23 @@ footer {
     text-align: left;
 
     > div {
-        flex: 1 1 0;
+        // flex: 1 1 0;
+        flex: 0 0 50%;
     }
 
     > .pattern-list {
         display: flex;
         flex-direction: column;
         gap: inherit;
-        overflow: hidden;
+        // overflow: hidden;
+        overflow-y: auto;
 
         > #pattern-select {
             display: inherit;
             flex-direction: inherit;
             gap: inherit;
             min-height: 0;
-            overflow-y: auto;
+            // overflow-y: auto;
             scrollbar-gutter: stable;
         }
     }
@@ -1413,6 +1456,7 @@ footer {
         flex-direction: column;
         justify-content: space-between;
         gap: inherit;
+        overflow-y: auto;
 
         > #description-text {
             margin-bottom: auto;
@@ -1425,6 +1469,48 @@ footer {
 
     @media #{$landscape-media-query} {
         flex-direction: column;
+    }
+}
+
+#settings-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    // Cheat the scrollbar space
+    padding-right: 0.5rem;
+    margin-right: -0.5rem;
+    // scrollbar-gutter: stable;
+    overflow-y: auto;
+    $key-width: 65%;
+
+    > h3 {
+        text-align: left;
+    }
+
+    > div {
+        display: flex;
+        flex-direction: row;
+        gap: inherit;
+        align-items: center;
+
+        > :nth-child(1) {
+            flex: 1;
+            // flex: 0 0 $key-width;
+            text-align: left;
+        }
+
+        > :nth-child(2) {
+            flex: 1;
+            // flex: 0 0 calc(100% - #{$key-width});
+            justify-content: flex-end;
+        }
+
+        > span:nth-child(2) {
+            display: flex;
+            gap: 0.5rem;
+            flex-direction: row;
+            align-items: center;
+        }
     }
 }
 
@@ -1538,6 +1624,46 @@ footer {
         &:checked::after {
             transform: rotateY(180deg);
         }
+    }
+}
+
+#limit-warning-panel {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    justify-content: space-between;
+
+    > div {
+        display: flex;
+        flex-direction: row;
+        gap: 0.5rem;
+        text-align: center;
+        overflow-x: auto;
+
+        > * {
+            flex: 1;
+        }
+
+        > button {
+            @media #{$mobile-media-query} {
+                padding: 0.75rem;
+            }
+            
+            // border-left: calc($radius-600 - 1px) solid hsl(from $text-1 h s l / 0.7);
+            
+            $states: (
+                cancel:         $green,
+                apply-capped:   $green,
+                apply-uncapped: $yellow
+            );
+            @each $state, $color in $states {
+                &#limit-warning-#{$state}-button {
+                    border-left-color: hsl(from $color h s l / 0.8);
+                    background: hsl(from $color h s l / 0.1);
+                }
+            }
+        }
+
     }
 }
 // #endregion

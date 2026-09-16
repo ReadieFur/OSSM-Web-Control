@@ -62,18 +62,17 @@
                     <button id="stop-button-header" class="stop-button landscape-only"><span class="material-symbol" data-icon="dangerous"></span></button>
                 </div>
                 <div>
-                    <!-- TODO: Future feature; session sharing -->
-                    <!-- <button id="share-button"><span class="material-symbol" data-icon="share"></span>Share control</button> -->
-                    <button id="recalibrate-button"><span class="material-symbol" data-icon="reset_settings"></span></button>
-                    <button id="disconnect-button"><span class="material-symbol" data-icon="logout"></span></button>
                     <!-- <button id="dashboard-button"><span class="material-symbol" data-icon="settings"></span></button> -->
+                    <input type="checkbox" id="settings-panel-toggle" class="icon button" data-unchecked-icon="settings" data-checked-icon="tune" autocomplete="off">
+                    <button id="disconnect-button"><span class="material-symbol" data-icon="logout"></span></button>
                 </div>
             </div>
 
             <div id="options-and-controls">
-                <div class="options card">
 
-                    <div id="patterns-panel">
+                <div id="options-card" class="options card">
+
+                    <div id="patterns-panel" class="">
                         <div class="pattern-list">
                             <h3>Patterns</h3>
                             <!-- <select id="pattern-select"></select> -->
@@ -92,11 +91,50 @@
                         </div>
                     </div>
 
-                    <!-- <div id="dashboard-panel"></div> -->
+                    <div id="settings-panel" class="hidden">
+                        <h3>Settings</h3>
+
+                        <!-- TODO: Future feature; session sharing -->
+                        <!-- <button id="share-button"><span class="material-symbol" data-icon="share"></span>Share control</button> -->
+                        <!-- Recalibrate stopped working with new OSSM builds and can only be done by power-cycling the device as far as I know :/ -->
+                        <button id="recalibrate-button" class="hidden"><span class="material-symbol" data-icon="reset_settings"></span></button>
+                        
+                        <div>
+                            <p>Range change limit</p>
+                            <span>
+                                <input type="checkbox" id="change-limit-range-toggle" checked>
+                                <input id="change-limit-range-input" type="number" step="10" class="spin-split" min="10" max="50" value="20" autocomplete="off">
+                            </span>
+                        </div>
+                        <div>
+                            <p>Speed change limit</p>
+                            <span>
+                                <input type="checkbox" id="change-limit-speed-toggle" checked>
+                                <input id="change-limit-speed-input" type="number" step="10" class="spin-split" min="10" max="50" value="20" autocomplete="off">
+                            </span>
+                        </div>
+                        <!-- <div>
+                            <p>Intensity change limit</p>
+                            <span>
+                                <input type="checkbox" id="change-limit-intensity-toggle" checked>
+                                <input id="change-limit-intensity-input" type="number" step="10" class="spin-split" min="10" max="50" value="20" autocomplete="off">
+                            </span>
+                        </div> -->
+                    </div>
+
+                    <div id="limit-warning-panel" class="hidden">
+                        <h3>⚠️ Limit Warning</h3>
+                        <p><span id="limit-warning-field">FIELD</span> changed by more than <span id="limit-warning-max">MAX</span>%</p>
+                        <!-- <p><small>This can be altered in settings</small></p> -->
+                        <div>
+                            <button id="limit-warning-cancel-button">Cancel (<span id="limit-warning-cancel-text">VAL</span>%)</button>
+                            <button id="limit-warning-apply-capped-button">Cap (<span id="limit-warning-apply-capped-text">CAP</span>%)</button>
+                            <button id="limit-warning-apply-uncapped-button">Apply <span id="limit-warning-apply-uncapped-text">VAL</span>%</button>
+                        </div>
+                    </div>
                 </div>
 
                 <div class="controls card">
-                    <!-- TODO: Place icons inside the sliders to indicate their purpose -->
                     <div id="relative-range-container">
                         <input type="number" class="spin-split" autocomplete="off" readonly>
                         <div class="glass-border">
