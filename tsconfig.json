@@ -1,48 +1,19 @@
 {
-  "compilerOptions": {
-    // Language settings
-    "target": "esnext",
-    "lib": [
-      "ESNext",
-      "DOM",
-      "DOM.Iterable",
-      "WebWorker"
-    ],
-    "module": "esnext",
-    "moduleResolution": "bundler",
-    "types": [
-      "./node_modules/user-agent-data-types"
-    ],
-
-    // Other
-    "sourceMap": true,
-    "declaration": false,
-    "removeComments": false,
-
-    // Typechecking
-    "strict": true,
-    "noImplicitAny": true,
-    "forceConsistentCasingInFileNames": true,
-    "noImplicitReturns": true,
-    "noImplicitOverride": true,
-
-    // Recommended
-    "verbatimModuleSyntax": true,
-    "isolatedModules": true,
-    "noUncheckedSideEffectImports": true,
-    "moduleDetection": "force",
-    "skipLibCheck": true,
-
-    // Misc
-    "preserveWatchOutput": true
-  },
-  "watchOptions": {
-    // Fix for working on network drives
-    "watchFile": "dynamicPriorityPolling",
-    "watchDirectory": "dynamicPriorityPolling"
-  },
-  "include": [
-    "src/**/*.ts",
-    "dev/**/*.ts"
-  ]
+	"extends": "./.svelte-kit/tsconfig.json",
+	"compilerOptions": {
+		"rewriteRelativeImportExtensions": true,
+		"allowJs": true,
+		"checkJs": true,
+		"esModuleInterop": true,
+		"forceConsistentCasingInFileNames": true,
+		"resolveJsonModule": true,
+		"skipLibCheck": true,
+		"sourceMap": true,
+		"strict": true,
+		"moduleResolution": "bundler",
+		"noImplicitReturns": true,
+        "noImplicitOverride": true,
+        "verbatimModuleSyntax": true,
+        "isolatedModules": true
+	}
 }
