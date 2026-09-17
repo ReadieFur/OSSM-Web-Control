@@ -1,13 +1,17 @@
 <script lang="ts">
+    // Imports
     import { ViewManager } from '$lib/viewManager.svelte.ts';
     import Footer from '$components/footer.svelte';
     import LandingView from '$views/LandingView.svelte';
     import { delay, prefersReducedMotion } from '$lib/utils/helpers.ts';
     import { transitionFade, TransitionDirection as TD } from '$lib/utils/animation.ts';
+    import { onMount } from 'svelte';
 
+    // View manager
     const vm = new ViewManager(LandingView);
     let ActiveView = $derived(vm.activeView);
 
+    // App shell initialization
     function initializeAppShell(appShell: HTMLElement) {
         vm.addEventListener('beforeviewchange', async () => await transitionFade(appShell, TD.Out, 500));
         vm.addEventListener('viewchange', async () => await transitionFade(appShell, TD.In, 500));
@@ -23,6 +27,17 @@
             appShell.classList.remove('hidden');
         }
     }
+
+    // PWA registration
+    onMount(() => {
+        // Register Service Worker in production builds
+        if ('serviceWorker' in navigator && import.meta.env.PROD) {
+            navigator.serviceWorker
+            .register('/service-worker.js', { type: 'module' })
+            .then(() => console.log('[PWA] Registration successful'))
+            .catch((err) => console.error('[PWA] Registration failed:', err));
+        }
+    });
 </script>
 
 <div class="app-background"></div>
