@@ -18,3 +18,14 @@ export function debugLog(...args: any[]): void {
 export function prefersReducedMotion(): boolean {
     return typeof window === "undefined" ? false : window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 }
+
+export enum DOMExceptionError {
+    InvalidState = "InvalidStateError",
+    NetworkError = "NetworkError",
+    Timeout = "TimeoutError",
+    TypeError = "TypeError",
+    OperationError = "OperationError",
+    DataError = "DataError",
+    AbortError = "AbortError",
+    NotFoundError = "NotFoundError",
+}

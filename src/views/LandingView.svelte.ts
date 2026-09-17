@@ -1,5 +1,6 @@
 import { onMount } from 'svelte';
 import { OssmBle } from 'ossm-ble-web';
+import { DOMExceptionError } from '$lib/utils/helpers.ts';
 
 interface NavigatorUAData {
     userAgentData?: {
@@ -8,24 +9,16 @@ interface NavigatorUAData {
 }
 
 export class LandingView {
-    isBleSupported = $state<boolean | null>(null);
-    isSecureContext = $state<boolean>(true);
-    platform = $state<string | undefined>(undefined);
-    isPwaInstalling = $state<boolean>(false);
-    showInstallButton = $derived(this.pwaInstallContext !== null);
-    
-    #pwaInstallContext = $state<BeforeInstallPromptEvent | null>(null);
-    public get pwaInstallContext(): BeforeInstallPromptEvent | null {
-        return this.#pwaInstallContext;
-    }
-    private set pwaInstallContext(value: BeforeInstallPromptEvent | null) {
-        this.#pwaInstallContext = window.pwaInstallContext = value;
-    }
 
     constructor() {
         onMount(this.checkCompatibility.bind(this));
         onMount(this.capturePwaPromptEvent.bind(this));
     }
+
+    // #region Compatibility Checks
+    isBleSupported = $state<boolean | null>(null);
+    isSecureContext = $state<boolean>(true);
+    platform = $state<string | undefined>(undefined);
 
     private parseLegacyUserAgent(): string | undefined {
         const ua = navigator.userAgent;
@@ -56,6 +49,19 @@ export class LandingView {
             this.isBleSupported = true;
         }
     }
+    // #endregion
+
+    // #region PWA
+    isPwaInstalling = $state<boolean>(false);
+    showInstallButton = $derived(this.pwaInstallContext !== null);
+    
+    #pwaInstallContext = $state<BeforeInstallPromptEvent | null>(null);
+    public get pwaInstallContext(): BeforeInstallPromptEvent | null {
+        return this.#pwaInstallContext;
+    }
+    private set pwaInstallContext(value: BeforeInstallPromptEvent | null) {
+        this.#pwaInstallContext = window.pwaInstallContext = value;
+    }
 
     private capturePwaPromptEvent(): () => void {
         if (!this.pwaInstallContext && window.pwaInstallContext)
@@ -74,9 +80,7 @@ export class LandingView {
 
     async installPWA(): Promise<void> {
         if (!this.pwaInstallContext || this.isPwaInstalling) return;
-
         this.isPwaInstalling = true;
-
         try {
             await this.pwaInstallContext.prompt();
             this.pwaInstallContext = null; // Context always gets made invalid after prompt()
@@ -86,4 +90,46 @@ export class LandingView {
             this.isPwaInstalling = false;
         }
     }
+    // #endregion
+
+    // #region Connection
+    connector: {
+        state: 'idle' | 'connecting' | 'failed';
+        dialog?: { title?: string; message?: string; };
+    } = $state({state: 'idle'});
+
+    async connectDevice(): Promise<void> {
+        if (this.connector.state === 'connecting') return;
+        this.connector = { state: 'connecting' };
+
+        try {
+            await OssmBle.pairDevice();
+        }
+        catch (error) {
+            const allowedErrors: string[] = [
+                DOMExceptionError.NotFoundError, //Occurs when user cancels the pairing prompt
+            ];
+
+            if (error instanceof DOMException && !allowedErrors.includes(error.name)) {
+                console.error('[BLE] Connection failed:', error);
+                this.connector = {
+                    state: 'failed',
+                    dialog: {
+                        title: 'Connection Error',
+                        message: 'Failed to connect to device'
+                    }
+                };
+            }
+            else {
+                this.connector = { state: 'idle' };
+            }
+            return;
+        }
+
+        this.connector = {
+            state: 'connecting',
+            dialog: { message: 'Initializing...' }
+        };
+    }
+    // #endregion
 }

@@ -7,12 +7,19 @@
 </script>
 
 <main>
-    <section class="card">
+    <section
+        class="card"
+        class:scale-pulse={self.connector.state === 'connecting'}>
         <h1>OSSM Web Control</h1>
 
         {#if self.isSecureContext}
             {#if self.isBleSupported}
-                <button class="space-between"><span class="material-symbol" data-icon="bluetooth_searching"></span>Connect OSSM</button>
+                <button
+                    class="space-between"
+                    disabled={self.connector.state === 'connecting'}
+                    onclick={self.connectDevice.bind(self)}>
+                    <span class="material-symbol" data-icon="bluetooth_searching"></span>Connect OSSM
+                </button>
             {:else}
                 <InfoContainer
                     state="error"
@@ -54,6 +61,14 @@
                 state="error"
                 title="Insecure Context"
                 message="This application requires a secure context (HTTPS)"
+            />
+        {/if}
+
+        {#if (self.connector.state === 'connecting' || self.connector.state === 'failed') && self.connector.dialog}
+            <InfoContainer
+                state={self.connector.state === 'connecting' ? 'info' : 'error'}
+                title={self.connector.dialog.title}
+                message={self.connector.dialog.message}
             />
         {/if}
     </section>
