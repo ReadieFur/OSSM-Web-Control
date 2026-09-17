@@ -26,8 +26,22 @@
 
         %sveltekit.head%
 	</head>
+
 	<body data-sveltekit-preload-data="hover">
-		<!-- TODO: noscript -->
+		<noscript class="app-shell">
+			<!-- Stylesheet is loaded in the <head> via +page.svelte thanks to the static compiler so I don't need to mess with trying to load that here
+			(although it does spaghettify this noscript section a bit, but for the sake of noscript I don't care)-->
+			<main>
+				<section class="card">
+					<h1>OSSM Web Control</h1>
+					<div class="info-container" data-state="error">
+						<p><strong>JavaScript is required</strong></p>
+						<p>Please enable JavaScript in your browser to continue</p>
+					</div>
+				</section>
+			</main>
+		</noscript>
+
 		<div style="display: contents">%sveltekit.body%</div>
 	</body>
 </html>
