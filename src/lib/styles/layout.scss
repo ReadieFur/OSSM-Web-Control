@@ -2,7 +2,7 @@
 @use "./global.scss" as *;
 
 // #region DOM
-html, body, main, .app-shell {
+html, body, .app-shell {
     margin: 0;
     padding: 0;
     width: 100dvw;

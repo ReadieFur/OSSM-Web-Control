@@ -17,7 +17,8 @@ export default defineConfig({
     ],
 	resolve: {
 		alias: {
-			$views: path.resolve('./src/views')
+			$views: path.resolve('./src/views'),
+            $components: path.resolve('./src/components'),
 		}
 	}
 });
