@@ -9,117 +9,7 @@
 @use "sass:string";
 // #endregion
 
-// #region Theme variables
-/* Site is designed mobile first & dark first
- * Inspired by the following:
- * https://codepen.io/kevinpowell/pen/XJJwaxG?editors=1100
- * https://www.youtube.com/watch?v=_ZFghigBmqo
- */
-
-$mobile-width-threshold: 500;
-$mobile-height-threshold: 1000;
-
-$material-symbols: (
-    "arrow_range",
-    "bluetooth_searching",
-    "circle",
-    "dangerous",
-    "dashboard",
-    "deployed_code_update",
-    "flip",
-    "logout",
-    "nest_true_radiant",
-    "next_plan",
-    "reset_settings",
-    "share",
-    "speed",
-);
-
-$material-symbols-options: (
-    "FILL": "0..1",
-);
-
-// #020817
-$primary-900: hsl(256, 43%, 7%);
-$primary-800: hsl(240, 24%, 13%);
-$primary-700: hsl(243, 26%, 15%);
-$primary-600: hsl(252, 9%, 22%);
-$primary-500: hsl(259, 13%, 28%);
-$primary-400: hsl(254, 22%, 32%);
-$primary-300: hsl(251, 13%, 68%);
-$primary-200: hsl(240, 15%, 76%);
-$primary-100: hsl(240, 21%, 88%);
-
-$neutral-900: hsl(0, 0%, 0%);
-$neutral-100: hsl(0, 0%, 100%);
-
-$accent-1: hsl(275, 100%, 69%);
-$accent-2: hsl(204, 85%, 60%);
-
-$font-family: system-ui;
-$text-1: var(--text-1);
-$text-2: var(--text-2);
-$text-3: var(--text-3);
-
-$surface-1: var(--surface-1);
-$surface-2: var(--surface-2);
-$surface-3: var(--surface-3);
-
-$border-1: var(--border-1);
-$border-2: var(--border-2);
-
-$radius-800: 1em;
-$radius-600: 0.75em;
-$radius-400: 0.5em;
-$radius-200: 0.25em;
-
-$blur: 12px;
-
-$green: hsl(135, 64%, 50%);
-$red: hsl(352, 100%, 61%);
-$yellow: hsl(48, 100%, 50%);
-
-$theme-rules: (
-    text-1: (
-        dark: $neutral-100,
-        light: $neutral-900,
-    ),
-    text-2: (
-        dark: $primary-100,
-        light: $primary-900,
-    ),
-    text-3: (
-        dark: $primary-200,
-        light: $primary-800,
-    ),
-    surface-1: (
-        dark: $primary-900,
-        light: $primary-100,
-    ),
-    surface-2: (
-        dark: $primary-800,
-        light: $primary-200,
-    ),
-    surface-3: (
-        dark: $primary-700,
-        light: $primary-300,
-    ),
-    border-1: (
-        dark: $primary-500,
-        light: $primary-400,
-    ),
-    border-2: (
-        dark: $primary-600,
-        light: $primary-500,
-    ),
-);
-// #endregion
-
 // #region Generators
-$desktop-media-query: "(min-width: #{$mobile-width-threshold + 1}px) and (min-height: #{$mobile-height-threshold + 1}px)";
-$mobile-media-query: "(max-width: #{$mobile-width-threshold}px), (max-height: #{$mobile-height-threshold}px)";
-$landscape-media-query: "(orientation: landscape)";
-
 @function generate-theme($mode) {
     $result: ();
 
@@ -189,19 +79,6 @@ $material-symbols-url: build-material-symbol-url();
 // #endregion
 
 // #region Helpers
-@mixin ifWebKit {
-    @supports (-webkit-touch-callout: none) {
-        @content;
-    }
-}
-
-@mixin border-debug($color: null) {
-    @if $color == null {
-        $color: hsl(math.random(360), 100%, 50%);
-    }
-    border: 1px solid $color !important;
-}
-
 @mixin glass-border {
     position: absolute;
     z-index: -1;
@@ -905,52 +782,6 @@ p {
 .hidden {
     display: none !important;
     opacity: 0 !important;
-}
-
-.info-container {
-    // Container styling
-    border: none;
-    border-radius: $radius-600;
-    border-left: calc($radius-600 - 1px) solid hsl(from $text-1 h s l / 0.7);
-    background-color: hsl(from $surface-2 h s l / 0.5);
-
-    // Content layout
-    display: flex;
-    flex-direction: column;
-    text-align: center;
-    gap: 1rem;
-    padding: 1rem;
-
-    // State-based styling
-    $states: (
-        success: $green,
-        error:   $red,
-        warning: $yellow
-    );
-    @each $state, $color in $states {
-        &[data-state="#{$state}"] {
-            border-left-color: hsl(from $color h s l / 0.8);
-            background: hsl(from $color h s l / 0.05);
-
-            &::before {
-                //h2
-                font-size: 1.5rem;
-                font-weight: bold;
-            }
-        }
-    }
-
-    &[data-state="success"]::before {
-        content: "✅ Success!";
-    }
-
-    &[data-state="error"]::before {
-        content: "❌ Error!";
-    }
-
-    &[data-state="warning"]::before {
-        content: "⚠️ Warning!";
-    }
 }
 
 .highlight {

@@ -7,6 +7,10 @@
     import { transitionFade, TransitionDirection as TD } from '$lib/utils/animation.ts';
     import { onMount } from 'svelte';
 
+    // Styles
+    import '$lib/styles/global.scss';
+    import '$lib/styles/layout.scss';
+
     // View manager
     const vm = new ViewManager(LandingView);
     let ActiveView = $derived(vm.activeView);
@@ -50,7 +54,3 @@
     <Footer />
 </div>
 
-<style lang="scss">
-    @import "$lib/styles/global.scss";
-    @import "$lib/styles/layout.scss";
-</style>

@@ -9,7 +9,3 @@
         <button id="install-pwa-button" class="space-between hidden"><span class="material-symbol" data-icon="deployed_code_update"></span>Install PWA</button>
     </section>
 </main>
-
-<style lang="scss">
-    @import "./LandingView.scss";
-</style>
