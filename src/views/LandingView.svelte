@@ -9,14 +9,14 @@
 <main>
     <section
         class="card"
-        class:scale-pulse={self.connector.state === 'connecting'}>
+        class:scale-pulse={self.isConnecting}>
         <h1>OSSM Web Control</h1>
 
         {#if self.isSecureContext}
             {#if self.isBleSupported}
                 <button
                     class="space-between"
-                    disabled={self.connector.state === 'connecting'}
+                    disabled={self.isConnecting}
                     onclick={self.connectDevice.bind(self)}>
                     <span class="material-symbol" data-icon="bluetooth_searching"></span>Connect OSSM
                 </button>
@@ -64,11 +64,11 @@
             />
         {/if}
 
-        {#if (self.connector.state === 'connecting' || self.connector.state === 'failed') && self.connector.dialog}
+        {#if self.infoDialog}
             <InfoContainer
-                state={self.connector.state === 'connecting' ? 'info' : 'error'}
-                title={self.connector.dialog.title}
-                message={self.connector.dialog.message}
+                state={self.infoDialog.state}
+                title={self.infoDialog.title}
+                message={self.infoDialog.message}
             />
         {/if}
     </section>

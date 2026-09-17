@@ -93,14 +93,12 @@ export class LandingView {
     // #endregion
 
     // #region Connection
-    connector: {
-        state: 'idle' | 'connecting' | 'failed';
-        dialog?: { title?: string; message?: string; };
-    } = $state({state: 'idle'});
+    infoDialog: { state: 'info' | 'error'; title?: string; message?: string; } | null = $state(null);
+    isConnecting = $state(false);
 
     async connectDevice(): Promise<void> {
-        if (this.connector.state === 'connecting') return;
-        this.connector = { state: 'connecting' };
+        if (this.isConnecting) return;
+        this.isConnecting = true;
 
         try {
             await OssmBle.pairDevice();
@@ -112,24 +110,19 @@ export class LandingView {
 
             if (error instanceof DOMException && !allowedErrors.includes(error.name)) {
                 console.error('[BLE] Connection failed:', error);
-                this.connector = {
-                    state: 'failed',
-                    dialog: {
-                        title: 'Connection Error',
-                        message: 'Failed to connect to device'
-                    }
+                this.infoDialog = {
+                    state: 'error',
+                    title: 'Connection Error',
+                    message: 'Failed to connect to device'
                 };
-            }
-            else {
-                this.connector = { state: 'idle' };
             }
             return;
         }
+        finally {
+            this.isConnecting = false;
+        }
 
-        this.connector = {
-            state: 'connecting',
-            dialog: { message: 'Initializing...' }
-        };
+        // TODO: Handoff connection to the main app view
     }
     // #endregion
 }
