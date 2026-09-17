@@ -2,7 +2,7 @@
 @use "./global.scss" as *;
 
 // #region DOM
-html, body, .app-shell {
+html, body {
     margin: 0;
     padding: 0;
     width: 100dvw;
@@ -116,6 +116,22 @@ body {
 $page-bounds-offset: 100px;
 
 .app-shell {
+    // Center the main content in the page
+    display: flex;
+    justify-content: center;
+    flex-direction: column;
+    align-items: center;
+    box-sizing: border-box;
+
+    // Size to the main content
+    width: fit-content;
+    height: fit-content;
+
+    // Position relative so the absolute-positioned footer can be positioned relative to this container instead of the body
+    position: relative;
+}
+
+main {
     // Position
     position: relative;
     display: flex;
@@ -159,20 +175,19 @@ footer {
     transition: opacity 0.2s ease;
 }
 
-.app-shell {
-    // Place footer under the main content when not in fill-page mode
-    &:not(.fill-page) > footer {
-        top: calc(100% - (#{$page-bounds-offset} / 2)); // Positions it starting at the bottom of main
+.app-shell > main {
+    &:not(.fill-page) + footer {
+        // Place footer under the main content when not in fill-page mode
+        top: calc(100% - (#{$page-bounds-offset} / 2));
         margin-top: 1rem;
     }
 
-    // Place the footer equally between the bottom of main and the bottom of the viewport when in fill-page mode
-    &.fill-page > footer {
+    &.fill-page + footer {
         display: none; // Hide footer on mobile in fill-page mode
 
+        // Position equally between bottom of main and bottom of viewport when in desktop mode
         @media #{$desktop-media-query} {
             display: unset;
-            // Position equally between bottom of main and bottom of viewport
             top: calc(100% + (#{$page-bounds-offset} / 4));
             transform: translateY(-50%);
         }

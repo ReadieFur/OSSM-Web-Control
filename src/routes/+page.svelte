@@ -28,12 +28,12 @@
 <div class="app-background"></div>
 
 <!-- App shell is initially hidden for our fade-in animation and is made visible in the call to initializeAppShell -->
-<main use:initializeAppShell class="hidden">
+<div use:initializeAppShell class="app-shell hidden">
     <ActiveView viewManager={vm} />
     <!-- Due to how I position the footer (directly under the main content), this must live inside the app-shell -->
     <!-- TODO: Change how footer hooks in (namely with transition states) -->
     <Footer />
-</main>
+</div>
 
 <style lang="scss">
     @import "$lib/styles/global.scss";
