@@ -21,7 +21,7 @@
         appShellVisible = true; //Triggers the fade-in animation for the app shell
 
         // Register Service Worker in production builds
-        if ('serviceWorker' in navigator && import.meta.env.PROD) {
+        if ('serviceWorker' in navigator /*&& import.meta.env.PROD*/) {
             navigator.serviceWorker
             .register('/service-worker.js', { type: 'module' })
             .then(() => console.log('[PWA] Registration successful'))

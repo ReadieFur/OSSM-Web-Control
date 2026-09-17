@@ -24,6 +24,13 @@
 
 		<script>console.log(`👁️🦌👁️! What are you doing here?`);</script>
 
+		<script>
+			window.addEventListener("beforeinstallprompt", (event) => {
+				event.preventDefault();
+				window.pwaInstallContext = event;
+			}, { once: true });
+		</script>
+
         %sveltekit.head%
 	</head>
 

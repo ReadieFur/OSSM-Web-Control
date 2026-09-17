@@ -20,6 +20,10 @@ declare global {
 			platform: string;
 		}>;
 	}
+
+	interface Window {
+		pwaInstallContext?: BeforeInstallPromptEvent | undefined | null;
+	}
 }
 
 export {};
