@@ -1,7 +1,7 @@
 <script lang="ts">
     // Imports
     import { ViewManager } from '$lib/viewManager.svelte.ts';
-    import Footer from '$components/footer.svelte';
+    import Footer from '$components/Footer.svelte';
     import LandingView from '$views/LandingView.svelte';
     import { delay, prefersReducedMotion } from '$lib/utils/helpers.ts';
     import { transitionFade, TransitionDirection as TD } from '$lib/utils/animation.ts';
