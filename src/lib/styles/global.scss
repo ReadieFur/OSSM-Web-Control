@@ -843,6 +843,10 @@ p {
     }
 }
 
+.transition-delay-hidden {
+    display: none !important;
+}
+
 @keyframes grain-fade {
     0%, 100% { opacity: 1; }
     50% { opacity: 0; }
