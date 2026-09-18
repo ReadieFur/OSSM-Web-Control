@@ -1,7 +1,7 @@
 import { onMount } from 'svelte';
 import { OssmBle } from 'ossm-ble-web';
-import { DOMExceptionError } from '$lib/utils/helpers.ts';
-import { DeviceManager } from '$lib/services/DeviceManager.svelte';
+import { DOMExceptionError } from '$lib/utils/Helpers.svelte.ts';
+import { DeviceManager } from '$lib/services/DeviceManager.svelte.ts';
 
 interface NavigatorUAData {
     userAgentData?: {

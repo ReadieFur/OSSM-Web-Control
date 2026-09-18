@@ -1,11 +1,11 @@
 <script lang="ts">
     // Imports
     import { onMount, type Component } from 'svelte';
-    import { ViewManager } from '$lib/state/viewManager.svelte';
+    import { ViewManager } from '$lib/state/viewManager.svelte.ts';
     import Footer from '$component/Footer.svelte';
     import LandingView from '$view/LandingView.svelte';
-    import { svelteFade } from '$lib/utils/animation.ts';
-	import { isDevMode } from '$lib/utils/helpers';
+    import { svelteFade } from '$lib/utils/Animation.svelte.ts';
+	import { isDevMode } from '$lib/utils/Helpers.svelte.ts';
 
     // Styles
     import '$lib/styles/global.scss';

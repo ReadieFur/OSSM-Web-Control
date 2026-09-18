@@ -1,4 +1,4 @@
-import { delay, prefersReducedMotion } from "./helpers";
+import { delay, prefersReducedMotion } from "./Helpers.svelte.ts";
 import type { TransitionConfig } from 'svelte/transition';
 
 export async function transitionFade(element: HTMLElement | null, direction: 'in' | 'out', durationMs: number): Promise<void> {

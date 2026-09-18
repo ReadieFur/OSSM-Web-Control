@@ -10,7 +10,7 @@ export async function delay(ms: number): Promise<void> {
     return new Promise(resolve => setTimeout(resolve, ms));
 }
 
-export function debugLog(...args: any[]): void {
+export function debugLog(...args: unknown[]): void {
     if (isDevMode) {
         console.log(`[DEBUG]`, ...args);
     }

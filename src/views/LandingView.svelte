@@ -1,7 +1,7 @@
 <script lang="ts">
     import { LandingView } from './LandingView.svelte.ts';
     import InfoContainer from '$component/InfoContainer.svelte';
-    import { svelteFade } from '$lib/utils/animation.ts';
+    import { svelteFade } from '$lib/utils/Animation.svelte.ts';
 
     const self = new LandingView();
 </script>

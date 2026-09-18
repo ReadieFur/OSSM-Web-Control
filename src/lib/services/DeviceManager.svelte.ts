@@ -1,6 +1,6 @@
 import { OssmBle, OssmEventType, OssmPage, OssmStatus, type OssmEventCallbackParameters, type OssmPattern, type OssmState } from 'ossm-ble-web';
-import { isDevMode } from '$lib/utils/helpers';
-import { EmptyOssmState, OssmDevice, type ConnectionState, type LifecycleState } from './OssmDevice.svelte';
+import { isDevMode } from '$lib/utils/Helpers.svelte.ts';
+import { EmptyOssmState, OssmDevice, type ConnectionState, type LifecycleState } from './OssmDevice.svelte.ts';
 
 export class DeviceManager extends OssmDevice implements Disposable {
     lifecycleState = $state<LifecycleState>('initializing');
