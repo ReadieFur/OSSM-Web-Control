@@ -20,41 +20,28 @@
     let ActiveView = $derived(vm.activeView);
 
     // Development mode view override
+    let devViewOverride = $state<boolean>(false);
     (() => {
         if (!isDevMode) return;
 
-        let pageParam;
-        try {
-            const params = new URLSearchParams(globalThis.location?.search);
-            pageParam = params.get('viewOverride');
-            if (!pageParam) return;
-        } catch (error) {
-            console.error('[DEV] Error parsing URL parameters:', error);
-            return;
-        }
+        const pageParam = new URLSearchParams(globalThis.location?.search).get('viewOverride');
+        if (!pageParam) return;
 
-        let viewModules;
-        try { viewModules = import.meta.glob<{ default: Component }>('/src/views/**/*.svelte'); }
-        catch (error) {
-            console.error('[DEV] Error importing view modules:', error);
-            return;
-        }
+        const viewModules = import.meta.glob<{ default: Component }>('/src/views/**/*.svelte');
 
         for (const view in viewModules) {
             const fileName = view.split('/').pop()?.replace('.svelte', '') ?? '';
             if (fileName === pageParam) {
-                (async () => {
-                    const module = await viewModules[view]();
-                    vm.activeView = module.default;
-                    // TODO: Disable first fade animation for the app shell when loading a view directly via URL parameter
-                })()
-                .catch((error) => console.error('[DEV] Error loading view module:', error));
-                return;
+                devViewOverride = true;
+                viewModules[view]()
+                    .then((module) => { vm.activeView = module.default; })
+                    .catch((error) => console.error('[DEV] Error loading view module:', error));
+                return; // Return early
             }
         }
         console.warn(`[DEV] View "${pageParam}" not found`);
     })();
-    
+
     // PWA registration
     onMount(() => {
         appShellVisible = true; //Triggers the fade-in animation for the app shell
@@ -71,7 +58,13 @@
 
 <div class="app-background"></div>
 
-{#if appShellVisible}
+{#if devViewOverride}
+<div class="app-shell">
+    <!-- Dev view override (disables navigation animations) -->
+    <ActiveView viewManager={vm} />
+</div>
+
+{:else if appShellVisible}
     <!-- Wrapper div required for the app shell startup animation due to how Svelte handles the nested blocks -->
     <div in:svelteFade={{ duration: 650, delay: 200 }}>
         {#key ActiveView}
