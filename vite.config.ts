@@ -16,5 +16,10 @@ export default defineConfig({
                 additionalData: `@use "$lib/styles/_variables.scss" as *;`
             }
         }
+    },
+    server: {
+        // Required for me to test on mobile via my private network.
+        host: true,
+        allowedHosts: ['.internal', 'localhost']
     }
 });
