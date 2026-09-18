@@ -1,7 +1,10 @@
 <script>
+	import TextInput from "$component/TextInput.svelte";
 	import NumericInput from "$component/NumericInput.svelte";
 	import SliderDoubleInput from "../components/SliderDoubleInput.svelte";
 	import SliderInput from "../components/SliderInput.svelte";
+	import CheckboxInput from "../components/CheckboxInput.svelte";
+	import RadioInput from "../components/RadioInput.svelte";
 </script>
 
 <main class="style-guide">
@@ -21,9 +24,8 @@
 
     <div>
         <h2>Inputs</h2>
-        <input type="text" placeholder="Text input">
-
-        <input type="password" placeholder="Password input">
+        <TextInput placeholder="Text input" />
+        <TextInput type="password" placeholder="Password input" />
 
         <NumericInput placeholder="Number input" />
         <NumericInput spin="left" placeholder="Number input (spin-left)" />
@@ -33,28 +35,19 @@
 
     <div>
         <h3>Checkboxes</h3>
-        <input type="checkbox" id="checkbox1">
-        <label for="checkbox1">Checkbox</label>
-        <input type="checkbox" id="checkbox2" checked>
-        <label for="checkbox2">Checkbox <small>(checked)</small></label>
-        <input type="checkbox" id="checkbox3" class="after-label">
-        <label for="checkbox3">Checkbox <small>(right)</small></label>
-        <input type="checkbox" id="checkbox4" class="after-label" checked>
-        <label for="checkbox4">Checkbox <small>(checked right)</small></label>
-        <input type="checkbox" id="checkbox5" checked>
-        <input type="checkbox" id="checkbox6" class="icon" data-checked-icon="circle" data-unchecked-icon="circle" checked style="font-size: 1.5rem;">
+        <CheckboxInput>Checkbox</CheckboxInput>
+        <CheckboxInput checked>Checkbox <small>(checked)</small></CheckboxInput>
+        <CheckboxInput labelPosition="left">Checkbox <small>(inverted)</small></CheckboxInput>
+        <CheckboxInput labelPosition="left" checked>Checkbox <small>(checked inverted)</small></CheckboxInput>
+        <CheckboxInput checkedIcon="circle" uncheckedIcon="circle" checked style="font-size: 1.5rem;"/>
     </div>
 
     <div>
         <h3>Radio buttons</h3>
-        <input type="radio" id="radio1" name="radio-group">
-        <label for="radio1">Radio</label>
-        <input type="radio" id="radio2" name="radio-group" checked>
-        <label for="radio2">Radio <small>(selected)</small></label>
-        <input type="radio" id="radio3" class="after-label" name="radio-group-2">
-        <label for="radio3">Radio <small>(right)</small></label>
-        <input type="radio" id="radio4" class="after-label" name="radio-group-2" checked>
-        <label for="radio4">Radio <small>(selected right)</small></label>
+        <RadioInput group="rd-1">Radio</RadioInput>
+        <RadioInput group="rd-1" checked>Radio <small>(selected)</small></RadioInput>
+        <RadioInput group="rd-2" labelPosition="left">Radio <small>(inverted)</small></RadioInput>
+        <RadioInput group="rd-2" labelPosition="left" checked>Radio <small>(selected inverted)</small></RadioInput>
     </div>
 
     <div>
