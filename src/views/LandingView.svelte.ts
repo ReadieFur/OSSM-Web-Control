@@ -1,6 +1,7 @@
 import { onMount } from 'svelte';
 import { OssmBle } from 'ossm-ble-web';
 import { DOMExceptionError } from '$lib/utils/helpers.ts';
+import { DeviceManager } from '$lib/services/DeviceManager.svelte';
 
 interface NavigatorUAData {
     userAgentData?: {
@@ -100,8 +101,9 @@ export class LandingView {
         if (this.isConnecting) return;
         this.isConnecting = true;
 
+        let device: OssmBle;
         try {
-            await OssmBle.pairDevice();
+            device = await OssmBle.pairDevice();
         }
         catch (error) {
             const allowedErrors: string[] = [
@@ -123,6 +125,7 @@ export class LandingView {
         }
 
         // TODO: Handoff connection to the main app view
+        const deviceManager = new DeviceManager();
     }
     // #endregion
 }
