@@ -1,0 +1,260 @@
+.control-screen {
+    // Layout
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-grow: 1;
+    flex-direction: column;
+    gap: 1rem;
+
+    div.card {
+        padding: 1rem;
+    }
+
+    @media #{$mobile-media-query} {
+        border: none;
+        border-radius: 0;
+    }
+}
+
+.state-indicator {
+    $text-placement: "after"; // "before" or "after"
+    $gap: 0.2em;
+
+    $margin-property: if(sass($text-placement == "before"): "margin-right"; else: "margin-left");
+    &::#{$text-placement} {
+        content: attr(data-text);
+        #{$margin-property}: $gap;
+        // font-size: 0.9rem
+    }
+
+    $states: (
+        ok: $green,
+        warning: $yellow,
+        not-ready: $red,
+        processing: $accent-2
+    );
+    @each $state, $color in $states {
+        &[data-state="#{$state}"] {
+            > span {
+                color: hsl(from $color h s l / 1);
+            }
+        }
+    }
+
+    &[data-state="processing"] {
+        > span {
+            animation: opacity-pulse 2s ease-in-out infinite;
+            @media (prefers-reduced-motion: reduce) {
+                animation: none;
+            }
+        }
+    }
+}
+
+.status {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.5rem 0.75rem !important;
+
+    > div {
+        display: flex;
+        gap: 0.5rem;
+    }
+
+    button {
+        padding: 0.75rem 0.5rem;
+
+        &.stop-button {
+            padding: 0.75rem 1.5rem;
+            background-color: hsl(from $red h s l / 0.7);
+        }
+
+        &:last-child {
+            margin-right: -0.25rem;
+        }
+    }
+}
+
+.options-and-controls {
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    gap: 1rem;
+    $controls-size: 70%;
+    user-select: none;
+
+    > .options {
+        flex: 1 1 auto;
+        min-height: 0;
+    }
+
+    > .controls {
+        flex: 0 0 $controls-size;
+    }
+
+    @media #{$landscape-media-query} {
+        flex-direction: row;
+
+        > .options {
+            flex: 1 1 auto;
+            min-width: 0;
+        }
+
+        > .controls {
+            flex: 0 0 $controls-size;
+        }
+    }
+}
+
+.options {
+    display: flex;
+}
+
+.patterns-panel {
+    display: flex;
+    flex-direction: row;
+    gap: 0.5rem;
+    text-align: left;
+
+    > div {
+        flex: 1 1 0;
+    }
+
+    > .pattern-list {
+        display: flex;
+        flex-direction: column;
+        gap: inherit;
+        overflow: hidden;
+
+        > .pattern-select {
+            display: inherit;
+            flex-direction: inherit;
+            gap: inherit;
+            min-height: 0;
+            overflow-y: auto;
+            scrollbar-gutter: stable;
+        }
+    }
+
+    > .pattern-settings {
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        gap: inherit;
+
+        > .description-text {
+            margin-bottom: auto;
+        }
+    }
+
+    @media #{$landscape-media-query} {
+        flex-direction: column;
+    }
+}
+
+.controls {
+    $column-max-width: 6rem;
+
+    // #region Layout
+    height: 100%;
+    display: grid;
+    grid-template-rows: auto 1fr auto;
+    grid-auto-flow: column;
+    grid-template-columns: repeat(auto-fit, minmax(0, 1fr));
+    justify-items: center;
+    justify-content: space-evenly; // Column alignment
+    align-content: space-evenly; // Row alignment
+    align-items: center; // Content alignment
+    gap: 1rem;
+
+    // Column
+    > div {
+        min-width: 0;
+        display: contents;
+
+        // Rows
+        @for $i from 1 through 3 {
+            > :nth-child(#{$i}) {
+                display: flex;
+                position: relative;
+                grid-row: $i;
+            }
+        }
+
+        > :nth-child(2) {
+            width: 100%;
+            height: 100%
+        }
+
+        > * {
+            max-width: $column-max-width;
+        }
+    }
+
+    @media #{$landscape-media-query} {
+        // Flip layout direction in landscape mode
+        grid-template-rows: auto;
+        grid-template-columns: auto 1fr auto;
+
+        // Column becomes row
+        > div {
+            // Row becomes column
+            @for $i from 1 through 3 {
+                > :nth-child(#{$i}) {
+                    grid-column: $i;
+                    grid-row: auto;
+                }
+            }
+
+            > :nth-child(2) {
+                max-width: unset;
+            }
+        }
+    }
+    // #endregion
+
+    > div > :nth-child(2) {
+        border-radius: $radius-600;
+
+        > .input-container-range-double,
+        > input[type="range"] {
+            flex: 1;
+        }
+
+        > .material-symbol {
+            position: absolute;
+            pointer-events: none;
+            left: 50%;
+            transform: translateX(-50%);
+            color: hsl(from $text-1 h s l / 0.7);
+            bottom: min(10%, 3rem);
+
+            @media #{$landscape-media-query} {
+                bottom: unset;
+                top: 50%;
+                left: min(15%, 2rem);
+            }
+        }
+    }
+
+    .invert-intensity {
+        $size: 1.5em;
+
+        justify-content: center;
+        font-size: $size;
+
+        &::after {
+            width: $size;
+            height: $size;
+            line-height: $size !important;
+            // I originally wanted this to fade to the new rotation instead of spin however the spin is a good indicator for what it does.
+            transition: transform 0.4s ease, background-color 0.2s ease;
+        }
+
+        &:checked::after {
+            transform: rotateY(180deg);
+        }
+    }
+}
