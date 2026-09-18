@@ -3,7 +3,7 @@
 
     // Based on: https://troll-winner.com/blog/one-more-dual-range-slider
 
-    interface Props extends HTMLAttributes<HTMLDivElement> {
+    interface Props extends HTMLAttributes<HTMLInputElement> {
         from?: number;
         to?: number;
         min?: number;
@@ -63,7 +63,6 @@
     class="input-container-range-double {className}"
     data-orientation={orientation}
     style="--range-from-value: {fromPercent}%; --range-to-value: {toPercent}%; {style}"
-    {...restProps}
 >
     <input
         type="range"
@@ -73,7 +72,7 @@
         {min}
         {max}
         {step}
-        data-styled="false"
+        {...restProps}
     />
     <input
         type="range"
@@ -83,7 +82,7 @@
         {min}
         {max}
         {step}
-        data-styled="false"
+        {...restProps}
     />
 </div>
 
