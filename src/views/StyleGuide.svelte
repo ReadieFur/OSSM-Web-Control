@@ -1,5 +1,7 @@
 <script>
 	import NumericInput from "$component/NumericInput.svelte";
+	import SliderDoubleInput from "../components/SliderDoubleInput.svelte";
+	import SliderInput from "../components/SliderInput.svelte";
 </script>
 
 <main class="style-guide">
@@ -57,10 +59,10 @@
 
     <div>
         <h3>Sliders</h3>
-        <input type="range" id="range1" min="0" max="100" value="25">
-        <input type="range" orientation="vertical" id="range2" min="0" max="100" value="75">
-        <span class="input-container-range-double" from="20" to="80"></span>
-        <span class="input-container-range-double" orientation="vertical" from="20" to="80"></span>
+        <SliderInput min={0} max={100} value={25}/>
+        <SliderInput orientation="vertical" min={0} max={100} value={75}/>
+        <SliderDoubleInput from={20} to={80}/>
+        <SliderDoubleInput orientation="vertical" from={20} to={80}/>
     </div>
 
     <div>
