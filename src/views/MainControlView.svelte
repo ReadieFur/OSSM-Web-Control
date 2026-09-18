@@ -50,7 +50,7 @@
     let minGap = 1;
     let controlRange = $state({
         from: 0,
-        to: 100
+        to: 10
     });
     let controlSpeed = $state(0);
     let controlIntensity = $state(50);
