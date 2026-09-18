@@ -6,13 +6,52 @@
 	import NumericInput from '$component/NumericInput.svelte';
 	import CheckboxInput from '$component/CheckboxInput.svelte';
     import './MainControlView.scss'
+
+	import { mediaQuery } from '$lib/utils/Helpers.svelte.ts';
+
+    const isLandscape = mediaQuery('(orientation: landscape)');
+    const orientation = $derived(isLandscape.matches ? 'horizontal' : 'vertical');
+
+    // TODO: Move these states to the code behind (.ts file). This exists here as a temporary placeholder
+
+    // #region Connection states
+    let connectionState = $state<'disconnected' | 'reconnecting' | 'connected'>('disconnected');
+    // #endregion
+
+    // #region Pattern states
+    let patterns = $state<Record<string, { name: string; description: string }>>({
+        // Sample data for patterns
+        'pattern-0': {
+            name: 'Pattern 1',
+            description: 'Lorem ipsum dolor sit amet'
+        },
+        'pattern-1': {
+            name: 'Pattern 2',
+            description: 'consectetur adipiscing elit'
+        }
+    });
+    let selectedPattern = $state('pattern-0');
+    const selectedPatternDescription = $derived(patterns[selectedPattern]?.description ?? 'No pattern selected');
+    // Use $effect to auto select the first key if a pattern is not selected? (for now no because it will be set by the machine state when active)
+    // #endregion
+
+    // #region Control states
+    let minGap = 1;
+    let controlRange = $state({
+        from: 0,
+        to: 100
+    });
+    let controlSpeed = $state(0);
+    let controlIntensity = $state(50);
+    let controlInvertIntensity = $state(false);
+    // #endregion
 </script>
 
 <main class="fill-page">
     <section class="control-screen">
         <div class="status card">
             <div>
-                <p class="state-indicator" data-state="not-ready" data-text="Disconnected">
+                <p class="state-indicator" data-state={connectionState} data-text={connectionState[0].toUpperCase() + connectionState.slice(1)}>
                     <span class="material-symbol fill small" data-icon="circle"></span>
                 </p>
             </div>
@@ -24,47 +63,101 @@
             </div>
         </div>
 
-        <div class="options-and-controls">
+        <div
+            class="options-and-controls"
+            class:scale-pulse={connectionState === 'reconnecting'}>
             <div class="options card">
                 <div class="patterns-panel">
                     <div class="pattern-list">
                         <h3>Patterns</h3>
                         <div class="pattern-select">
-                            <RadioInput group="pattern" id="pattern-0" checked>Pattern 1</RadioInput>
-                            <RadioInput group="pattern" id="pattern-1">Pattern 2</RadioInput>
-                            <RadioInput group="pattern" id="pattern-2">Pattern 3</RadioInput>
+                            {#each Object.entries(patterns) as [key, { name }] (key)}
+                                <RadioInput
+                                    group="pattern"
+                                    checked={selectedPattern === key}
+                                    onchange={() => (selectedPattern = key)}>
+                                    {name}
+                                </RadioInput>
+                            {/each}
                         </div>
                     </div>
                     <div class="pattern-settings">
-                        <p class="description-text">[Description] Lorem ipsum dolor sit amet, consectetur adipiscing elit.</p>
+                        <p class="description-text">{selectedPatternDescription}</p>
                     </div>
                 </div>
             </div>
 
             <div class="controls card">
+                <!-- Range Control -->
                 <div>
-                    <NumericInput spin="split" />
+                    <NumericInput
+                        spin="split"
+                        bind:value={controlRange.to}
+                        min={controlRange.from + minGap}
+                        max={100}
+                    />
                     <div class="glass-border">
-                        <SliderDoubleInput orientation="vertical" />
+                        <SliderDoubleInput
+                            orientation={orientation}
+                            min={0}
+                            max={100}
+                            bind:from={controlRange.from}
+                            bind:to={controlRange.to}
+                            minGap={minGap}
+                        />
                         <span class="material-symbol no-offset" data-icon="arrow_range"></span>
                     </div>
-                    <NumericInput spin="split" />
+                    <NumericInput
+                        spin="split"
+                        bind:value={controlRange.from}
+                        min={0}
+                        max={controlRange.to - minGap}
+                    />
                 </div>
+
+                <!-- Speed Control -->
                 <div>
-                    <div></div>
+                    <div></div> <!-- Placeholder element to maintain the layout -->
                     <div class="glass-border">
-                        <SliderInput orientation="vertical" />
+                        <SliderInput
+                            orientation={orientation}
+                            min={0}
+                            max={100}
+                            bind:value={controlSpeed}
+                        />
                         <span class="material-symbol no-offset" data-icon="speed"></span>
                     </div>
-                    <NumericInput spin="split" />
+                    <NumericInput
+                        spin="split"
+                        bind:value={controlSpeed}
+                        min={0}
+                        max={100}
+                    />
                 </div>
+
+                <!-- Intensity Control -->
                 <div>
-                    <CheckboxInput class="invert-intensity" checkedIcon="flip" uncheckedIcon="flip" />
+                    <CheckboxInput
+                        class="invert-intensity"
+                        checkedIcon="flip"
+                        uncheckedIcon="flip"
+                        bind:checked={controlInvertIntensity}
+                    />
                     <div class="glass-border">
-                        <SliderInput orientation="vertical" />
+                        <SliderInput
+                            orientation={orientation}
+                            min={0}
+                            max={100}
+                            bind:value={controlIntensity}
+                        />
                         <span class="material-symbol no-offset" data-icon="nest_true_radiant"></span>
                     </div>
-                    <NumericInput spin="split" />
+                    <NumericInput
+                        spin="split"
+                        bind:value={controlIntensity}
+                        min={0}
+                        max={100}
+                    />
                 </div>
             </div>
         </div>

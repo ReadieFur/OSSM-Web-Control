@@ -29,10 +29,9 @@
     }
 
     $states: (
-        ok: $green,
-        warning: $yellow,
-        not-ready: $red,
-        processing: $accent-2
+        disconnected: $red,
+        reconnecting: $yellow,
+        connected: $green,
     );
     @each $state, $color in $states {
         &[data-state="#{$state}"] {
@@ -42,7 +41,7 @@
         }
     }
 
-    &[data-state="processing"] {
+    &[data-state="reconnecting"] {
         > span {
             animation: opacity-pulse 2s ease-in-out infinite;
             @media (prefers-reduced-motion: reduce) {
@@ -200,10 +199,10 @@
 
         // Column becomes row
         > div {
-            // Row becomes column
+            // Row becomes column with 1st and 3rd elements swapped
             @for $i from 1 through 3 {
                 > :nth-child(#{$i}) {
-                    grid-column: $i;
+                    grid-column: 4 - $i; // Swap 1st and 3rd elements
                     grid-row: auto;
                 }
             }

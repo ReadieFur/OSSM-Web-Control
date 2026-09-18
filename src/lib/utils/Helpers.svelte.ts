@@ -30,3 +30,23 @@ export enum DOMExceptionError {
     AbortError = "AbortError",
     NotFoundError = "NotFoundError",
 }
+
+export function mediaQuery(query: string) {
+    let matches = $state(false);
+
+    $effect(() => {
+        const media = window.matchMedia(query);
+        matches = media.matches;
+
+        const onChange = (e: MediaQueryListEvent) => { matches = e.matches; };
+
+        media.addEventListener('change', onChange);
+        return () => media.removeEventListener('change', onChange);
+    });
+
+    return {
+        get matches() {
+            return matches;
+        }
+    };
+}
