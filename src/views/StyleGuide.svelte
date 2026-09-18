@@ -5,6 +5,7 @@
 	import SliderInput from "../components/SliderInput.svelte";
 	import CheckboxInput from "../components/CheckboxInput.svelte";
 	import RadioInput from "../components/RadioInput.svelte";
+	import InfoContainer from "../components/InfoContainer.svelte";
 </script>
 
 <main class="style-guide">
@@ -64,22 +65,10 @@
 
     <div>
         <h2>Info Container</h2>
-        <div class="info-container" data-state="">
-            <p><strong>Title</strong></p>
-            <p>Message</p>
-        </div>
-        <div class="info-container" data-state="success">
-            <p><strong>Title</strong></p>
-            <p>Message</p>
-        </div>
-        <div class="info-container" data-state="error">
-            <p><strong>Title</strong></p>
-            <p>Message</p>
-        </div>
-        <div class="info-container" data-state="warning">
-            <p><strong>Title</strong></p>
-            <p>Message</p>
-        </div>
+        <InfoContainer title="Title" message="Message" />
+        <InfoContainer title="Title" message="Message" state="success" />
+        <InfoContainer title="Title" state="error" />
+        <InfoContainer message="Message" state="warning" />
     </div>
 
     <footer>
