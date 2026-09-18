@@ -1,16 +1,15 @@
 <script lang="ts">
     import type { HTMLAttributes } from 'svelte/elements';
 
-    // Based on: https://troll-winner.com/blog/one-more-dual-range-slider
-
-    interface Props extends HTMLAttributes<HTMLInputElement> {
+    interface Props extends HTMLAttributes<HTMLDivElement> {
         from?: number;
         to?: number;
         min?: number;
         max?: number;
-        step?: number;
+        step?: number | 'any';
         minGap?: number;
         orientation?: 'horizontal' | 'vertical';
+        disabled?: boolean;
     }
 
     let {
@@ -20,11 +19,16 @@
         max = 100,
         step = 1,
         minGap = 0,
-        orientation,
+        orientation = 'horizontal',
+        disabled = false,
         class: className = '',
         style = '',
         ...restProps
     }: Props = $props();
+
+    let fromInputRef = $state<HTMLInputElement | null>(null);
+    let toInputRef = $state<HTMLInputElement | null>(null);
+    let activeHandle = $state<'from' | 'to' | null>(null);
 
     let fromPercent = $derived.by(() => {
         const rangeDistance = max - min;
@@ -38,50 +42,131 @@
         return ((to - min) / rangeDistance) * 100;
     });
 
+    // WebKit input patches (other devices wouldn't otherwise require this)
+    // See SliderInput.svelte for more details on this workaround (more comments in that file)
+    function calculateValueFromPointer(event: PointerEvent, ref: HTMLInputElement): number {
+        const rect = ref.getBoundingClientRect();
+        let positionPercent: number;
+
+        if (orientation === 'vertical') {
+            const offsetY = event.clientY - rect.top;
+            positionPercent = 1 - (offsetY / rect.height);
+        } else {
+            const offsetX = event.clientX - rect.left;
+            positionPercent = offsetX / rect.width;
+        }
+
+        positionPercent = Math.max(0, Math.min(1, positionPercent));
+
+        const numMin = Number(min);
+        const numMax = Number(max);
+        let computedValue = numMin + positionPercent * (numMax - numMin);
+
+        if (step !== 'any' && Number(step) > 0) {
+            const numStep = Number(step);
+            const steps = Math.round((computedValue - numMin) / numStep);
+            computedValue = numMin + steps * numStep;
+        }
+
+        return Math.max(numMin, Math.min(numMax, computedValue));
+    }
+
+    function updateHandleValue(handle: 'from' | 'to', event: PointerEvent, ref: HTMLInputElement) {
+        const rawVal = calculateValueFromPointer(event, ref);
+
+        if (handle === 'from') {
+            const maxAllowed = to - minGap;
+            from = Math.min(rawVal, maxAllowed);
+        } else {
+            const minAllowed = from + minGap;
+            to = Math.max(rawVal, minAllowed);
+        }
+    }
+
+    // Pointer handlers
+    function handlePointerDown(handle: 'from' | 'to', event: PointerEvent) {
+        const ref = handle === 'from' ? fromInputRef : toInputRef;
+        if (!ref || disabled) return;
+
+        event.preventDefault();
+        ref.setPointerCapture(event.pointerId);
+        activeHandle = handle;
+        updateHandleValue(handle, event, ref);
+    }
+
+    function handlePointerMove(handle: 'from' | 'to', event: PointerEvent) {
+        const ref = handle === 'from' ? fromInputRef : toInputRef;
+        if (activeHandle !== handle || !ref || disabled) return;
+
+        updateHandleValue(handle, event, ref);
+    }
+
+    function handlePointerUp(handle: 'from' | 'to', event: PointerEvent) {
+        const ref = handle === 'from' ? fromInputRef : toInputRef;
+        if (activeHandle !== handle || !ref) return;
+
+        activeHandle = null;
+        try { ref.releasePointerCapture(event.pointerId); }
+        catch { /* Pointer capture release safety guard */ }
+
+        if (!disabled)
+            updateHandleValue(handle, event, ref);
+    }
+
+    function handlePointerCancel() {
+        activeHandle = null;
+    }
+
+    // Fallbacks for keyboard input and standard events
     function onFromSliderInput(event: Event & { currentTarget: HTMLInputElement }) {
         let val = Number(event.currentTarget.value);
-        if (val > to)
-            val = to;
-        if (to - val < minGap)
-            val = to - minGap;
+        if (val > to - minGap) val = to - minGap;
         from = val;
     }
 
     function onToSliderInput(event: Event & { currentTarget: HTMLInputElement }) {
         let val = Number(event.currentTarget.value);
-        if (from > val)
-            val = from;
-        if (val - from < minGap)
-            val = from + minGap;
+        if (val < from + minGap) val = from + minGap;
         to = val;
     }
-
-    // TODO: Enforce gap immediately
 </script>
 
 <div
     class="input-container-range-double {className}"
     data-orientation={orientation}
     style="--range-from-value: {fromPercent}%; --range-to-value: {toPercent}%; {style}"
+    {...restProps}
 >
     <input
+        bind:this={fromInputRef}
         type="range"
         data-component="from"
         value={from}
-        oninput={onFromSliderInput}
         {min}
         {max}
         {step}
+        {disabled}
+        oninput={onFromSliderInput}
+        onpointerdown={(e) => handlePointerDown('from', e)}
+        onpointermove={(e) => handlePointerMove('from', e)}
+        onpointerup={(e) => handlePointerUp('from', e)}
+        onpointercancel={handlePointerCancel}
         {...restProps}
     />
     <input
+        bind:this={toInputRef}
         type="range"
         data-component="to"
         value={to}
-        oninput={onToSliderInput}
         {min}
         {max}
         {step}
+        {disabled}
+        oninput={onToSliderInput}
+        onpointerdown={(e) => handlePointerDown('to', e)}
+        onpointermove={(e) => handlePointerMove('to', e)}
+        onpointerup={(e) => handlePointerUp('to', e)}
+        onpointercancel={handlePointerCancel}
         {...restProps}
     />
 </div>

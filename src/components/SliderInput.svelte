@@ -1,14 +1,12 @@
 <script lang="ts">
     import type { HTMLInputAttributes } from 'svelte/elements';
 
-    export type SliderOrientation = 'horizontal' | 'vertical';
-
     interface Props extends Omit<HTMLInputAttributes, 'value' | 'type'> {
         value?: number;
         min?: number;
         max?: number;
         step?: number | 'any';
-        orientation?: SliderOrientation;
+        orientation?: 'horizontal' | 'vertical';
         disabled?: boolean;
     }
 
