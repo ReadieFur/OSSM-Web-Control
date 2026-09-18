@@ -1,7 +1,10 @@
 <script lang="ts">
+    import type { HTMLInputAttributes } from 'svelte/elements';
+
     export type SpinDirection = 'left' | 'right' | 'split' | 'none';
 
-    interface Props {
+    // Extend native input attributes, overriding value for number | null
+    interface Props extends Omit<HTMLInputAttributes, 'value'> {
         value?: number | null;
         spin?: SpinDirection;
         placeholder?: string;
@@ -18,7 +21,9 @@
         min,
         max,
         step = 1,
-        disabled = false
+        disabled = false,
+        class: className = '',
+        ...restProps
     }: Props = $props();
 
     function clamp(val: number): number {
@@ -49,7 +54,7 @@
     }
 </script>
 
-<div class="input-container-number" data-spin={spin}>
+<div class="input-container-number {className}" data-spin={spin}>
     {#if spin !== 'none'}
         <button
             type="button"
@@ -71,6 +76,7 @@
         {max}
         {step}
         {disabled}
+        {...restProps}
     />
 
     {#if spin !== 'none'}
