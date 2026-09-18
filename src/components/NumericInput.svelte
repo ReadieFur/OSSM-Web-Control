@@ -2,7 +2,7 @@
     export type SpinDirection = 'left' | 'right' | 'split' | 'none';
 
     interface Props {
-        value?: number;
+        value?: number | null;
         spin?: SpinDirection;
         placeholder?: string;
         min?: number;
@@ -12,7 +12,7 @@
     }
 
     let {
-        value = $bindable(0),
+        value = $bindable(undefined),
         spin = 'none',
         placeholder = '',
         min,
@@ -29,8 +29,8 @@
     }
 
     function handleManualInput() {
-        if (value === undefined || isNaN(value)) {
-            if (min !== undefined) value = min;
+        if (value === null || value === undefined || isNaN(value)) {
+            value = undefined;
             return;
         }
         value = clamp(value);
@@ -55,8 +55,8 @@
             type="button"
             class="btn-minus"
             onclick={decrement}
-            disabled={disabled}
-            class:limit-reached={min !== undefined && value <= min}
+            {disabled}
+            class:limit-reached={min !== undefined && (value ?? 0) <= min}
         >
             -
         </button>
@@ -78,8 +78,8 @@
             type="button"
             class="btn-plus"
             onclick={increment}
-            disabled={disabled}
-            class:limit-reached={max !== undefined && value >= max}
+            {disabled}
+            class:limit-reached={max !== undefined && (value ?? 0) >= max}
         >
             +
         </button>
@@ -109,7 +109,7 @@
             border-radius: 0;
 
             &:not(:disabled).limit-reached {
-                pointer-events: none; // Disable hover effect entirely
+                pointer-events: none;
                 color: $text-3;
             }
         }
