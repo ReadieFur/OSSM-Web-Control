@@ -56,7 +56,7 @@
         <SliderInput min={0} max={100} value={25}/>
         <SliderInput orientation="vertical" min={0} max={100} value={75}/>
         <SliderDoubleInput from={20} to={80}/>
-        <SliderDoubleInput orientation="vertical" from={20} to={80}/>
+        <SliderDoubleInput orientation="vertical" from={20} to={80} minGap={20}/>
     </div>
 
     <div>
