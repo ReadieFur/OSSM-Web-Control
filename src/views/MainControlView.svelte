@@ -9,7 +9,7 @@
 
 	import type { ViewManager, ViewManagerProps } from '$lib/state/viewManager.svelte.ts';
 	import type { OssmDevice } from '$lib/services/OssmDevice.svelte.ts';
-	import { mediaQuery } from '$lib/utils/Helpers.svelte.ts';
+	import { isDevMode, mediaQuery } from '$lib/utils/Helpers.svelte.ts';
 
     interface Props extends ViewManagerProps {
         readonly viewManager: ViewManager;
@@ -27,6 +27,9 @@
 
     // #region Connection states
     let connectionState = $state<'disconnected' | 'reconnecting' | 'connected'>('disconnected');
+    let disableControls = $derived(connectionState !== 'connected');
+    if (isDevMode && new URLSearchParams(globalThis.location?.search).get('viewOverride'))
+        connectionState = 'connected'; // For development mode, override the connection state to connected
     // #endregion
 
     // #region Pattern states
@@ -86,7 +89,8 @@
                                 <RadioInput
                                     group="pattern"
                                     checked={selectedPattern === key}
-                                    onchange={() => (selectedPattern = key)}>
+                                    onchange={() => (selectedPattern = key)}
+                                    disabled={disableControls}>
                                     {name}
                                 </RadioInput>
                             {/each}
@@ -103,9 +107,10 @@
                 <div>
                     <NumericInput
                         spin="split"
-                        bind:value={controlRange.to}
                         min={controlRange.from + minGap}
                         max={100}
+                        bind:value={controlRange.to}
+                        disabled={disableControls}
                     />
                     <div class="glass-border">
                         <SliderDoubleInput
@@ -115,14 +120,16 @@
                             bind:from={controlRange.from}
                             bind:to={controlRange.to}
                             minGap={minGap}
+                            disabled={disableControls}
                         />
                         <span class="material-symbol no-offset" data-icon="arrow_range"></span>
                     </div>
                     <NumericInput
                         spin="split"
-                        bind:value={controlRange.from}
                         min={0}
                         max={controlRange.to - minGap}
+                        bind:value={controlRange.from}
+                        disabled={disableControls}
                     />
                 </div>
 
@@ -135,14 +142,16 @@
                             min={0}
                             max={100}
                             bind:value={controlSpeed}
+                            disabled={disableControls}
                         />
                         <span class="material-symbol no-offset" data-icon="speed"></span>
                     </div>
                     <NumericInput
                         spin="split"
-                        bind:value={controlSpeed}
                         min={0}
                         max={100}
+                        bind:value={controlSpeed}
+                        disabled={disableControls}
                     />
                 </div>
 
@@ -153,6 +162,7 @@
                         checkedIcon="flip"
                         uncheckedIcon="flip"
                         bind:checked={controlInvertIntensity}
+                        disabled={disableControls}
                     />
                     <div class="glass-border">
                         <SliderInput
@@ -160,14 +170,16 @@
                             min={0}
                             max={100}
                             bind:value={controlIntensity}
+                            disabled={disableControls}
                         />
                         <span class="material-symbol no-offset" data-icon="nest_true_radiant"></span>
                     </div>
                     <NumericInput
                         spin="split"
-                        bind:value={controlIntensity}
                         min={0}
                         max={100}
+                        bind:value={controlIntensity}
+                        disabled={disableControls}
                     />
                 </div>
             </div>
