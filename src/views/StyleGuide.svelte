@@ -6,21 +6,15 @@
 	import CheckboxInput from "../components/CheckboxInput.svelte";
 	import RadioInput from "../components/RadioInput.svelte";
 	import InfoContainer from "../components/InfoContainer.svelte";
+	import Button from "../components/Button.svelte";
 </script>
 
 <main class="style-guide">
     <div>
         <h2>Buttons</h2>
 
-        <button>Regular</button>
-
-        <button class="no-border">No Border</button>
-        <button>
-            <span>
-                <span>With</span>
-                <p>Content</p>
-            </span>
-        </button>
+        <Button>Button</Button>
+        <Button icon="circle"><small>(button with icon)</small></Button>
     </div>
 
     <div>
