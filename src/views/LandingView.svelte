@@ -2,6 +2,9 @@
     import { LandingView } from './LandingView.svelte.ts';
     import InfoContainer from '$component/InfoContainer.svelte';
     import { svelteFade } from '$lib/utils/Animation.svelte.ts';
+	import type { ViewManagerProps } from '$lib/state/viewManager.svelte.ts';
+
+    let { landingView }: ViewManagerProps = $props();
 
     const self = new LandingView();
 </script>

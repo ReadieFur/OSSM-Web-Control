@@ -17,15 +17,21 @@ export type ViewManagerEventMap = {
     [key in ViewChangeEventArgs]: ViewChangeEvent;
 };
 
+export interface ViewManagerProps {
+    readonly viewManager: ViewManager;
+}
+
+export type ViewManagerComponent = Component<ViewManagerProps>;
+
 export class ViewManager extends EventTarget {
     // The # here declares the property as "private/hidden" and requires the use of a "get" keyword to access it.
-    #activeView = $state<Component | null>(null);
+    #activeView = $state<ViewManagerComponent | null>(null);
 
     public get activeView() {
         return this.#activeView;
     }
 
-    public set activeView(view: Component | null) {
+    public set activeView(view: ViewManagerComponent | null) {
         const previousView = this.#activeView;
         if (previousView === view) return;
 
@@ -44,7 +50,7 @@ export class ViewManager extends EventTarget {
         this.dispatchEvent(afterEvent);
     }
 
-    constructor(initialView: Component | null = null) {
+    constructor(initialView: ViewManagerComponent | null = null) {
         super();
         this.#activeView = initialView;
     }

@@ -5,9 +5,20 @@
 	import SliderInput from '$component/SliderInput.svelte';
 	import NumericInput from '$component/NumericInput.svelte';
 	import CheckboxInput from '$component/CheckboxInput.svelte';
-    import './MainControlView.scss'
+    import './MainControlView.scss';
 
+	import type { ViewManager, ViewManagerProps } from '$lib/state/viewManager.svelte.ts';
+	import type { OssmDevice } from '$lib/services/OssmDevice.svelte.ts';
 	import { mediaQuery } from '$lib/utils/Helpers.svelte.ts';
+
+    interface Props extends ViewManagerProps {
+        readonly viewManager: ViewManager;
+        readonly ossmInstance: OssmDevice;
+    }
+    let {
+        viewManager,
+        ossmInstance
+    }: Props = $props();
 
     const isLandscape = mediaQuery('(orientation: landscape)');
     const orientation = $derived(isLandscape.matches ? 'horizontal' : 'vertical');
@@ -58,7 +69,7 @@
             <div>
                 <!-- TODO: Future feature; session sharing -->
                  <Button aria-label="Reset settings" icon="reset_settings" />
-                 <Button aria-label="Disconnect" icon="logout" />
+                 <Button aria-label="Disconnect" icon="logout" click={() => { /* TODO: Disconnect device & navigate view manager to home view */ }} />
                  <Button class="stop-button" aria-label="Stop" icon="dangerous" />
             </div>
         </div>
