@@ -9,6 +9,7 @@
         max?: number;
         step?: number | 'any';
         orientation?: SliderOrientation;
+        disabled?: boolean;
     }
 
     let {
@@ -17,6 +18,7 @@
         max = 100,
         step = 1,
         orientation = 'horizontal',
+        disabled = false,
         class: className = '',
         style = '',
         ...restProps
@@ -66,7 +68,7 @@
     }
 
     function handlePointerDown(event: PointerEvent) {
-        if (!inputRef) return;
+        if (!inputRef || disabled) return;
         event.preventDefault(); // Prevent default single-snapping.
         inputRef.setPointerCapture(event.pointerId); // Capture pointer to continue receiving events even if the pointer goes outside the element (required for the release to work properly).
         isDragging = true;
@@ -74,7 +76,7 @@
     }
 
     function handlePointerMove(event: PointerEvent) {
-        if (!isDragging) return;
+        if (!isDragging || disabled) return;
         value = calculateValueFromPointer(event);
     }
 
@@ -83,7 +85,8 @@
         isDragging = false;
         try { inputRef.releasePointerCapture(event.pointerId); }
         catch { /* Pointer capture release safety guard */ }
-        value = calculateValueFromPointer(event);
+        if (!disabled)
+            value = calculateValueFromPointer(event);
     }
 
     function handlePointerCancel() {
@@ -99,6 +102,7 @@
     {max}
     {step}
     data-orientation={orientation}
+    {disabled}
     class="input-range {className}"
     style="--range-value: {percent}%; {style}"
     onpointerdown={handlePointerDown}
