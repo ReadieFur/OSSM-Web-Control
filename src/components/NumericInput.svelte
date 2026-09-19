@@ -1,7 +1,7 @@
 <script lang="ts">
     import type { HTMLInputAttributes } from 'svelte/elements';
 
-    interface Props extends Omit<HTMLInputAttributes, 'value'> {
+    interface Props extends Omit<HTMLInputAttributes, 'value' | 'onchange'> {
         value?: number | null;
         spin?: 'left' | 'right' | 'split' | 'none';
         spinOnly?: boolean;
@@ -10,6 +10,7 @@
         max?: number;
         step?: number;
         disabled?: boolean;
+        onchange?: (event: { value: number | null }) => void;
     }
 
     let {
@@ -22,6 +23,7 @@
         step = 1,
         disabled = false,
         class: className = '',
+        onchange,
         ...restProps
     }: Props = $props();
 
@@ -39,10 +41,13 @@
     }
 
     function commitValue(val: string | number | undefined) {
-        if (val === '' || val === null || val === undefined || isNaN(Number(val)))
-            value = undefined;
-        else
-            value = clamp(Number(val));
+        const newValue = val === '' || val === null || val === undefined || isNaN(Number(val)) ? null : clamp(Number(val));
+
+        if (value !== newValue) {
+            value = newValue;
+            onchange?.({ value });
+        }
+
         draft = null;
     }
 
@@ -64,14 +69,22 @@
         if (disabled) return;
         draft = null;
         const current = value ?? 0;
-        value = clamp(current - step);
+        const newValue = clamp(current - step);
+        if (value != newValue) {
+            value = newValue;
+            onchange?.({ value });
+        }
     }
 
     function increment() {
         if (disabled) return;
         draft = null;
         const current = value ?? 0;
-        value = clamp(current + step);
+        const newValue = clamp(current + step);
+        if (value != newValue) {
+            value = newValue;
+            onchange?.({ value });
+        }
     }
 </script>
 

@@ -1,13 +1,14 @@
 <script lang="ts">
     import type { HTMLInputAttributes } from 'svelte/elements';
 
-    interface Props extends Omit<HTMLInputAttributes, 'value' | 'type'> {
+    interface Props extends Omit<HTMLInputAttributes, 'value' | 'type' | 'onchange'> {
         value?: number;
         min?: number;
         max?: number;
         step?: number | 'any';
         orientation?: 'horizontal' | 'vertical';
         disabled?: boolean;
+        onchange?: (event: { value: number }) => void;
     }
 
     let {
@@ -19,11 +20,13 @@
         disabled = false,
         class: className = '',
         style = '',
+        onchange,
         ...restProps
     }: Props = $props();
 
     let inputRef = $state<HTMLInputElement | null>(null);
     let isDragging = $state(false);
+    let pointerInteracting = $state(false);
 
     // Dynamic track fill percentage for CSS --range-value
     let percent = $derived.by(() => {
@@ -81,14 +84,29 @@
     function handlePointerUp(event: PointerEvent) {
         if (!isDragging || !inputRef) return;
         isDragging = false;
+
         try { inputRef.releasePointerCapture(event.pointerId); }
         catch { /* Pointer capture release safety guard */ }
-        if (!disabled)
-            value = calculateValueFromPointer(event);
+
+        if (disabled) return;
+
+        value = calculateValueFromPointer(event);
+        pointerInteracting = true;
+        onchange?.({ value });
     }
 
     function handlePointerCancel() {
         isDragging = false;
+        pointerInteracting = false;
+    }
+
+    function handleNativeChange() {
+        if (pointerInteracting) {
+            pointerInteracting = false;
+            return; // Ignore the native change event if it was triggered by pointer interaction, as we already handled it in handlePointerUp.
+        }
+
+        onchange?.({ value });
     }
 </script>
 
@@ -107,5 +125,6 @@
     onpointermove={handlePointerMove}
     onpointerup={handlePointerUp}
     onpointercancel={handlePointerCancel}
+    onchange={handleNativeChange}
     {...restProps}
 />

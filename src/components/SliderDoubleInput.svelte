@@ -1,7 +1,18 @@
 <script lang="ts">
     import type { HTMLAttributes } from 'svelte/elements';
 
-    interface Props extends HTMLAttributes<HTMLDivElement> {
+    export type InputHandle = 'from' | 'to';
+
+    export type RangeValue = {
+        [key in InputHandle]: number;
+    };
+
+    export type RangeChangeEvent = {
+        value: RangeValue;
+        activeHandle: InputHandle;
+    };
+
+    interface Props extends Omit<HTMLAttributes<HTMLDivElement>, 'onchange'> {
         from?: number;
         to?: number;
         min?: number;
@@ -10,6 +21,7 @@
         minGap?: number;
         orientation?: 'horizontal' | 'vertical';
         disabled?: boolean;
+        onchange?: (event: RangeChangeEvent) => void;
     }
 
     let {
@@ -23,12 +35,14 @@
         disabled = false,
         class: className = '',
         style = '',
+        onchange,
         ...restProps
     }: Props = $props();
 
     let fromInputRef = $state<HTMLInputElement | null>(null);
     let toInputRef = $state<HTMLInputElement | null>(null);
-    let activeHandle = $state<'from' | 'to' | null>(null);
+    let activeHandle = $state<InputHandle | null>(null);
+    let pointerInteracting = $state(false);
 
     let fromPercent = $derived.by(() => {
         const rangeDistance = max - min;
@@ -71,7 +85,7 @@
         return Math.max(numMin, Math.min(numMax, computedValue));
     }
 
-    function updateHandleValue(handle: 'from' | 'to', event: PointerEvent, ref: HTMLInputElement) {
+    function updateHandleValue(handle: InputHandle, event: PointerEvent, ref: HTMLInputElement) {
         const rawVal = calculateValueFromPointer(event, ref);
 
         if (handle === 'from') {
@@ -84,7 +98,7 @@
     }
 
     // Pointer handlers
-    function handlePointerDown(handle: 'from' | 'to', event: PointerEvent) {
+    function handlePointerDown(handle: InputHandle, event: PointerEvent) {
         const ref = handle === 'from' ? fromInputRef : toInputRef;
         if (!ref || disabled) return;
 
@@ -94,14 +108,14 @@
         updateHandleValue(handle, event, ref);
     }
 
-    function handlePointerMove(handle: 'from' | 'to', event: PointerEvent) {
+    function handlePointerMove(handle: InputHandle, event: PointerEvent) {
         const ref = handle === 'from' ? fromInputRef : toInputRef;
         if (activeHandle !== handle || !ref || disabled) return;
 
         updateHandleValue(handle, event, ref);
     }
 
-    function handlePointerUp(handle: 'from' | 'to', event: PointerEvent) {
+    function handlePointerUp(handle: InputHandle, event: PointerEvent) {
         const ref = handle === 'from' ? fromInputRef : toInputRef;
         if (activeHandle !== handle || !ref) return;
 
@@ -109,12 +123,19 @@
         try { ref.releasePointerCapture(event.pointerId); }
         catch { /* Pointer capture release safety guard */ }
 
-        if (!disabled)
-            updateHandleValue(handle, event, ref);
+        if (disabled) return;
+
+        updateHandleValue(handle, event, ref);
+        pointerInteracting = true;
+        onchange?.({
+            value: { from, to },
+            activeHandle: handle
+        });
     }
 
     function handlePointerCancel() {
         activeHandle = null;
+        pointerInteracting = false;
     }
 
     // Fallbacks for keyboard input and standard events
@@ -128,6 +149,19 @@
         let val = Number(event.currentTarget.value);
         if (val < from + minGap) val = from + minGap;
         to = val;
+    }
+
+    // For keyboard inputs
+    function handleNativeChange(handle: InputHandle) {
+        if (pointerInteracting) {
+            pointerInteracting = false;
+            return;
+        }
+
+        onchange?.({
+            value: { from, to },
+            activeHandle: handle
+        });
     }
 </script>
 
@@ -151,6 +185,7 @@
         onpointermove={(e) => handlePointerMove('from', e)}
         onpointerup={(e) => handlePointerUp('from', e)}
         onpointercancel={handlePointerCancel}
+        onchange={() => handleNativeChange('from')}
         {...restProps}
     />
     <input
@@ -167,6 +202,7 @@
         onpointermove={(e) => handlePointerMove('to', e)}
         onpointerup={(e) => handlePointerUp('to', e)}
         onpointercancel={handlePointerCancel}
+        onchange={() => handleNativeChange('to')}
         {...restProps}
     />
 </div>
