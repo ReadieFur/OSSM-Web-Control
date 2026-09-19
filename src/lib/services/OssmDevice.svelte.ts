@@ -23,3 +23,15 @@ export abstract class OssmDevice {
     abstract currentState: OssmState;
     abstract patterns: OssmPattern[];
 }
+
+export class DummyOssmDevice extends OssmDevice {
+    lifecycleState: LifecycleState = 'ready'
+    statusMessage: string | null = null;
+    errorMessage: string | null = null;
+    connectionState: ConnectionState = 'connected';
+    currentState: OssmState = EmptyOssmState;
+    patterns: OssmPattern[] = [
+        { idx: 0, name: 'Pattern 1', description: 'Lorem ipsum dolor sit amet' },
+        { idx: 1, name: 'Pattern 2', description: 'consectetur adipiscing elit' }
+    ];
+}

@@ -1,11 +1,12 @@
 <script lang="ts">
     // Imports
     import { onMount, type Component } from 'svelte';
-    import { ViewManager } from '$lib/state/viewManager.svelte.ts';
+    import { ViewManager } from '$lib/services/ViewManager.svelte.ts';
     import Footer from '$component/Footer.svelte';
     import LandingView from '$view/LandingView.svelte';
     import { svelteFade } from '$lib/utils/Animation.svelte.ts';
 	import { isDevMode } from '$lib/utils/Helpers.svelte.ts';
+    import { DummyOssmDevice } from '$lib/services/OssmDevice.svelte.ts';
 
     // Styles
     import '$lib/styles/global.scss';
@@ -17,7 +18,7 @@
 
     // View manager
     const vm = new ViewManager(initialView);
-    let ActiveView = $derived(vm.activeView);
+    let ActiveView = $derived(vm.view);
 
     // Development mode view override
     let devViewOverride = $state<boolean>(false);
@@ -33,8 +34,11 @@
             const fileName = view.split('/').pop()?.replace('.svelte', '') ?? '';
             if (fileName === pageParam) {
                 devViewOverride = true;
+
+                if (fileName === 'MainControlView') vm.viewProps = { ossmInstance: new DummyOssmDevice() };
+
                 viewModules[view]()
-                    .then((module) => { vm.activeView = module.default; })
+                    .then((module) => { vm.view = module.default; })
                     .catch((error) => console.error('[DEV] Error loading view module:', error));
                 return; // Return early
             }
@@ -61,7 +65,7 @@
 {#if devViewOverride}
 <div class="app-shell">
     <!-- Dev view override (disables navigation animations) -->
-    <ActiveView viewManager={vm} />
+    <ActiveView viewManager={vm} {...vm.viewProps} />
 </div>
 
 {:else if appShellVisible}
@@ -70,7 +74,7 @@
         {#key ActiveView}
             <!-- App shell wraps the main content and transitions between views -->
             <div class="app-shell" transition:svelteFade={{ duration: 500, switching: true }}>
-                <ActiveView viewManager={vm} />
+                <ActiveView viewManager={vm} {...vm.viewProps} />
                 <Footer /> <!-- Due to how I position the footer (directly under the main content), this must live inside the app-shell -->
             </div>
         {/key}

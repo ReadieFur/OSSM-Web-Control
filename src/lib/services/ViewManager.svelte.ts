@@ -2,11 +2,15 @@ import type { Component } from 'svelte';
 
 type ViewChangeEventArgs = 'beforeviewchange' | 'viewchange';
 
+export interface ViewManagerProps extends Record<string, unknown> {
+    readonly viewManager: ViewManager;
+}
+
 export class ViewChangeEvent extends Event {
     constructor(
         type: ViewChangeEventArgs,
-        public readonly from: Component | null,
-        public readonly to: Component | null,
+        public readonly from: Component<ViewManagerProps> | null,
+        public readonly to: Component<ViewManagerProps> | null,
         options?: EventInit
     ) {
         super(type, options);
@@ -17,42 +21,36 @@ export type ViewManagerEventMap = {
     [key in ViewChangeEventArgs]: ViewChangeEvent;
 };
 
-export interface ViewManagerProps {
-    readonly viewManager: ViewManager;
-}
-
 export type ViewManagerComponent = Component<ViewManagerProps>;
 
 export class ViewManager extends EventTarget {
     // The # here declares the property as "private/hidden" and requires the use of a "get" keyword to access it.
-    #activeView = $state<ViewManagerComponent | null>(null);
+    #view = $state<ViewManagerComponent | null>(null);
+    public get view() { return this.#view; }
+    public set view(view: ViewManagerComponent | null) { this.setViewAndProps(view, this.viewProps); } // Maintain the same props when changing views (unless explicitly overridden)
 
-    public get activeView() {
-        return this.#activeView;
-    }
+    viewProps = $state<Record<string, unknown>>({});
 
-    public set activeView(view: ViewManagerComponent | null) {
-        const previousView = this.#activeView;
+    public setViewAndProps(view: ViewManagerComponent | null, props?: Record<string, unknown>) {
+        const previousView = this.#view;
         if (previousView === view) return;
 
-        // 1. Dispatch Before Event (cancellable)
         const beforeEvent = new ViewChangeEvent('beforeviewchange', previousView, view, { cancelable: true });
         this.dispatchEvent(beforeEvent);
 
         // Abort if a listener called e.preventDefault()
         if (beforeEvent.defaultPrevented) return;
 
-        // 2. Perform state swap
-        this.#activeView = view;
+        this.viewProps = props ?? {};
+        this.#view = view;
 
-        // 3. Dispatch After Event
-        const afterEvent = new ViewChangeEvent('viewchange', previousView, view);
-        this.dispatchEvent(afterEvent);
+        this.dispatchEvent(new ViewChangeEvent('viewchange', previousView, view));
     }
 
-    constructor(initialView: ViewManagerComponent | null = null) {
+    constructor(initialView: ViewManagerComponent | null = null, initialProps?: Record<string, unknown>) {
         super();
-        this.#activeView = initialView;
+        this.viewProps = initialProps ?? {};
+        this.#view = initialView;
     }
 
     // Overloads for ViewManager events
