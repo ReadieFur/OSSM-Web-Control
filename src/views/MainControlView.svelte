@@ -24,7 +24,7 @@
     <section class="control-screen">
         <div class="status card">
             <div>
-                <p class="state-indicator" data-state={self.connectionState} data-text={self.connectionState[0].toUpperCase() + self.connectionState.slice(1)}>
+                <p class="state-indicator" data-state={self.ossmInstance.connectionState} data-text={self.ossmInstance.connectionState[0].toUpperCase() + self.ossmInstance.connectionState.slice(1)}>
                     <span class="material-symbol fill small" data-icon="circle"></span>
                 </p>
             </div>
@@ -38,25 +38,25 @@
 
         <div
             class="options-and-controls"
-            class:scale-pulse={self.connectionState === 'reconnecting'}>
+            class:scale-pulse={self.ossmInstance.connectionState === 'reconnecting'}>
             <div class="options card">
                 <div class="patterns-panel">
                     <div class="pattern-list">
                         <h3>Patterns</h3>
                         <div class="pattern-select">
-                            {#each Object.entries(self.patterns) as [key, { name }] (key)}
+                            {#each self.ossmInstance.patterns as pattern (pattern.idx)}
                                 <RadioInput
                                     group="pattern"
-                                    checked={self.selectedPattern === key}
-                                    onchange={() => (self.selectedPattern = key)}
+                                    checked={self.selectedPattern === pattern.idx}
+                                    onchange={() => (self.selectedPattern = pattern.idx)}
                                     disabled={self.disableControls}>
-                                    {name}
+                                    {pattern.name}
                                 </RadioInput>
                             {/each}
                         </div>
                     </div>
                     <div class="pattern-settings">
-                        <p class="description-text">{self.selectedPatternDescription}</p>
+                        <p class="description-text">{self.ossmInstance.patterns.find(p => p.idx === self.selectedPattern)?.description ?? ''}</p>
                     </div>
                 </div>
             </div>
