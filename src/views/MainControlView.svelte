@@ -7,10 +7,11 @@
 	import NumericInput from '$component/NumericInput.svelte';
 	import CheckboxInput from '$component/CheckboxInput.svelte';
     import './MainControlView.scss';
-
+    
     // Logic imports
     import { mediaQuery } from '$lib/utils/Helpers.svelte.ts';
     import { MainControlView, type Props } from './MainControlView.svelte.ts';
+    import type { RangeChangeEvent } from '$component/SliderDoubleInput.svelte';
 
     let props: Props = $props();
     const self = new MainControlView(() => props);
@@ -65,32 +66,39 @@
                 <!-- Range Control -->
                 <div>
                     <NumericInput
+                        disabled={self.disableControls}
                         spin="split"
                         spinOnly
                         min={self.controlRange.from + minGap}
                         max={100}
                         bind:value={self.controlRange.to}
-                        disabled={self.disableControls}
+                        onchange={(event: { value: number | null }) => { 
+                            if (event.value !== null) {
+                                self.onRangeChange({ from: self.controlRange.from, to: event.value });
+                            }
+                        }}
                     />
                     <div class="glass-border">
                         <SliderDoubleInput
+                            disabled={self.disableControls}
                             orientation={orientation}
                             min={0}
                             max={100}
+                            minGap={minGap}
                             bind:from={self.controlRange.from}
                             bind:to={self.controlRange.to}
-                            minGap={minGap}
-                            disabled={self.disableControls}
+                            onchange={(event: RangeChangeEvent) => self.onRangeChange(event.value) }
                         />
                         <span class="material-symbol no-offset" data-icon="arrow_range"></span>
                     </div>
                     <NumericInput
+                        disabled={self.disableControls}
                         spin="split"
                         spinOnly
                         min={0}
                         max={self.controlRange.to - minGap}
                         bind:value={self.controlRange.from}
-                        disabled={self.disableControls}
+                        onchange={(event: { value: number | null }) => { if (event.value !== null) self.onRangeChange({ from: event.value, to: self.controlRange.to }); }}
                     />
                 </div>
 
@@ -99,50 +107,54 @@
                     <div></div> <!-- Placeholder element to maintain the layout -->
                     <div class="glass-border">
                         <SliderInput
+                            disabled={self.disableControls}
                             orientation={orientation}
                             min={0}
                             max={100}
                             bind:value={self.controlSpeed}
-                            disabled={self.disableControls}
+                            onchange={(event: { value: number }) => self.onSpeedChange(event.value) }
                         />
                         <span class="material-symbol no-offset" data-icon="speed"></span>
                     </div>
                     <NumericInput
+                        disabled={self.disableControls}
                         spin="split"
                         spinOnly
                         min={0}
                         max={100}
                         bind:value={self.controlSpeed}
-                        disabled={self.disableControls}
+                        onchange={(event: { value: number | null }) => { if (event.value !== null) self.onSpeedChange(event.value); }}
                     />
                 </div>
 
                 <!-- Intensity Control -->
-                <div>
+                <div class:hidden={!self.controlHasIntensity}>
                     <CheckboxInput
-                        class="invert-intensity"
+                        class="invert-intensity {self.controlCanInvertIntensity ? '' : 'hidden'}"
+                        disabled={self.disableControls}
                         checkedIcon="flip"
                         uncheckedIcon="flip"
                         bind:checked={self.controlInvertIntensity}
-                        disabled={self.disableControls}
                     />
                     <div class="glass-border">
                         <SliderInput
+                            disabled={self.disableControls}
                             orientation={orientation}
                             min={0}
                             max={100}
                             bind:value={self.controlIntensity}
-                            disabled={self.disableControls}
+                            onchange={(event: { value: number }) => self.onIntensityChange(event.value) }
                         />
                         <span class="material-symbol no-offset" data-icon="nest_true_radiant"></span>
                     </div>
                     <NumericInput
+                        disabled={self.disableControls}
                         spin="split"
                         spinOnly
                         min={0}
                         max={100}
                         bind:value={self.controlIntensity}
-                        disabled={self.disableControls}
+                        onchange={(event: { value: number | null }) => { if (event.value !== null) self.onIntensityChange(event.value); }}
                     />
                 </div>
             </div>
