@@ -79,6 +79,10 @@ $material-symbols-url: build-material-symbol-url();
 // #endregion
 
 // #region Elements
+html, body {
+    touch-action: manipulation; // Prevents double-tap zoom on mobile devices
+}
+
 * {
     margin: 0;
     padding: 0;
