@@ -1,4 +1,5 @@
 <script lang="ts">
+    // UI imports
     import Button from '$component/Button.svelte';
 	import RadioInput from '$component/RadioInput.svelte';
 	import SliderDoubleInput from '$component/SliderDoubleInput.svelte';
@@ -7,65 +8,23 @@
 	import CheckboxInput from '$component/CheckboxInput.svelte';
     import './MainControlView.scss';
 
-	import type { ViewManager, ViewManagerProps } from '$lib/state/viewManager.svelte.ts';
-	import type { OssmDevice } from '$lib/services/OssmDevice.svelte.ts';
-	import { isDevMode, mediaQuery } from '$lib/utils/Helpers.svelte.ts';
+    // Logic imports
+    import { mediaQuery } from '$lib/utils/Helpers.svelte.ts';
+    import { MainControlView, type Props } from './MainControlView.svelte.ts';
 
-    interface Props extends ViewManagerProps {
-        readonly viewManager: ViewManager;
-        readonly ossmInstance: OssmDevice;
-    }
-    let {
-        viewManager,
-        ossmInstance
-    }: Props = $props();
+    let props: Props = $props();
+    const self = new MainControlView(() => props);
 
     const isLandscape = mediaQuery('(orientation: landscape)');
     const orientation = $derived(isLandscape.matches ? 'horizontal' : 'vertical');
-
-    // TODO: Move these states to the code behind (.ts file). This exists here as a temporary placeholder
-
-    // #region Connection states
-    let connectionState = $state<'disconnected' | 'reconnecting' | 'connected'>('disconnected');
-    let disableControls = $derived(connectionState !== 'connected');
-    if (isDevMode && new URLSearchParams(globalThis.location?.search).get('viewOverride'))
-        connectionState = 'connected'; // For development mode, override the connection state to connected
-    // #endregion
-
-    // #region Pattern states
-    let patterns = $state<Record<string, { name: string; description: string }>>({
-        // Sample data for patterns
-        'pattern-0': {
-            name: 'Pattern 1',
-            description: 'Lorem ipsum dolor sit amet'
-        },
-        'pattern-1': {
-            name: 'Pattern 2',
-            description: 'consectetur adipiscing elit'
-        }
-    });
-    let selectedPattern = $state('pattern-0');
-    const selectedPatternDescription = $derived(patterns[selectedPattern]?.description ?? 'No pattern selected');
-    // Use $effect to auto select the first key if a pattern is not selected? (for now no because it will be set by the machine state when active)
-    // #endregion
-
-    // #region Control states
-    let minGap = 1;
-    let controlRange = $state({
-        from: 0,
-        to: 10
-    });
-    let controlSpeed = $state(0);
-    let controlIntensity = $state(50);
-    let controlInvertIntensity = $state(false);
-    // #endregion
+    const minGap = 1;
 </script>
 
 <main class="fill-page">
     <section class="control-screen">
         <div class="status card">
             <div>
-                <p class="state-indicator" data-state={connectionState} data-text={connectionState[0].toUpperCase() + connectionState.slice(1)}>
+                <p class="state-indicator" data-state={self.connectionState} data-text={self.connectionState[0].toUpperCase() + self.connectionState.slice(1)}>
                     <span class="material-symbol fill small" data-icon="circle"></span>
                 </p>
             </div>
@@ -79,25 +38,25 @@
 
         <div
             class="options-and-controls"
-            class:scale-pulse={connectionState === 'reconnecting'}>
+            class:scale-pulse={self.connectionState === 'reconnecting'}>
             <div class="options card">
                 <div class="patterns-panel">
                     <div class="pattern-list">
                         <h3>Patterns</h3>
                         <div class="pattern-select">
-                            {#each Object.entries(patterns) as [key, { name }] (key)}
+                            {#each Object.entries(self.patterns) as [key, { name }] (key)}
                                 <RadioInput
                                     group="pattern"
-                                    checked={selectedPattern === key}
-                                    onchange={() => (selectedPattern = key)}
-                                    disabled={disableControls}>
+                                    checked={self.selectedPattern === key}
+                                    onchange={() => (self.selectedPattern = key)}
+                                    disabled={self.disableControls}>
                                     {name}
                                 </RadioInput>
                             {/each}
                         </div>
                     </div>
                     <div class="pattern-settings">
-                        <p class="description-text">{selectedPatternDescription}</p>
+                        <p class="description-text">{self.selectedPatternDescription}</p>
                     </div>
                 </div>
             </div>
@@ -108,20 +67,20 @@
                     <NumericInput
                         spin="split"
                         spinOnly
-                        min={controlRange.from + minGap}
+                        min={self.controlRange.from + minGap}
                         max={100}
-                        bind:value={controlRange.to}
-                        disabled={disableControls}
+                        bind:value={self.controlRange.to}
+                        disabled={self.disableControls}
                     />
                     <div class="glass-border">
                         <SliderDoubleInput
                             orientation={orientation}
                             min={0}
                             max={100}
-                            bind:from={controlRange.from}
-                            bind:to={controlRange.to}
+                            bind:from={self.controlRange.from}
+                            bind:to={self.controlRange.to}
                             minGap={minGap}
-                            disabled={disableControls}
+                            disabled={self.disableControls}
                         />
                         <span class="material-symbol no-offset" data-icon="arrow_range"></span>
                     </div>
@@ -129,9 +88,9 @@
                         spin="split"
                         spinOnly
                         min={0}
-                        max={controlRange.to - minGap}
-                        bind:value={controlRange.from}
-                        disabled={disableControls}
+                        max={self.controlRange.to - minGap}
+                        bind:value={self.controlRange.from}
+                        disabled={self.disableControls}
                     />
                 </div>
 
@@ -143,8 +102,8 @@
                             orientation={orientation}
                             min={0}
                             max={100}
-                            bind:value={controlSpeed}
-                            disabled={disableControls}
+                            bind:value={self.controlSpeed}
+                            disabled={self.disableControls}
                         />
                         <span class="material-symbol no-offset" data-icon="speed"></span>
                     </div>
@@ -153,8 +112,8 @@
                         spinOnly
                         min={0}
                         max={100}
-                        bind:value={controlSpeed}
-                        disabled={disableControls}
+                        bind:value={self.controlSpeed}
+                        disabled={self.disableControls}
                     />
                 </div>
 
@@ -164,16 +123,16 @@
                         class="invert-intensity"
                         checkedIcon="flip"
                         uncheckedIcon="flip"
-                        bind:checked={controlInvertIntensity}
-                        disabled={disableControls}
+                        bind:checked={self.controlInvertIntensity}
+                        disabled={self.disableControls}
                     />
                     <div class="glass-border">
                         <SliderInput
                             orientation={orientation}
                             min={0}
                             max={100}
-                            bind:value={controlIntensity}
-                            disabled={disableControls}
+                            bind:value={self.controlIntensity}
+                            disabled={self.disableControls}
                         />
                         <span class="material-symbol no-offset" data-icon="nest_true_radiant"></span>
                     </div>
@@ -182,8 +141,8 @@
                         spinOnly
                         min={0}
                         max={100}
-                        bind:value={controlIntensity}
-                        disabled={disableControls}
+                        bind:value={self.controlIntensity}
+                        disabled={self.disableControls}
                     />
                 </div>
             </div>

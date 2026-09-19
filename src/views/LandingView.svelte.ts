@@ -10,7 +10,6 @@ interface NavigatorUAData {
 }
 
 export class LandingView {
-
     constructor() {
         onMount(this.checkCompatibility.bind(this));
         onMount(this.capturePwaPromptEvent.bind(this));
