@@ -1,12 +1,10 @@
 <script lang="ts">
     import type { HTMLInputAttributes } from 'svelte/elements';
 
-    export type SpinDirection = 'left' | 'right' | 'split' | 'none';
-
-    // Extend native input attributes, overriding value for number | null
     interface Props extends Omit<HTMLInputAttributes, 'value'> {
         value?: number | null;
-        spin?: SpinDirection;
+        spin?: 'left' | 'right' | 'split' | 'none';
+        spinOnly?: boolean;
         placeholder?: string;
         min?: number;
         max?: number;
@@ -17,6 +15,7 @@
     let {
         value = $bindable(undefined),
         spin = 'none',
+        spinOnly = false,
         placeholder = '',
         min,
         max,
@@ -26,6 +25,12 @@
         ...restProps
     }: Props = $props();
 
+    // Draft state for uncommitted typing
+    let draft = $state<string | null>(null);
+
+    const displayValue = $derived(draft ?? value ?? '');
+    const isReadOnly = $derived(spinOnly && spin !== 'none');
+
     function clamp(val: number): number {
         let clamped = val;
         if (min !== undefined) clamped = Math.max(min, clamped);
@@ -33,22 +38,38 @@
         return clamped;
     }
 
-    function handleManualInput() {
-        if (value === null || value === undefined || isNaN(value)) {
+    function commitValue(val: string | number | undefined) {
+        if (val === '' || val === null || val === undefined || isNaN(Number(val)))
             value = undefined;
-            return;
-        }
-        value = clamp(value);
+        else
+            value = clamp(Number(val));
+        draft = null;
+    }
+
+    function handleInput(e: Event & { currentTarget: HTMLInputElement }) {
+        draft = e.currentTarget.value;
+    }
+
+    function handleKeyDown(e: KeyboardEvent) {
+        if (e.key === 'Enter')
+            commitValue(displayValue);
+    }
+
+    function handleBlur() {
+        if (draft !== null)
+            commitValue(draft);
     }
 
     function decrement() {
         if (disabled) return;
+        draft = null;
         const current = value ?? 0;
         value = clamp(current - step);
     }
 
     function increment() {
         if (disabled) return;
+        draft = null;
         const current = value ?? 0;
         value = clamp(current + step);
     }
@@ -69,8 +90,11 @@
 
     <input
         type="number"
-        bind:value={value}
-        onchange={handleManualInput}
+        value={displayValue}
+        oninput={handleInput}
+        onkeydown={handleKeyDown}
+        onblur={handleBlur}
+        readonly={isReadOnly}
         {placeholder}
         {min}
         {max}

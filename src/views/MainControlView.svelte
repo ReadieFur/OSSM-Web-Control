@@ -107,6 +107,7 @@
                 <div>
                     <NumericInput
                         spin="split"
+                        spinOnly
                         min={controlRange.from + minGap}
                         max={100}
                         bind:value={controlRange.to}
@@ -126,6 +127,7 @@
                     </div>
                     <NumericInput
                         spin="split"
+                        spinOnly
                         min={0}
                         max={controlRange.to - minGap}
                         bind:value={controlRange.from}
@@ -148,6 +150,7 @@
                     </div>
                     <NumericInput
                         spin="split"
+                        spinOnly
                         min={0}
                         max={100}
                         bind:value={controlSpeed}
@@ -176,6 +179,7 @@
                     </div>
                     <NumericInput
                         spin="split"
+                        spinOnly
                         min={0}
                         max={100}
                         bind:value={controlIntensity}
