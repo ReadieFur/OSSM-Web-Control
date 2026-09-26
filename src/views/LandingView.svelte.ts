@@ -1,7 +1,6 @@
-import { onMount } from 'svelte';
-import { OssmBle } from 'ossm-ble-web';
-import { DOMExceptionError } from '$lib/utils/Helpers.svelte.ts';
-import { DeviceManager } from '$lib/services/DeviceManager.svelte.ts';
+import { onMount } from "svelte";
+import { isClientBleCapable } from "ossm-ble-web";
+import { DOMExceptionError } from "$lib/utils/Helpers.svelte";
 
 interface NavigatorUAData {
     userAgentData?: {
@@ -22,25 +21,25 @@ export class LandingView {
 
     private parseLegacyUserAgent(): string | undefined {
         const ua = navigator.userAgent;
-        if (ua.includes('Windows')) return 'Windows';
-        if (ua.includes('Linux')) return 'Linux';
-        if (ua.includes('Macintosh')) return 'Macintosh';
-        if (ua.includes('Android')) return 'Android';
-        if (/iPhone|iPad|iPod/.test(ua)) return 'iOS';
+        if (ua.includes("Windows")) return "Windows";
+        if (ua.includes("Linux")) return "Linux";
+        if (ua.includes("Macintosh")) return "Macintosh";
+        if (ua.includes("Android")) return "Android";
+        if (/iPhone|iPad|iPod/.test(ua)) return "iOS";
         return undefined;
     }
 
     private async checkCompatibility(): Promise<void> {
         this.isSecureContext = window.isSecureContext;
 
-        if (!OssmBle.isClientSupported()) {
-            console.error('Browser does not support required Bluetooth features');
+        if (!isClientBleCapable()) {
+            console.error("Browser does not support required Bluetooth features");
             this.isBleSupported = false;
 
             const nav = navigator as Navigator & NavigatorUAData;
 
             if (nav.userAgentData?.getHighEntropyValues) {
-                try { this.platform = (await nav.userAgentData.getHighEntropyValues(['platform'])).platform; }
+                try { this.platform = (await nav.userAgentData.getHighEntropyValues(["platform"])).platform; }
                 catch { this.platform = this.parseLegacyUserAgent(); }
             } else if (navigator.userAgent) {
                 this.platform = this.parseLegacyUserAgent();
@@ -73,9 +72,9 @@ export class LandingView {
             this.pwaInstallContext = event;
         };
 
-        window.addEventListener('beforeinstallprompt', handleInstallPrompt);
+        window.addEventListener("beforeinstallprompt", handleInstallPrompt);
 
-        return () => window.removeEventListener('beforeinstallprompt', handleInstallPrompt);
+        return () => window.removeEventListener("beforeinstallprompt", handleInstallPrompt);
     }
 
     async installPWA(): Promise<void> {
@@ -85,7 +84,7 @@ export class LandingView {
             await this.pwaInstallContext.prompt();
             this.pwaInstallContext = null; // Context always gets made invalid after prompt()
         } catch (error) {
-            console.error('[PWA] Prompt failed:', error);
+            console.error("[PWA] Prompt failed:", error);
         } finally {
             this.isPwaInstalling = false;
         }
@@ -93,16 +92,16 @@ export class LandingView {
     // #endregion
 
     // #region Connection
-    infoDialog: { state: 'info' | 'error'; title?: string; message?: string; } | null = $state(null);
+    infoDialog: { state: "info" | "error"; title?: string; message?: string; } | null = $state(null);
     isConnecting = $state(false);
 
     async connectDevice(): Promise<void> {
         if (this.isConnecting) return;
         this.isConnecting = true;
 
-        let device: OssmBle;
+        let device: OssmBleClient;
         try {
-            device = await OssmBle.pairDevice();
+            device = await OssmBleClient.pairDevice();
         }
         catch (error) {
             const allowedErrors: string[] = [
@@ -110,11 +109,11 @@ export class LandingView {
             ];
 
             if (error instanceof DOMException && !allowedErrors.includes(error.name)) {
-                console.error('[BLE] Connection failed:', error);
+                console.error("[BLE] Connection failed:", error);
                 this.infoDialog = {
-                    state: 'error',
-                    title: 'Connection Error',
-                    message: 'Failed to connect to device'
+                    state: "error",
+                    title: "Connection Error",
+                    message: "Failed to connect to device"
                 };
             }
             return;
@@ -124,7 +123,7 @@ export class LandingView {
         }
 
         // TODO: Handoff connection to the main app view
-        const deviceManager = new DeviceManager();
+        // const deviceManager = new DeviceManager();
     }
     // #endregion
 }

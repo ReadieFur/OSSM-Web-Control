@@ -1,6 +1,6 @@
-import type { Component } from 'svelte';
+import type { Component } from "svelte";
 
-type ViewChangeEventArgs = 'beforeviewchange' | 'viewchange';
+type ViewChangeEventArgs = "beforeviewchange" | "viewchange";
 
 export interface ViewManagerProps extends Record<string, unknown> {
     readonly viewManager: ViewManager;
@@ -35,7 +35,7 @@ export class ViewManager extends EventTarget {
         const previousView = this.#view;
         if (previousView === view) return;
 
-        const beforeEvent = new ViewChangeEvent('beforeviewchange', previousView, view, { cancelable: true });
+        const beforeEvent = new ViewChangeEvent("beforeviewchange", previousView, view, { cancelable: true });
         this.dispatchEvent(beforeEvent);
 
         // Abort if a listener called e.preventDefault()
@@ -44,7 +44,7 @@ export class ViewManager extends EventTarget {
         this.viewProps = props ?? {};
         this.#view = view;
 
-        this.dispatchEvent(new ViewChangeEvent('viewchange', previousView, view));
+        this.dispatchEvent(new ViewChangeEvent("viewchange", previousView, view));
     }
 
     constructor(initialView: ViewManagerComponent | null = null, initialProps?: Record<string, unknown>) {

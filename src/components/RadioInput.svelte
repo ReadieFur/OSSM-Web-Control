@@ -1,10 +1,10 @@
 <script lang="ts">
-    import type { Snippet } from 'svelte';
-    import type { HTMLInputAttributes } from 'svelte/elements';
+    import type { Snippet } from "svelte";
+    import type { HTMLInputAttributes } from "svelte/elements";
 
-    export type LabelPosition = 'left' | 'right';
+    export type LabelPosition = "left" | "right";
 
-    interface Props extends Omit<HTMLInputAttributes, 'type' | 'name'> {
+    interface Props extends Omit<HTMLInputAttributes, "type" | "name"> {
         group?: string;
         children?: Snippet;
         labelPosition?: LabelPosition;
@@ -15,17 +15,17 @@
     let {
         group,
         children,
-        labelPosition = 'right',
+        labelPosition = "right",
         checkedIcon,
         uncheckedIcon,
         id,
-        class: className = '',
+        class: className = "",
         ...restProps
     }: Props = $props();
 
     const inputId = $derived(id ?? `radio-${Math.random().toString(36).substring(2, 9)}`);
     const hasIcons = $derived(Boolean(checkedIcon || uncheckedIcon));
-    const isLabelFirst = $derived(labelPosition === 'left');
+    const isLabelFirst = $derived(labelPosition === "left");
 </script>
 
 <input

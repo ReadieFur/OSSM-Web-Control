@@ -1,7 +1,7 @@
 <script lang="ts">
-    import type { HTMLAttributes } from 'svelte/elements';
+    import type { HTMLAttributes } from "svelte/elements";
 
-    export type InputHandle = 'from' | 'to';
+    export type InputHandle = "from" | "to";
 
     export type RangeValue = {
         [key in InputHandle]: number;
@@ -12,14 +12,14 @@
         activeHandle: InputHandle;
     };
 
-    interface Props extends Omit<HTMLAttributes<HTMLDivElement>, 'onchange'> {
+    interface Props extends Omit<HTMLAttributes<HTMLDivElement>, "onchange"> {
         from?: number;
         to?: number;
         min?: number;
         max?: number;
-        step?: number | 'any';
+        step?: number | "any";
         minGap?: number;
-        orientation?: 'horizontal' | 'vertical';
+        orientation?: "horizontal" | "vertical";
         disabled?: boolean;
         onchange?: (event: RangeChangeEvent) => void;
     }
@@ -31,10 +31,10 @@
         max = 100,
         step = 1,
         minGap = 0,
-        orientation = 'horizontal',
+        orientation = "horizontal",
         disabled = false,
-        class: className = '',
-        style = '',
+        class: className = "",
+        style = "",
         onchange,
         ...restProps
     }: Props = $props();
@@ -62,7 +62,7 @@
         const rect = ref.getBoundingClientRect();
         let positionPercent: number;
 
-        if (orientation === 'vertical') {
+        if (orientation === "vertical") {
             const offsetY = event.clientY - rect.top;
             positionPercent = 1 - (offsetY / rect.height);
         } else {
@@ -76,7 +76,7 @@
         const numMax = Number(max);
         let computedValue = numMin + positionPercent * (numMax - numMin);
 
-        if (step !== 'any' && Number(step) > 0) {
+        if (step !== "any" && Number(step) > 0) {
             const numStep = Number(step);
             const steps = Math.round((computedValue - numMin) / numStep);
             computedValue = numMin + steps * numStep;
@@ -88,7 +88,7 @@
     function updateHandleValue(handle: InputHandle, event: PointerEvent, ref: HTMLInputElement) {
         const rawVal = calculateValueFromPointer(event, ref);
 
-        if (handle === 'from') {
+        if (handle === "from") {
             const maxAllowed = to - minGap;
             from = Math.min(rawVal, maxAllowed);
         } else {
@@ -99,7 +99,7 @@
 
     // Pointer handlers
     function handlePointerDown(handle: InputHandle, event: PointerEvent) {
-        const ref = handle === 'from' ? fromInputRef : toInputRef;
+        const ref = handle === "from" ? fromInputRef : toInputRef;
         if (!ref || disabled) return;
 
         event.preventDefault();
@@ -109,14 +109,14 @@
     }
 
     function handlePointerMove(handle: InputHandle, event: PointerEvent) {
-        const ref = handle === 'from' ? fromInputRef : toInputRef;
+        const ref = handle === "from" ? fromInputRef : toInputRef;
         if (activeHandle !== handle || !ref || disabled) return;
 
         updateHandleValue(handle, event, ref);
     }
 
     function handlePointerUp(handle: InputHandle, event: PointerEvent) {
-        const ref = handle === 'from' ? fromInputRef : toInputRef;
+        const ref = handle === "from" ? fromInputRef : toInputRef;
         if (activeHandle !== handle || !ref) return;
 
         activeHandle = null;
@@ -181,11 +181,11 @@
         {step}
         {disabled}
         oninput={onFromSliderInput}
-        onpointerdown={(e) => handlePointerDown('from', e)}
-        onpointermove={(e) => handlePointerMove('from', e)}
-        onpointerup={(e) => handlePointerUp('from', e)}
+        onpointerdown={(e) => handlePointerDown("from", e)}
+        onpointermove={(e) => handlePointerMove("from", e)}
+        onpointerup={(e) => handlePointerUp("from", e)}
         onpointercancel={handlePointerCancel}
-        onchange={() => handleNativeChange('from')}
+        onchange={() => handleNativeChange("from")}
         {...restProps}
     />
     <input
@@ -198,11 +198,11 @@
         {step}
         {disabled}
         oninput={onToSliderInput}
-        onpointerdown={(e) => handlePointerDown('to', e)}
-        onpointermove={(e) => handlePointerMove('to', e)}
-        onpointerup={(e) => handlePointerUp('to', e)}
+        onpointerdown={(e) => handlePointerDown("to", e)}
+        onpointermove={(e) => handlePointerMove("to", e)}
+        onpointerup={(e) => handlePointerUp("to", e)}
         onpointercancel={handlePointerCancel}
-        onchange={() => handleNativeChange('to')}
+        onchange={() => handleNativeChange("to")}
         {...restProps}
     />
 </div>

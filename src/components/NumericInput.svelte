@@ -1,9 +1,9 @@
 <script lang="ts">
-    import type { HTMLInputAttributes } from 'svelte/elements';
+    import type { HTMLInputAttributes } from "svelte/elements";
 
-    interface Props extends Omit<HTMLInputAttributes, 'value' | 'onchange'> {
+    interface Props extends Omit<HTMLInputAttributes, "value" | "onchange"> {
         value?: number | null;
-        spin?: 'left' | 'right' | 'split' | 'none';
+        spin?: "left" | "right" | "split" | "none";
         spinOnly?: boolean;
         placeholder?: string;
         min?: number;
@@ -15,14 +15,14 @@
 
     let {
         value = $bindable(undefined),
-        spin = 'none',
+        spin = "none",
         spinOnly = false,
-        placeholder = '',
+        placeholder = "",
         min,
         max,
         step = 1,
         disabled = false,
-        class: className = '',
+        class: className = "",
         onchange,
         ...restProps
     }: Props = $props();
@@ -30,8 +30,8 @@
     // Draft state for uncommitted typing
     let draft = $state<string | null>(null);
 
-    const displayValue = $derived(draft ?? value ?? '');
-    const isReadOnly = $derived(spinOnly && spin !== 'none');
+    const displayValue = $derived(draft ?? value ?? "");
+    const isReadOnly = $derived(spinOnly && spin !== "none");
 
     function clamp(val: number): number {
         let clamped = val;
@@ -41,7 +41,7 @@
     }
 
     function commitValue(val: string | number | undefined) {
-        const newValue = val === '' || val === null || val === undefined || isNaN(Number(val)) ? null : clamp(Number(val));
+        const newValue = val === "" || val === null || val === undefined || isNaN(Number(val)) ? null : clamp(Number(val));
 
         if (value !== newValue) {
             value = newValue;
@@ -56,7 +56,7 @@
     }
 
     function handleKeyDown(e: KeyboardEvent) {
-        if (e.key === 'Enter')
+        if (e.key === "Enter")
             commitValue(displayValue);
     }
 
@@ -89,7 +89,7 @@
 </script>
 
 <div class="input-container-number {className}" data-spin={spin}>
-    {#if spin !== 'none'}
+    {#if spin !== "none"}
         <button
             type="button"
             class="btn-minus"
@@ -116,7 +116,7 @@
         {...restProps}
     />
 
-    {#if spin !== 'none'}
+    {#if spin !== "none"}
         <button
             type="button"
             class="btn-plus"

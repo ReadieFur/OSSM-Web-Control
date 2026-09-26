@@ -1,8 +1,8 @@
 <script lang="ts">
-    import { LandingView } from './LandingView.svelte.ts';
-    import InfoContainer from '$component/InfoContainer.svelte';
-    import { svelteFade } from '$lib/utils/Animation.svelte.ts';
-	import type { ViewManagerProps } from '$lib/state/viewManager.svelte.ts';
+    import { LandingView } from "./LandingView.svelte.ts";
+    import InfoContainer from "$component/InfoContainer.svelte";
+    import { svelteFade } from "$lib/utils/Animation.svelte";
+	import type { ViewManagerProps } from "$lib/services/ViewManager.svelte";
 
     let { landingView }: ViewManagerProps = $props();
 
@@ -29,9 +29,9 @@
                     title="Unsupported Browser"
                     message="Your browser does not support the required Bluetooth features"
                 >
-                    {#if self.platform === 'Windows' || self.platform === 'Linux' || self.platform === 'Macintosh' || self.platform === 'Android'}
+                    {#if self.platform === "Windows" || self.platform === "Linux" || self.platform === "Macintosh" || self.platform === "Android"}
                         <p><small>Please use a compatible browser such as Chrome</small></p>
-                    {:else if self.platform === 'iOS'}
+                    {:else if self.platform === "iOS"}
                         <p>
                             <small>
                                 iOS devices must use the Bluefy browser

@@ -1,9 +1,11 @@
+import { SvelteURLSearchParams } from "svelte/reactivity";
+
 export const isDevMode = Boolean(
     import.meta.env?.DEV ||
     import.meta.env?.VITE_DEBUG_LOGGING ||
     globalThis.location?.hostname === "localhost" ||
     (globalThis.location?.hostname && /^(?:[0-9]{1,3}\.){3}[0-9]{1,3}$/.test(globalThis.location.hostname)) ||
-    (globalThis.location?.search && new URLSearchParams(globalThis.location.search).has("dev"))
+    (globalThis.location?.search && new SvelteURLSearchParams(globalThis.location.search).has("dev"))
 );
 
 export async function delay(ms: number): Promise<void> {
@@ -40,8 +42,8 @@ export function mediaQuery(query: string) {
 
         const onChange = (e: MediaQueryListEvent) => { matches = e.matches; };
 
-        media.addEventListener('change', onChange);
-        return () => media.removeEventListener('change', onChange);
+        media.addEventListener("change", onChange);
+        return () => media.removeEventListener("change", onChange);
     });
 
     return {

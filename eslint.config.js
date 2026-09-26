@@ -36,6 +36,10 @@ export default defineConfig(
 	{
 		// Override or add rule settings here, such as:
 		// 'svelte/button-has-type': 'error'
-		rules: {}
+		rules: {
+			"no-unused-private-class-members": "off",
+			"@typescript-eslint/no-unused-vars": "off",
+			"svelte/no-unused-props": "off"
+		}
 	}
 );

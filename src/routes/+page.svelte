@@ -1,16 +1,16 @@
 <script lang="ts">
     // Imports
-    import { onMount, type Component } from 'svelte';
-    import { ViewManager } from '$lib/services/ViewManager.svelte.ts';
-    import Footer from '$component/Footer.svelte';
-    import LandingView from '$view/LandingView.svelte';
-    import { svelteFade } from '$lib/utils/Animation.svelte.ts';
-	import { isDevMode } from '$lib/utils/Helpers.svelte.ts';
-    import { DummyOssmDevice } from '$lib/services/OssmDevice.svelte.ts';
+    import { onMount, type Component } from "svelte";
+    import { ViewManager } from "$lib/services/ViewManager.svelte";
+    import Footer from "$component/Footer.svelte";
+    import LandingView from "$view/LandingView.svelte";
+    import { svelteFade } from "$lib/utils/Animation.svelte";
+	import { isDevMode } from "$lib/utils/Helpers.svelte";
+    import { DummyOssmDevice } from "$lib/services/OssmInterface.svelte";
 
     // Styles
-    import '$lib/styles/global.scss';
-    import '$lib/styles/layout.scss';
+    import "$lib/styles/global.scss";
+    import "$lib/styles/layout.scss";
 
     // Initial app state
     let appShellVisible = $state(false);
@@ -25,21 +25,21 @@
     (() => {
         if (!isDevMode) return;
 
-        const pageParam = new URLSearchParams(globalThis.location?.search).get('viewOverride');
+        const pageParam = new URLSearchParams(globalThis.location?.search).get("viewOverride");
         if (!pageParam) return;
 
-        const viewModules = import.meta.glob<{ default: Component }>('/src/views/**/*.svelte');
+        const viewModules = import.meta.glob<{ default: Component }>("/src/views/**/*.svelte");
 
         for (const view in viewModules) {
-            const fileName = view.split('/').pop()?.replace('.svelte', '') ?? '';
+            const fileName = view.split("/").pop()?.replace(".svelte", "") ?? "";
             if (fileName === pageParam) {
                 devViewOverride = true;
 
-                if (fileName === 'MainControlView') vm.viewProps = { ossmInstance: new DummyOssmDevice() };
+                if (fileName === "MainControlView") vm.viewProps = { ossmInstance: new DummyOssmDevice() };
 
                 viewModules[view]()
                     .then((module) => { vm.view = module.default; })
-                    .catch((error) => console.error('[DEV] Error loading view module:', error));
+                    .catch((error) => console.error("[DEV] Error loading view module:", error));
                 return; // Return early
             }
         }
@@ -51,11 +51,11 @@
         appShellVisible = true; //Triggers the fade-in animation for the app shell
 
         // Register Service Worker in production builds
-        if ('serviceWorker' in navigator /*&& import.meta.env.PROD*/) {
+        if ("serviceWorker" in navigator /*&& import.meta.env.PROD*/) {
             navigator.serviceWorker
-            .register('/service-worker.js', { type: 'module' })
-            .then(() => console.log('[PWA] Registration successful'))
-            .catch((err) => console.error('[PWA] Registration failed:', err));
+            .register("/service-worker.js", { type: "module" })
+            .then(() => console.log("[PWA] Registration successful"))
+            .catch((err) => console.error("[PWA] Registration failed:", err));
         }
     });
 </script>

@@ -1,7 +1,7 @@
 <script lang="ts">
-    import type { Snippet } from 'svelte';
+    import type { Snippet } from "svelte";
 
-    export type InfoContainerState = 'info' | 'success' | 'warning' | 'error' | string;
+    export type InfoContainerState = "info" | "success" | "warning" | "error" | string;
 
     interface Props {
         state?: InfoContainerState;
@@ -23,7 +23,7 @@
         <p>{message}</p>
     {/if}
 
-    {#if typeof extraContent === 'string'}
+    {#if typeof extraContent === "string"}
         <span>{extraContent}</span>
     {:else if extraContent}
         {@render extraContent()}

@@ -1,38 +1,62 @@
-import type { ViewManager, ViewManagerProps } from '$lib/state/viewManager.svelte.ts';
-import type { OssmDevice } from '$lib/services/OssmDevice.svelte.ts';
-import type { RangeChangeEvent } from '$component/SliderDoubleInput.svelte';
-import { PatternHelper } from 'ossm-ble-web';
+import type { ViewManager, ViewManagerProps } from "$lib/services/ViewManager.svelte";
+import type { OssmInterface } from "$lib/services/OssmInterface.svelte";
+import type { RangeChangeEvent } from "$component/SliderDoubleInput.svelte";
 
 export interface Props extends ViewManagerProps {
     readonly viewManager: ViewManager;
-    ossmInstance: OssmDevice;
+    ossmInterface: OssmInterface;
 }
 
 export class MainControlView {
-    disableControls = $derived(this.ossmInstance.connectionState !== 'connected');
+    disableControls = $derived(this.ossmInterface.state !== "ready");
     selectedPattern = $state(0);
     controlRange = $state({ from: 0, to: 0 });
     controlSpeed = $state(0);
-    controlHasIntensity = $derived.by(() => true); // TODO
-    controlCanInvertIntensity = $derived.by(() => true); // TODO
-    controlIntensity = $state(0);
-    controlInvertIntensity = $state(false);
+    controlHasSensation = $derived.by(() => this.ossmInterface.patterns.find(p => p.idx === this.ossmInterface.playState.patternIdx)?.hasSensation ?? true);
+    controlCanInvertIntensity = $derived.by(() => this.ossmInterface.patterns.find(p => p.idx === this.ossmInterface.playState.patternIdx)?.canSensationInvert ?? false);
+    controlSensation = $state(0);
+    controlInvertSensation = $state(false);
     // #endregion
 
-    // Getters for inherited props (via the 'private ...' parameter in the constructor)
+    // Getters for inherited props (via the "private ..." parameter in the constructor)
     get viewManager() { return this.getProps().viewManager; }
-    get ossmInstance() { return this.getProps().ossmInstance; }
+    get ossmInterface() { return this.getProps().ossmInterface; }
 
     constructor(private getProps: () => Props) {
         $effect(() => {
             // TODO: Extract pattern properties before updating the control values, so that we can determine if the selected pattern has intensity control
-            const patternHelper = PatternHelper.fromPlayData(this.ossmInstance.currentState, this.controlHasIntensity, this.controlCanInvertIntensity);
-            this.selectedPattern = this.ossmInstance.currentState.pattern;
-            this.controlRange = { from: patternHelper.minDepth, to: patternHelper.maxDepth };
-            this.controlSpeed = patternHelper.speed;
-            this.controlIntensity = patternHelper.intensity ?? 0;
-            this.controlInvertIntensity = patternHelper.invert ?? false;
+            this.selectedPattern = this.ossmInterface.playState.patternIdx;
+            this.controlRange = this.#rawToRange(this.ossmInterface.playState.depth, this.ossmInterface.playState.stroke);
+            this.controlSpeed = this.ossmInterface.playState.speed;
+            this.controlSensation = this.ossmInterface.playState.sensation;
         });
+    }
+
+    #clamp(value: number, min: number, max: number): number {
+        return Math.min(Math.max(value, min), max);
+    }
+
+    #rawToRange(depth: number, stroke: number): { from: number; to: number } {
+        depth = this.#clamp(depth, 0, 100);
+        stroke = this.#clamp(stroke, 0, 100);
+
+        // Cap stroke so that it cant make a negative from value
+        stroke = this.#clamp(stroke, 0, depth);
+        
+        return {
+            from: depth - stroke,
+            to: depth
+        };
+    }
+
+    #rangeToRaw(from: number, to: number) {
+        const depth = to;
+        const stroke = to - from;
+
+        return {
+            depth: this.#clamp(depth, 0, 100),
+            stroke: this.#clamp(stroke, 0, 100)
+        };
     }
 
     onRangeChange(newRange: RangeChangeEvent) {

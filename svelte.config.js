@@ -12,7 +12,11 @@ const config = {
     kit: {
         adapter: adapter({
             fallback: 'index.html'
-        })
+        }),
+        alias: {
+            '$view/*': 'src/views/*',
+            '$component/*': 'src/components/*'
+        }
     }
 };
 

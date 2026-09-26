@@ -1,14 +1,14 @@
 <script lang="ts">
 	import TextInput from "$component/TextInput.svelte";
 	import NumericInput from "$component/NumericInput.svelte";
-	import SliderDoubleInput from "../components/SliderDoubleInput.svelte";
-	import SliderInput from "../components/SliderInput.svelte";
-	import CheckboxInput from "../components/CheckboxInput.svelte";
-	import RadioInput from "../components/RadioInput.svelte";
-	import InfoContainer from "../components/InfoContainer.svelte";
-	import Button from "../components/Button.svelte";
+	import SliderDoubleInput from "$component/SliderDoubleInput.svelte";
+	import SliderInput from "$component/SliderInput.svelte";
+	import CheckboxInput from "$component/CheckboxInput.svelte";
+	import RadioInput from "$component/RadioInput.svelte";
+	import InfoContainer from "$component/InfoContainer.svelte";
+	import Button from "$component/Button.svelte";
 
-    import type { ViewManagerProps } from '$lib/state/viewManager.svelte.ts';
+    import type { ViewManagerProps } from "$lib/services/ViewManager.svelte";
 
     let { viewManager }: ViewManagerProps = $props();
 </script>

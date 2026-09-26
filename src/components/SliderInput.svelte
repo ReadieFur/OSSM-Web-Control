@@ -1,12 +1,12 @@
 <script lang="ts">
-    import type { HTMLInputAttributes } from 'svelte/elements';
+    import type { HTMLInputAttributes } from "svelte/elements";
 
-    interface Props extends Omit<HTMLInputAttributes, 'value' | 'type' | 'onchange'> {
+    interface Props extends Omit<HTMLInputAttributes, "value" | "type" | "onchange"> {
         value?: number;
         min?: number;
         max?: number;
-        step?: number | 'any';
-        orientation?: 'horizontal' | 'vertical';
+        step?: number | "any";
+        orientation?: "horizontal" | "vertical";
         disabled?: boolean;
         onchange?: (event: { value: number }) => void;
     }
@@ -16,10 +16,10 @@
         min = 0,
         max = 100,
         step = 1,
-        orientation = 'horizontal',
+        orientation = "horizontal",
         disabled = false,
-        class: className = '',
-        style = '',
+        class: className = "",
+        style = "",
         onchange,
         ...restProps
     }: Props = $props();
@@ -45,7 +45,7 @@
         const rect = inputRef.getBoundingClientRect();
         let positionPercent: number;
 
-        if (orientation === 'vertical') {
+        if (orientation === "vertical") {
             const offsetY = event.clientY - rect.top;
             positionPercent = 1 - (offsetY / rect.height); // Invert due to CSS using rtl/v-lr to flip the input for vertical orientation. 
         } else {
@@ -59,7 +59,7 @@
         const numMax = Number(max);
         let computedValue = numMin + positionPercent * (numMax - numMin);
 
-        if (step !== 'any' && Number(step) > 0) {
+        if (step !== "any" && Number(step) > 0) {
             const numStep = Number(step);
             const steps = Math.round((computedValue - numMin) / numStep);
             computedValue = numMin + steps * numStep;
@@ -108,6 +108,8 @@
 
         onchange?.({ value });
     }
+
+    // TODO: Smooth transition between values on the UI
 </script>
 
 <input
