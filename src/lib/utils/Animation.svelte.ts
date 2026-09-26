@@ -1,6 +1,7 @@
 import { delay, prefersReducedMotion } from "./Helpers.svelte.ts";
 import type { TransitionConfig } from "svelte/transition";
 
+// For raw script usage
 export async function transitionFade(element: HTMLElement | null, direction: "in" | "out", durationMs: number): Promise<void> {
     if (!element || prefersReducedMotion()) return;
 
@@ -18,6 +19,7 @@ export async function transitionFade(element: HTMLElement | null, direction: "in
     element.style.removeProperty("--transition-fade-duration");
 }
 
+// For Svelte's "transition:" property
 export function svelteFade(
     node: HTMLElement, 
     { duration = 300, delay = 0, switching = false }: { duration?: number; delay?: number; switching?: boolean } = {}, 

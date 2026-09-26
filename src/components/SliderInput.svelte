@@ -1,5 +1,7 @@
 <script lang="ts">
+	import { cubicOut } from "svelte/easing";
     import type { HTMLInputAttributes } from "svelte/elements";
+	import { Tween } from "svelte/motion";
 
     interface Props extends Omit<HTMLInputAttributes, "value" | "type" | "onchange"> {
         value?: number;
@@ -109,7 +111,13 @@
         onchange?.({ value });
     }
 
-    // TODO: Smooth transition between values on the UI
+    const tweenDefaultDuration = 150;
+    const animatedPercent = new Tween(0, { duration: tweenDefaultDuration, easing: cubicOut });
+    $effect(() => {
+        animatedPercent.set(percent, {
+            // duration: isDragging ? 100 : tweenDefaultDuration // Leave both the same for now
+        });
+    });
 </script>
 
 <input
@@ -122,7 +130,7 @@
     data-orientation={orientation}
     {disabled}
     class="input-range {className}"
-    style="--range-value: {percent}%; {style}"
+    style="--range-value: {animatedPercent.current}%; {style}"
     onpointerdown={handlePointerDown}
     onpointermove={handlePointerMove}
     onpointerup={handlePointerUp}

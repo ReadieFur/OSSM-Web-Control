@@ -12,8 +12,7 @@
     import { mediaQuery } from "$lib/utils/Helpers.svelte";
     import { MainControlView, type Props } from "./MainControlView.svelte.ts";
     import type { RangeChangeEvent } from "$component/SliderDoubleInput.svelte";
-	import { svelteFade } from "$lib/utils/Animation.svelte.ts";
-	import { fade } from "svelte/transition";
+	import { svelteFade } from "$lib/utils/Animation.svelte";
 
     let props: Props = $props();
     const self = new MainControlView(() => props);
@@ -57,7 +56,9 @@
                         </div>
                     </div>
                     <div class="pattern-settings">
-                        <p class="description-text">{self.ossmInterface.patterns.find(p => p.idx === self.selectedPattern)?.description ?? ""}</p>
+                        {#key self.selectedPattern}
+                            <p class="description-text" transition:svelteFade={{ duration: 200, switching: true }}>{self.ossmInterface.patterns.find(p => p.idx === self.selectedPattern)?.description ?? ""}</p>
+                        {/key}
                     </div>
                 </div>
             </div>
@@ -139,7 +140,7 @@
 
                 <!-- Sensation Control -->
                 {#if self.controlHasSensation}
-                    <!-- TODO: Fade this element in and out -->
+                    <!-- TODO: Fade this element in and out (currently broken and snaps in/out when I try to use transition on it) -->
                     <div>
                         <CheckboxInput
                             class="invert-sensation {self.controlCanInvertSensation ? "" : "hidden"}"

@@ -117,6 +117,7 @@
     flex-direction: row;
     gap: 0.5rem;
     text-align: left;
+    flex: 1;
 
     > div {
         flex: 1 1 0;
@@ -127,6 +128,8 @@
         flex-direction: column;
         gap: inherit;
         overflow: hidden;
+        flex: 0 1 35%; // Take up at least 35%
+        max-width: 50%; // Max width of 50%
 
         > .pattern-select {
             display: inherit;
@@ -151,6 +154,12 @@
 
     @media #{$landscape-media-query} {
         flex-direction: column;
+
+        > .pattern-list {
+            flex: 0 1 auto; // Make "box 1 (aka radio buttons section)" take up, up to 65% in horizontal mode
+            max-height: 65%;
+            max-width: 100%;
+        }
     }
 }
 

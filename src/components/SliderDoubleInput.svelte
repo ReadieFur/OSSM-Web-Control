@@ -1,5 +1,7 @@
 <script lang="ts">
+	import { cubicOut } from "svelte/easing";
     import type { HTMLAttributes } from "svelte/elements";
+	import { Tween } from "svelte/motion";
 
     export type InputHandle = "from" | "to";
 
@@ -163,12 +165,18 @@
             activeHandle: handle
         });
     }
+
+    const tweenDefaultDuration = 150;
+    const animatedFromPercent = new Tween(0, { duration: tweenDefaultDuration, easing: cubicOut });
+    const animatedToPercent = new Tween(0, { duration: tweenDefaultDuration, easing: cubicOut });
+    $effect(() => { animatedFromPercent.set(fromPercent) });
+    $effect(() => { animatedToPercent.set(toPercent) });
 </script>
 
 <div
     class="input-container-range-double {className}"
     data-orientation={orientation}
-    style="--range-from-value: {fromPercent}%; --range-to-value: {toPercent}%; {style}"
+    style="--range-from-value: {animatedFromPercent.current}%; --range-to-value: {animatedToPercent.current}%; {style}"
     {...restProps}
 >
     <input
