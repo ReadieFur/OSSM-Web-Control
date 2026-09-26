@@ -10,8 +10,8 @@ interface NavigatorUAData {
 
 export class LandingView {
     constructor() {
-        onMount(this.checkCompatibility.bind(this));
-        onMount(this.capturePwaPromptEvent.bind(this));
+        onMount(this.#checkCompatibility.bind(this));
+        onMount(this.#capturePwaPromptEvent.bind(this));
     }
 
     // #region Compatibility Checks
@@ -19,7 +19,7 @@ export class LandingView {
     isSecureContext = $state<boolean>(true);
     platform = $state<string | undefined>(undefined);
 
-    private parseLegacyUserAgent(): string | undefined {
+    #parseLegacyUserAgent(): string | undefined {
         const ua = navigator.userAgent;
         if (ua.includes("Windows")) return "Windows";
         if (ua.includes("Linux")) return "Linux";
@@ -29,7 +29,7 @@ export class LandingView {
         return undefined;
     }
 
-    private async checkCompatibility(): Promise<void> {
+    async #checkCompatibility(): Promise<void> {
         this.isSecureContext = window.isSecureContext;
 
         if (!isClientBleCapable()) {
@@ -40,9 +40,9 @@ export class LandingView {
 
             if (nav.userAgentData?.getHighEntropyValues) {
                 try { this.platform = (await nav.userAgentData.getHighEntropyValues(["platform"])).platform; }
-                catch { this.platform = this.parseLegacyUserAgent(); }
+                catch { this.platform = this.#parseLegacyUserAgent(); }
             } else if (navigator.userAgent) {
-                this.platform = this.parseLegacyUserAgent();
+                this.platform = this.#parseLegacyUserAgent();
             }
         } else {
             this.isBleSupported = true;
@@ -55,14 +55,14 @@ export class LandingView {
     showInstallButton = $derived(this.pwaInstallContext !== null);
     
     #pwaInstallContext = $state<BeforeInstallPromptEvent | null>(null);
-    public get pwaInstallContext(): BeforeInstallPromptEvent | null {
+    get pwaInstallContext(): BeforeInstallPromptEvent | null {
         return this.#pwaInstallContext;
     }
-    private set pwaInstallContext(value: BeforeInstallPromptEvent | null) {
+    set pwaInstallContext(value: BeforeInstallPromptEvent | null) {
         this.#pwaInstallContext = window.pwaInstallContext = value;
     }
 
-    private capturePwaPromptEvent(): () => void {
+    #capturePwaPromptEvent(): () => void {
         if (!this.pwaInstallContext && window.pwaInstallContext)
             this.pwaInstallContext = window.pwaInstallContext;
 
@@ -96,31 +96,31 @@ export class LandingView {
     isConnecting = $state(false);
 
     async connectDevice(): Promise<void> {
-        if (this.isConnecting) return;
-        this.isConnecting = true;
+        // if (this.isConnecting) return;
+        // this.isConnecting = true;
 
-        let device: OssmBleClient;
-        try {
-            device = await OssmBleClient.pairDevice();
-        }
-        catch (error) {
-            const allowedErrors: string[] = [
-                DOMExceptionError.NotFoundError, //Occurs when user cancels the pairing prompt
-            ];
+        // let device: OssmBleClient;
+        // try {
+        //     device = await OssmBleClient.pairDevice();
+        // }
+        // catch (error) {
+        //     const allowedErrors: string[] = [
+        //         DOMExceptionError.NotFoundError, //Occurs when user cancels the pairing prompt
+        //     ];
 
-            if (error instanceof DOMException && !allowedErrors.includes(error.name)) {
-                console.error("[BLE] Connection failed:", error);
-                this.infoDialog = {
-                    state: "error",
-                    title: "Connection Error",
-                    message: "Failed to connect to device"
-                };
-            }
-            return;
-        }
-        finally {
-            this.isConnecting = false;
-        }
+        //     if (error instanceof DOMException && !allowedErrors.includes(error.name)) {
+        //         console.error("[BLE] Connection failed:", error);
+        //         this.infoDialog = {
+        //             state: "error",
+        //             title: "Connection Error",
+        //             message: "Failed to connect to device"
+        //         };
+        //     }
+        //     return;
+        // }
+        // finally {
+        //     this.isConnecting = false;
+        // }
 
         // TODO: Handoff connection to the main app view
         // const deviceManager = new DeviceManager();

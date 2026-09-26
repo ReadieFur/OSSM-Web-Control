@@ -21,7 +21,8 @@
                     class="space-between"
                     disabled={self.isConnecting}
                     onclick={self.connectDevice.bind(self)}>
-                    <span class="material-symbol" data-icon="bluetooth_searching"></span>Connect OSSM
+                    <span class="material-symbol" data-icon="bluetooth_searching"></span>
+                    Connect OSSM
                 </button>
             {:else}
                 <InfoContainer
