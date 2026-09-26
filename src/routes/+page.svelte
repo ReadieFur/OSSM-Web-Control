@@ -35,7 +35,7 @@
             if (fileName === pageParam) {
                 devViewOverride = true;
 
-                if (fileName === "MainControlView") vm.viewProps = { ossmInstance: new DummyOssmDevice() };
+                if (fileName === "MainControlView") vm.viewProps = { ossmInterface: new DummyOssmDevice() };
 
                 viewModules[view]()
                     .then((module) => { vm.view = module.default; })

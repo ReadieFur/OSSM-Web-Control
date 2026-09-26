@@ -12,6 +12,8 @@
     import { mediaQuery } from "$lib/utils/Helpers.svelte";
     import { MainControlView, type Props } from "./MainControlView.svelte.ts";
     import type { RangeChangeEvent } from "$component/SliderDoubleInput.svelte";
+	import { svelteFade } from "$lib/utils/Animation.svelte.ts";
+	import { fade } from "svelte/transition";
 
     let props: Props = $props();
     const self = new MainControlView(() => props);
@@ -25,21 +27,19 @@
     <section class="control-screen">
         <div class="status card">
             <div>
-                <p class="state-indicator" data-state={self.ossmInterface.connectionState} data-text={self.ossmInterface.connectionState[0].toUpperCase() + self.ossmInterface.connectionState.slice(1)}>
+                <p class="state-indicator" data-state={self.ossmInterface.state} data-text={self.ossmInterface.state[0].toUpperCase() + self.ossmInterface.state.slice(1)}>
                     <span class="material-symbol fill small" data-icon="circle"></span>
                 </p>
             </div>
             <div>
-                <!-- TODO: Future feature; session sharing -->
-                 <Button aria-label="Reset settings" icon="reset_settings" />
-                 <Button aria-label="Disconnect" icon="logout" click={() => { /* TODO: Disconnect device & navigate view manager to home view */ }} />
-                 <Button class="stop-button" aria-label="Stop" icon="dangerous" />
+                 <Button aria-label="Disconnect" icon="logout" onclick={self.onDisconnectClick} />
+                 <Button class="stop-button" aria-label="Stop" icon="dangerous" onclick={self.onEmergencyStopClick} />
             </div>
         </div>
 
         <div
             class="options-and-controls"
-            class:scale-pulse={self.ossmInterface.connectionState === "reconnecting"}>
+            class:scale-pulse={self.ossmInterface.state === "reconnecting"}>
             <div class="options card">
                 <div class="patterns-panel">
                     <div class="pattern-list">
@@ -74,7 +74,10 @@
                         bind:value={self.controlRange.to}
                         onchange={(event: { value: number | null }) => { 
                             if (event.value !== null) {
-                                self.onRangeChange({ from: self.controlRange.from, to: event.value });
+                                self.onRangeChange({
+                                    value: { from: self.controlRange.from, to: event.value },
+                                    activeHandle: "to"
+                                });
                             }
                         }}
                     />
@@ -87,7 +90,7 @@
                             minGap={minGap}
                             bind:from={self.controlRange.from}
                             bind:to={self.controlRange.to}
-                            onchange={(event: RangeChangeEvent) => self.onRangeChange(event.value) }
+                            onchange={(event: RangeChangeEvent) => self.onRangeChange(event) }
                         />
                         <span class="material-symbol no-offset" data-icon="arrow_range"></span>
                     </div>
@@ -98,7 +101,14 @@
                         min={0}
                         max={self.controlRange.to - minGap}
                         bind:value={self.controlRange.from}
-                        onchange={(event: { value: number | null }) => { if (event.value !== null) self.onRangeChange({ from: event.value, to: self.controlRange.to }); }}
+                        onchange={(event: { value: number | null }) => { 
+                            if (event.value !== null) {
+                                self.onRangeChange({
+                                    value: { from: event.value, to: self.controlRange.to },
+                                    activeHandle: "from"
+                                });
+                            }
+                        }}
                     />
                 </div>
 
@@ -127,36 +137,39 @@
                     />
                 </div>
 
-                <!-- Intensity Control -->
-                <div class:hidden={!self.controlHasSensation}>
-                    <CheckboxInput
-                        class="invert-intensity {self.controlCanInvertIntensity ? "" : "hidden"}"
-                        disabled={self.disableControls}
-                        checkedIcon="flip"
-                        uncheckedIcon="flip"
-                        bind:checked={self.controlInvertSensation}
-                    />
-                    <div class="glass-border">
-                        <SliderInput
+                <!-- Sensation Control -->
+                {#if self.controlHasSensation}
+                    <!-- TODO: Fade this element in and out -->
+                    <div>
+                        <CheckboxInput
+                            class="invert-sensation {self.controlCanInvertSensation ? "" : "hidden"}"
                             disabled={self.disableControls}
-                            orientation={orientation}
+                            checkedIcon="flip"
+                            uncheckedIcon="flip"
+                            bind:checked={self.controlInvertSensation}
+                        />
+                        <div class="glass-border">
+                            <SliderInput
+                                disabled={self.disableControls}
+                                orientation={orientation}
+                                min={0}
+                                max={100}
+                                bind:value={self.controlSensation}
+                                onchange={(event: { value: number }) => self.onSensationChange(event.value) }
+                            />
+                            <span class="material-symbol no-offset" data-icon="nest_true_radiant"></span>
+                        </div>
+                        <NumericInput
+                            disabled={self.disableControls}
+                            spin="split"
+                            spinOnly
                             min={0}
                             max={100}
                             bind:value={self.controlSensation}
-                            onchange={(event: { value: number }) => self.onIntensityChange(event.value) }
+                            onchange={(event: { value: number | null }) => { if (event.value !== null) self.onSensationChange(event.value); }}
                         />
-                        <span class="material-symbol no-offset" data-icon="nest_true_radiant"></span>
                     </div>
-                    <NumericInput
-                        disabled={self.disableControls}
-                        spin="split"
-                        spinOnly
-                        min={0}
-                        max={100}
-                        bind:value={self.controlSensation}
-                        onchange={(event: { value: number | null }) => { if (event.value !== null) self.onIntensityChange(event.value); }}
-                    />
-                </div>
+                {/if}
             </div>
         </div>
     </section>

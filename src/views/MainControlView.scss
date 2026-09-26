@@ -31,7 +31,8 @@
     $states: (
         disconnected: $red,
         reconnecting: $yellow,
-        connected: $green,
+        connected: $accent-2,
+        ready: $green,
     );
     @each $state, $color in $states {
         &[data-state="#{$state}"] {
@@ -238,7 +239,7 @@
         }
     }
 
-    .invert-intensity {
+    .invert-sensation {
         $size: 1.5em;
 
         justify-content: center;

@@ -12,8 +12,8 @@ export class MainControlView {
     selectedPattern = $state(0);
     controlRange = $state({ from: 0, to: 0 });
     controlSpeed = $state(0);
-    controlHasSensation = $derived.by(() => this.ossmInterface.patterns.find(p => p.idx === this.ossmInterface.playState.patternIdx)?.hasSensation ?? true);
-    controlCanInvertIntensity = $derived.by(() => this.ossmInterface.patterns.find(p => p.idx === this.ossmInterface.playState.patternIdx)?.canSensationInvert ?? false);
+    controlHasSensation = $derived.by(() => this.ossmInterface.patterns.find(p => p.idx === this.selectedPattern)?.hasSensation ?? true);
+    controlCanInvertSensation = $derived.by(() => this.ossmInterface.patterns.find(p => p.idx === this.selectedPattern)?.canSensationInvert ?? false);
     controlSensation = $state(0);
     controlInvertSensation = $state(false);
     // #endregion
@@ -24,7 +24,6 @@ export class MainControlView {
 
     constructor(private getProps: () => Props) {
         $effect(() => {
-            // TODO: Extract pattern properties before updating the control values, so that we can determine if the selected pattern has intensity control
             this.selectedPattern = this.ossmInterface.playState.patternIdx;
             this.controlRange = this.#rawToRange(this.ossmInterface.playState.depth, this.ossmInterface.playState.stroke);
             this.controlSpeed = this.ossmInterface.playState.speed;
@@ -59,15 +58,18 @@ export class MainControlView {
         };
     }
 
-    onRangeChange(newRange: RangeChangeEvent) {
-        console.log(newRange);
+    onRangeChange(newRange: RangeChangeEvent): void {
     }
 
-    onSpeedChange(newSpeed: number) {
-        console.log(newSpeed);
+    onSpeedChange(newSpeed: number): void {
     }
 
-    onIntensityChange(newIntensity: number) {
-        console.log(newIntensity);
+    onSensationChange(newSensation: number): void {
+    }
+
+    onDisconnectClick(): void {
+    }
+
+    onEmergencyStopClick(): void {
     }
 }
