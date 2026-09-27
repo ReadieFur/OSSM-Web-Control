@@ -118,10 +118,12 @@
             // duration: isDragging ? 100 : tweenDefaultDuration // Leave both the same for now
         });
     });
+    const isAnimating = $derived(Math.abs(animatedPercent.current - animatedPercent.target) > 0.01);
 </script>
 
 <input
     bind:this={inputRef}
+    class:is-animating={isAnimating}
     type="range"
     bind:value={value}
     {min}

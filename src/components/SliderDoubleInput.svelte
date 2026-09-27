@@ -171,6 +171,8 @@
     const animatedToPercent = new Tween(0, { duration: tweenDefaultDuration, easing: cubicOut });
     $effect(() => { animatedFromPercent.set(fromPercent) });
     $effect(() => { animatedToPercent.set(toPercent) });
+    const isAnimatingTo = $derived(Math.abs(animatedToPercent.current - animatedToPercent.target) > 0.01);
+    const isAnimatingFrom = $derived(Math.abs(animatedFromPercent.current - animatedFromPercent.target) > 0.01);
 </script>
 
 <div
@@ -181,6 +183,8 @@
 >
     <input
         bind:this={fromInputRef}
+        class:is-animating-to={isAnimatingTo}
+        class:is-animating-from={isAnimatingFrom}
         type="range"
         data-component="from"
         value={from}
@@ -198,6 +202,8 @@
     />
     <input
         bind:this={toInputRef}
+        class:is-animating-to={isAnimatingTo}
+        class:is-animating-from={isAnimatingFrom}
         type="range"
         data-component="to"
         value={to}
@@ -222,7 +228,8 @@
     --range-to-value: 80%;
 
     --track-bg: #{hsl(from $surface-2 h s l / 0.5)};
-    --track-fill: #{hsl(from $accent-1 h s l / 0.5)};
+    --track-fill-1: #{hsl(from $accent-1 h s l / 0.5)};
+    --track-fill-2: #{hsl(from $accent-1 h s l / 0.5)};
 
     position: relative;
     display: inline-flex;
@@ -265,8 +272,8 @@
                             to right,
                             var(--track-bg) 0%,
                             var(--track-bg) var(--range-from-value),
-                            var(--track-fill) var(--range-from-value),
-                            var(--track-fill) var(--range-to-value),
+                            var(--track-fill-1) var(--range-from-value),
+                            var(--track-fill-2) var(--range-to-value),
                             var(--track-bg) var(--range-to-value),
                             var(--track-bg) 100%
                         ) center / 100% var(--range-track-thickness) no-repeat;
@@ -311,8 +318,8 @@
                             to top,
                             var(--track-bg) 0%,
                             var(--track-bg) var(--range-from-value),
-                            var(--track-fill) var(--range-from-value),
-                            var(--track-fill) var(--range-to-value),
+                            var(--track-fill-1) var(--range-from-value),
+                            var(--track-fill-2) var(--range-to-value),
                             var(--track-bg) var(--range-to-value),
                             var(--track-bg) 100%
                         ) center / var(--range-track-thickness) 100% no-repeat;

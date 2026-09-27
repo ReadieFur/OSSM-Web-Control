@@ -244,10 +244,49 @@
         }
 
         > .glass-border {
+            $track-highlight-colour: hsl(from $accent-1 h s l / 0.8);
+
             input[type="range"] {
                 @include range-track {
-                    transition: --track-fill 0.2s ease;
+                    transition: --track-fill-1 0.2s ease, --track-fill-2 0.2s ease;
                     --track-bg: transparent !important;
+                }
+
+                &.input-range,
+                &[data-component="to"] {
+                    &:active,
+                    &:focus-visible {
+                        @include range-track {
+                            --track-fill-2: #{$track-highlight-colour};
+                        }
+                    }
+                }
+
+                &.is-animating,
+                &.is-animating-to {
+                    @include range-track {
+                        --track-fill-2: #{$track-highlight-colour};
+                    }
+                }
+
+                &[data-component="from"] {
+                    &:active,
+                    &:focus-visible {
+                        /* Due to how the scss works for the double input sliders, the "from" track is actually always transparent
+                         * but we still use that as the activator and then set the value on the bottom side of the "to" component
+                         */
+                        ~ input[data-component="to"] {
+                            @include range-track {
+                                --track-fill-1: #{$track-highlight-colour};
+                            }
+                        }
+                    }
+                }
+
+                &.is-animating-from {
+                    @include range-track {
+                        --track-fill-1: #{$track-highlight-colour};
+                    }
                 }
             }
 
@@ -259,14 +298,6 @@
                 &::before {
                     --glass-border-1: #{$border-hover-2};
                     --glass-border-2: #{$border-hover-1};
-                }
-            }
-
-            &:active, &:focus-visible {
-                input[type="range"] {
-                    @include range-track {
-                        --track-fill: #{hsl(from $accent-1 h s l / 0.7)}
-                    }
                 }
             }
         }

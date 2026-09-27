@@ -206,15 +206,16 @@ input {
 
             @include range-track {
                 --track-bg: #{hsl(from $surface-2 h s l / 0.5)};
-                --track-fill: #{hsl(from $accent-1 h s l / 0.5)};
+                --track-fill-1: #{hsl(from $accent-1 h s l / 0.5)};
+                --track-fill-2: #{hsl(from $accent-1 h s l / 0.5)};
                 // In order to set the proper bounding box, we set the height to the larger of the track thickness or thumb size
                 height: var(--range-track-thickness);
                 // We then set the background to a gradient that is centered vertically, with the height of the desired track thickness
                 background:
                     linear-gradient(
                         to right,
-                        var(--track-fill) 0%,
-                        var(--track-fill) var(--range-value),
+                        var(--track-fill-1) 0%,
+                        var(--track-fill-2) var(--range-value),
                         var(--track-bg) var(--range-value),
                         var(--track-bg) 100%
                     ) center / 100% var(--range-track-thickness) no-repeat;

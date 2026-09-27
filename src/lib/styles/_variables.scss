@@ -208,7 +208,13 @@ $landscape-media-query: "(orientation: landscape)";
 }
 
 // This is a new thing I've found out about and like :3
-@property --track-fill {
+@property --track-fill-1 {
+    syntax: '<color>';
+    inherits: true;
+    initial-value: transparent;
+}
+
+@property --track-fill-2 {
     syntax: '<color>';
     inherits: true;
     initial-value: transparent;
@@ -231,13 +237,14 @@ $landscape-media-query: "(orientation: landscape)";
     @include range-track {
         // TODO: Make this more transparent without getting "muddy"
         --track-bg: #{hsl(from $surface-2 h s l / 0.5)};
-        --track-fill: #{hsl(from $accent-1 h s l / 0.5)};
+        --track-fill-1: #{hsl(from $accent-1 h s l / 0.5)};
+        --track-fill-2: #{hsl(from $accent-1 h s l / 0.5)};
         width: var(--range-track-thickness);
         background:
             linear-gradient(
                 to top,
-                var(--track-fill) 0%,
-                var(--track-fill) var(--range-value),
+                var(--track-fill-1) 0%,
+                var(--track-fill-2) var(--range-value),
                 var(--track-bg) var(--range-value),
                 var(--track-bg) 100%
             ) center / var(--range-track-thickness) 100% no-repeat;
