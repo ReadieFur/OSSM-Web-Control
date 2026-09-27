@@ -274,7 +274,7 @@
 
     @media #{$landscape-media-query} {
         // Flip layout direction in landscape mode
-        grid-template-rows: auto;
+        grid-template-rows: repeat(auto-fit, minmax(0, 1fr));
         grid-template-columns: auto 1fr auto;
 
         // Column becomes row
@@ -284,6 +284,7 @@
                 > :nth-child(#{$i}) {
                     grid-column: 4 - $i; // Swap 1st and 3rd elements
                     grid-row: auto;
+                    max-height: clamp(3rem, 40%, 10rem); // Caps row elements vertically
                 }
             }
 
