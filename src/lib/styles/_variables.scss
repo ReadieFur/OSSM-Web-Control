@@ -43,6 +43,7 @@ $primary-700: hsl(243, 26%, 15%);
 $primary-600: hsl(252, 9%, 22%);
 $primary-500: hsl(259, 13%, 28%);
 $primary-400: hsl(254, 22%, 32%);
+$primary-350: hsl(250, 14%, 36%);
 $primary-300: hsl(251, 13%, 68%);
 $primary-200: hsl(240, 15%, 76%);
 $primary-100: hsl(240, 21%, 88%);
@@ -62,6 +63,8 @@ $surface-1: var(--surface-1);
 $surface-2: var(--surface-2);
 $surface-3: var(--surface-3);
 
+$border-hover-1: var(--border-hover-1);
+$border-hover-2: var(--border-hover-2);
 $border-1: var(--border-1);
 $border-2: var(--border-2);
 
@@ -101,6 +104,14 @@ $theme-rules: (
         dark: $primary-700,
         light: $primary-300,
     ),
+    border-hover-1: (
+        dark: $primary-350,
+        light: $primary-100,
+    ),
+    border-hover-2: (
+        dark: $primary-400,
+        light: $primary-200,
+    ),
     border-1: (
         dark: $primary-500,
         light: $primary-400,
@@ -115,6 +126,7 @@ $theme-rules: (
 // #region Generators
 $desktop-media-query: "(min-width: #{$mobile-width-threshold + 1}px) and (min-height: #{$mobile-height-threshold + 1}px)";
 $mobile-media-query: "(max-width: #{$mobile-width-threshold}px), (max-height: #{$mobile-height-threshold}px)";
+$portrait-media-query: "(orientation: portrait)";
 $landscape-media-query: "(orientation: landscape)";
 // #endregion
 
@@ -132,13 +144,27 @@ $landscape-media-query: "(orientation: landscape)";
     border: 1px solid $color !important;
 }
 
+@property --glass-border-1 {
+    syntax: '<color>';
+    inherits: true;
+    initial-value: transparent;
+}
+
+@property --glass-border-2 {
+    syntax: '<color>';
+    inherits: true;
+    initial-value: transparent;
+}
+
 @mixin glass-border {
+    --glass-border-1: #{$border-1};
+    --glass-border-2: #{$border-2};
     position: absolute;
     z-index: -1;
     inset: 0;
     border-radius: inherit;
     border: 1px solid transparent;
-    background: linear-gradient($border-1, $border-2) border-box;
+    background: linear-gradient(var(--glass-border-1), var(--glass-border-2)) border-box;
     mask: linear-gradient(black, black) border-box,
         linear-gradient(black, black) padding-box;
     mask-composite: subtract;
@@ -181,6 +207,19 @@ $landscape-media-query: "(orientation: landscape)";
     }
 }
 
+// This is a new thing I've found out about and like :3
+@property --track-fill {
+    syntax: '<color>';
+    inherits: true;
+    initial-value: transparent;
+}
+
+@property --track-bg {
+    syntax: '<color>';
+    inherits: true;
+    initial-value: transparent;
+}
+
 @mixin range-vertical {
     // https://stackoverflow.com/questions/15935837/how-to-display-a-range-input-slider-vertically
     writing-mode: vertical-lr;
@@ -190,17 +229,17 @@ $landscape-media-query: "(orientation: landscape)";
     // height: 100%;
 
     @include range-track {
-        $track-background: hsl(from $surface-2 h s l / 0.5);
-        $track-fill: hsl(from $accent-1 h s l / 0.5);
+        // TODO: Make this more transparent without getting "muddy"
+        --track-bg: #{hsl(from $surface-2 h s l / 0.5)};
+        --track-fill: #{hsl(from $accent-1 h s l / 0.5)};
         width: var(--range-track-thickness);
-        transition: background 0.5s ease;
         background:
             linear-gradient(
                 to top,
-                $track-fill 0%,
-                $track-fill var(--range-value),
-                $track-background var(--range-value),
-                $track-background 100%
+                var(--track-fill) 0%,
+                var(--track-fill) var(--range-value),
+                var(--track-bg) var(--range-value),
+                var(--track-bg) 100%
             ) center / var(--range-track-thickness) 100% no-repeat;
     }
 }

@@ -11,15 +11,38 @@
         padding: 1rem;
     }
 
+    > .stop-button {
+        border-radius: $radius-800;
+        backdrop-filter: blur($blur);
+
+        @media #{$landscape-media-query} {
+            display: none;
+        }
+    }
+
     @media #{$mobile-media-query} {
         border: none;
         border-radius: 0;
     }
 }
 
+.stop-button {
+    background-color: hsl(from $red h s l / 0.7);
+    transition: background 0.2s ease, color 0.2s ease;
+
+    &:hover {
+        background-color: hsl(from $red h s l / 1) !important;
+    }
+
+    &:disabled {
+        // background-color: hsl(from $red h s l / 0.3);
+        background: hsl(from $surface-3 h s l / 0.25);
+    }
+}
+
 .state-indicator {
     $text-placement: "after"; // "before" or "after"
-    $gap: 0.2em;
+    $gap: 0.5em;
 
     $margin-property: if(sass($text-placement == "before"): "margin-right"; else: "margin-left");
     &::#{$text-placement} {
@@ -53,10 +76,25 @@
 }
 
 .status {
-    display: flex;
-    justify-content: space-between;
+    display: grid;
+    grid-template-columns: auto 1fr auto; 
     align-items: center;
     padding: 0.5rem 0.75rem !important;
+
+    > *:nth-child(1) { 
+        justify-self: start; 
+    }
+    
+    > *:nth-child(2) { 
+        justify-self: stretch; 
+        display: flex;
+        justify-content: center;
+        align-items: center;
+    }
+    
+    > *:nth-child(3) { 
+        justify-self: end; 
+    }
 
     > div {
         display: flex;
@@ -68,7 +106,11 @@
 
         &.stop-button {
             padding: 0.75rem 1.5rem;
-            background-color: hsl(from $red h s l / 0.7);
+            width: 75%;
+
+            @media #{$portrait-media-query} {
+                display: none;
+            }
         }
 
         &:last-child {
@@ -199,6 +241,34 @@
 
         > * {
             max-width: $column-max-width;
+        }
+
+        > .glass-border {
+            input[type="range"] {
+                @include range-track {
+                    transition: --track-fill 0.2s ease;
+                    --track-bg: transparent !important;
+                }
+            }
+
+            &::before {
+                transition: --glass-border-1 0.2s ease, --glass-border-2 0.2s ease;
+            }
+
+            &:hover {
+                &::before {
+                    --glass-border-1: #{$border-hover-2};
+                    --glass-border-2: #{$border-hover-1};
+                }
+            }
+
+            &:active, &:focus-visible {
+                input[type="range"] {
+                    @include range-track {
+                        --track-fill: #{hsl(from $accent-1 h s l / 0.7)}
+                    }
+                }
+            }
         }
     }
 

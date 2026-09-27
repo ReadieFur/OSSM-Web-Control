@@ -221,9 +221,8 @@
     --range-from-value: 20%;
     --range-to-value: 80%;
 
-    // TODO: Make this more transparent without getting "muddy"
-    $track-background: hsl(from $surface-2 h s l / 0.5);
-    $track-fill: hsl(from $accent-1 h s l / 0.5);
+    --track-bg: #{hsl(from $surface-2 h s l / 0.5)};
+    --track-fill: #{hsl(from $accent-1 h s l / 0.5)};
 
     position: relative;
     display: inline-flex;
@@ -264,12 +263,12 @@
                     background:
                         linear-gradient(
                             to right,
-                            $track-background 0%,
-                            $track-background var(--range-from-value),
-                            $track-fill var(--range-from-value),
-                            $track-fill var(--range-to-value),
-                            $track-background var(--range-to-value),
-                            $track-background 100%
+                            var(--track-bg) 0%,
+                            var(--track-bg) var(--range-from-value),
+                            var(--track-fill) var(--range-from-value),
+                            var(--track-fill) var(--range-to-value),
+                            var(--track-bg) var(--range-to-value),
+                            var(--track-bg) 100%
                         ) center / 100% var(--range-track-thickness) no-repeat;
                 }
             }
@@ -310,12 +309,12 @@
                     background:
                         linear-gradient(
                             to top,
-                            $track-background 0%,
-                            $track-background var(--range-from-value),
-                            $track-fill var(--range-from-value),
-                            $track-fill var(--range-to-value),
-                            $track-background var(--range-to-value),
-                            $track-background 100%
+                            var(--track-bg) 0%,
+                            var(--track-bg) var(--range-from-value),
+                            var(--track-fill) var(--range-from-value),
+                            var(--track-fill) var(--range-to-value),
+                            var(--track-bg) var(--range-to-value),
+                            var(--track-bg) 100%
                         ) center / var(--range-track-thickness) 100% no-repeat;
                 }
             }

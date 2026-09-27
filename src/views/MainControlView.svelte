@@ -31,8 +31,10 @@
                 </p>
             </div>
             <div>
+                <Button class="stop-button" aria-label="Stop" icon="dangerous" onclick={self.onEmergencyStopClick} />
+            </div>
+            <div>
                  <Button aria-label="Disconnect" icon="logout" onclick={self.onDisconnectClick} />
-                 <Button class="stop-button" aria-label="Stop" icon="dangerous" onclick={self.onEmergencyStopClick} />
             </div>
         </div>
 
@@ -173,5 +175,7 @@
                 {/if}
             </div>
         </div>
+
+        <Button class="stop-button" aria-label="Stop" icon="dangerous" onclick={self.onEmergencyStopClick} />
     </section>
 </main>
