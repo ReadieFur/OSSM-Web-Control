@@ -1,12 +1,10 @@
 <script lang="ts">
-    import { LandingView } from "./LandingView.svelte.ts";
+    import { LandingView, type LandingViewProps } from "./LandingView.svelte.ts";
     import InfoContainer from "$component/InfoContainer.svelte";
     import { svelteFade } from "$lib/utils/Animation.svelte";
-	import type { ViewManagerProps } from "$lib/services/ViewManager.svelte";
 
-    let { landingView }: ViewManagerProps = $props();
-
-    const self = new LandingView();
+    let props: LandingViewProps = $props();
+    const self = new LandingView(() => props);
 </script>
 
 <main>
@@ -20,7 +18,7 @@
                 <button
                     class="space-between"
                     disabled={self.isConnecting}
-                    onclick={self.connectDevice.bind(self)}>
+                    onclick={self.connectBleDevice.bind(self)}>
                     <span class="material-symbol" data-icon="bluetooth_searching"></span>
                     Connect OSSM
                 </button>
@@ -72,8 +70,9 @@
             <InfoContainer
                 state={self.infoDialog.state}
                 title={self.infoDialog.title}
-                message={self.infoDialog.message}
-            />
+                message={self.infoDialog.message}>
+                <small><i>{self.infoDialog.extra}</i></small>
+            </InfoContainer>
         {/if}
     </section>
 </main>

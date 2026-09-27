@@ -10,11 +10,11 @@
     
     // Logic imports
     import { mediaQuery } from "$lib/utils/Helpers.svelte";
-    import { MainControlView, type Props } from "./MainControlView.svelte.ts";
+    import { MainControlView, type MainControlViewProps } from "./MainControlView.svelte.ts";
     import type { RangeChangeEvent } from "$component/SliderDoubleInput.svelte";
 	import { svelteFade } from "$lib/utils/Animation.svelte";
 
-    let props: Props = $props();
+    let props: MainControlViewProps = $props();
     const self = new MainControlView(() => props);
 
     const isLandscape = mediaQuery("(orientation: landscape)");
@@ -26,31 +26,32 @@
     <section class="control-screen">
         <div class="status card">
             <div>
-                <p class="state-indicator" data-state={self.ossmInterface.state} data-text={self.ossmInterface.state[0].toUpperCase() + self.ossmInterface.state.slice(1)}>
+                <p class="state-indicator" data-state={self.ossmProvider.state} data-text={self.ossmProvider.state[0].toUpperCase() + self.ossmProvider.state.slice(1)}>
                     <span class="material-symbol fill small" data-icon="circle"></span>
                 </p>
             </div>
             <div>
-                <Button class="stop-button" aria-label="Stop" icon="dangerous" onclick={self.onEmergencyStopClick} />
+                <Button class="stop-button" aria-label="Stop" icon="dangerous" onclick={self.onUiStopClick.bind(self)} />
             </div>
             <div>
-                 <Button aria-label="Disconnect" icon="logout" onclick={self.onDisconnectClick} />
+                 <Button aria-label="Recalibrate" icon="reset_settings" onclick={self.onUiRecalibrateClick.bind(self)} />
+                 <Button aria-label="Disconnect" icon="logout" onclick={self.onUiDisconnectClick.bind(self)} />
             </div>
         </div>
 
         <div
             class="options-and-controls"
-            class:scale-pulse={self.ossmInterface.state === "reconnecting"}>
+            class:scale-pulse={self.ossmProvider.state === "reconnecting"}>
             <div class="options card">
                 <div class="patterns-panel">
                     <div class="pattern-list">
                         <h3>Patterns</h3>
                         <div class="pattern-select">
-                            {#each self.ossmInterface.patterns as pattern (pattern.idx)}
+                            {#each self.ossmProvider.patterns as [id, pattern] (id)}
                                 <RadioInput
                                     group="pattern"
-                                    checked={self.selectedPattern === pattern.idx}
-                                    onchange={() => (self.selectedPattern = pattern.idx)}
+                                    checked={self.selectedPattern === id}
+                                    onchange={() => self.onUiPatternChange(id)}
                                     disabled={self.disableControls}>
                                     {pattern.name}
                                 </RadioInput>
@@ -59,7 +60,7 @@
                     </div>
                     <div class="pattern-settings">
                         {#key self.selectedPattern}
-                            <p class="description-text" transition:svelteFade={{ duration: 200, switching: true }}>{self.ossmInterface.patterns.find(p => p.idx === self.selectedPattern)?.description ?? ""}</p>
+                            <p class="description-text" transition:svelteFade={{ duration: 200, switching: true }}>{self.ossmProvider.patterns.get(self.selectedPattern)?.description ?? ""}</p>
                         {/key}
                     </div>
                 </div>
@@ -77,7 +78,7 @@
                         bind:value={self.controlRange.to}
                         onchange={(event: { value: number | null }) => { 
                             if (event.value !== null) {
-                                self.onRangeChange({
+                                self.onUiRangeChange({
                                     value: { from: self.controlRange.from, to: event.value },
                                     activeHandle: "to"
                                 });
@@ -93,7 +94,7 @@
                             minGap={minGap}
                             bind:from={self.controlRange.from}
                             bind:to={self.controlRange.to}
-                            onchange={(event: RangeChangeEvent) => self.onRangeChange(event) }
+                            onchange={(event: RangeChangeEvent) => self.onUiRangeChange(event) }
                         />
                         <span class="material-symbol no-offset" data-icon="arrow_range"></span>
                     </div>
@@ -106,7 +107,7 @@
                         bind:value={self.controlRange.from}
                         onchange={(event: { value: number | null }) => { 
                             if (event.value !== null) {
-                                self.onRangeChange({
+                                self.onUiRangeChange({
                                     value: { from: event.value, to: self.controlRange.to },
                                     activeHandle: "from"
                                 });
@@ -125,7 +126,7 @@
                             min={0}
                             max={100}
                             bind:value={self.controlSpeed}
-                            onchange={(event: { value: number }) => self.onSpeedChange(event.value) }
+                            onchange={(event: { value: number }) => self.onUiSpeedChange(event.value) }
                         />
                         <span class="material-symbol no-offset" data-icon="speed"></span>
                     </div>
@@ -136,7 +137,7 @@
                         min={0}
                         max={100}
                         bind:value={self.controlSpeed}
-                        onchange={(event: { value: number | null }) => { if (event.value !== null) self.onSpeedChange(event.value); }}
+                        onchange={(event: { value: number | null }) => { if (event.value !== null) self.onUiSpeedChange(event.value); }}
                     />
                 </div>
 
@@ -150,6 +151,7 @@
                             checkedIcon="flip"
                             uncheckedIcon="flip"
                             bind:checked={self.controlInvertSensation}
+                            onchange={() => self.onUiSensationChange(self.controlSensation) }
                         />
                         <div class="glass-border">
                             <SliderInput
@@ -158,7 +160,7 @@
                                 min={0}
                                 max={100}
                                 bind:value={self.controlSensation}
-                                onchange={(event: { value: number }) => self.onSensationChange(event.value) }
+                                onchange={(event: { value: number }) => self.onUiSensationChange(event.value) }
                             />
                             <span class="material-symbol no-offset" data-icon="nest_true_radiant"></span>
                         </div>
@@ -169,13 +171,13 @@
                             min={0}
                             max={100}
                             bind:value={self.controlSensation}
-                            onchange={(event: { value: number | null }) => { if (event.value !== null) self.onSensationChange(event.value); }}
+                            onchange={(event: { value: number | null }) => { if (event.value !== null) self.onUiSensationChange(event.value); }}
                         />
                     </div>
                 {/if}
             </div>
         </div>
 
-        <Button class="stop-button" aria-label="Stop" icon="dangerous" onclick={self.onEmergencyStopClick} />
+        <Button class="stop-button" aria-label="Stop" icon="dangerous" onclick={self.onUiStopClick.bind(self)} />
     </section>
 </main>

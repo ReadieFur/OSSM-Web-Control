@@ -243,6 +243,7 @@
             max-width: $column-max-width;
         }
 
+        // TODO: Change the border here if the element is pending remote confirmation?
         > .glass-border {
             $track-highlight-colour: hsl(from $accent-1 h s l / 0.8);
 

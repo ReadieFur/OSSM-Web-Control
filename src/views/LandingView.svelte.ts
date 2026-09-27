@@ -1,6 +1,8 @@
 import { onMount } from "svelte";
-import { isClientBleCapable } from "ossm-ble-web";
-import { DOMExceptionError } from "$lib/utils/Helpers.svelte";
+import type { ViewManager, ViewManagerProps } from "$lib/services/ViewManager.svelte";
+import MainControlView from "./MainControlView.svelte";
+import { CancellationTokenSource, isClientBleCapable } from "ossm-ble-web";
+import { OssmBleDevice } from "$lib/services/OssmBleDevice.svelte";
 
 interface NavigatorUAData {
     userAgentData?: {
@@ -8,17 +10,31 @@ interface NavigatorUAData {
     };
 }
 
+export interface LandingViewProps extends ViewManagerProps {
+    readonly viewManager: ViewManager;
+}
+
+const defaultConnectionTimeout = 15_000;
+
 export class LandingView {
-    constructor() {
+    isPwaInstalling = $state<boolean>(false);
+    showInstallButton = $derived(this._pwaInstallContext !== null);
+    isBleSupported = $state<boolean | null>(null);
+    isSecureContext = $state<boolean>(true);
+    platform = $state<string | undefined>(undefined);
+
+    get viewManager() { return this.getProps().viewManager; }
+
+    #pwaInstallContext = $state<BeforeInstallPromptEvent | null>(null);
+    private get _pwaInstallContext() { return this.#pwaInstallContext; }
+    private set _pwaInstallContext(value: BeforeInstallPromptEvent | null) { this.#pwaInstallContext = window.pwaInstallContext = value; }
+
+    constructor(private getProps: () => LandingViewProps) {
         onMount(this.#checkCompatibility.bind(this));
         onMount(this.#capturePwaPromptEvent.bind(this));
     }
 
     // #region Compatibility Checks
-    isBleSupported = $state<boolean | null>(null);
-    isSecureContext = $state<boolean>(true);
-    platform = $state<string | undefined>(undefined);
-
     #parseLegacyUserAgent(): string | undefined {
         const ua = navigator.userAgent;
         if (ua.includes("Windows")) return "Windows";
@@ -51,25 +67,14 @@ export class LandingView {
     // #endregion
 
     // #region PWA
-    isPwaInstalling = $state<boolean>(false);
-    showInstallButton = $derived(this.pwaInstallContext !== null);
-    
-    #pwaInstallContext = $state<BeforeInstallPromptEvent | null>(null);
-    get pwaInstallContext(): BeforeInstallPromptEvent | null {
-        return this.#pwaInstallContext;
-    }
-    set pwaInstallContext(value: BeforeInstallPromptEvent | null) {
-        this.#pwaInstallContext = window.pwaInstallContext = value;
-    }
-
     #capturePwaPromptEvent(): () => void {
-        if (!this.pwaInstallContext && window.pwaInstallContext)
-            this.pwaInstallContext = window.pwaInstallContext;
+        if (!this._pwaInstallContext && window.pwaInstallContext)
+            this._pwaInstallContext = window.pwaInstallContext;
 
         const handleInstallPrompt = (e: Event) => {
             const event = e as BeforeInstallPromptEvent;
             event.preventDefault();
-            this.pwaInstallContext = event;
+            this._pwaInstallContext = event;
         };
 
         window.addEventListener("beforeinstallprompt", handleInstallPrompt);
@@ -78,11 +83,11 @@ export class LandingView {
     }
 
     async installPWA(): Promise<void> {
-        if (!this.pwaInstallContext || this.isPwaInstalling) return;
+        if (!this._pwaInstallContext || this.isPwaInstalling) return;
         this.isPwaInstalling = true;
         try {
-            await this.pwaInstallContext.prompt();
-            this.pwaInstallContext = null; // Context always gets made invalid after prompt()
+            await this._pwaInstallContext.prompt();
+            this._pwaInstallContext = null; // Context always gets made invalid after prompt()
         } catch (error) {
             console.error("[PWA] Prompt failed:", error);
         } finally {
@@ -92,38 +97,53 @@ export class LandingView {
     // #endregion
 
     // #region Connection
-    infoDialog: { state: "info" | "error"; title?: string; message?: string; } | null = $state(null);
+    infoDialog: {
+        state: "info" | "error";
+        title?: string;
+        message?: string;
+        extra?: string;
+    } | null = $state(null);
     isConnecting = $state(false);
 
-    async connectDevice(): Promise<void> {
-        // if (this.isConnecting) return;
-        // this.isConnecting = true;
+    async connectBleDevice(): Promise<void> {
+        if (this.isConnecting) return;
+        this.isConnecting = true;
 
-        // let device: OssmBleClient;
-        // try {
-        //     device = await OssmBleClient.pairDevice();
-        // }
-        // catch (error) {
-        //     const allowedErrors: string[] = [
-        //         DOMExceptionError.NotFoundError, //Occurs when user cancels the pairing prompt
-        //     ];
+        // 'using' keyword cat be used here :c so I will have to handle cleanup of it manually
+        // TODO: Make it so that this cts only starts after a device has been selected
+        const cts = CancellationTokenSource.createWithTimeout(defaultConnectionTimeout, "Connection timed out");
 
-        //     if (error instanceof DOMException && !allowedErrors.includes(error.name)) {
-        //         console.error("[BLE] Connection failed:", error);
-        //         this.infoDialog = {
-        //             state: "error",
-        //             title: "Connection Error",
-        //             message: "Failed to connect to device"
-        //         };
-        //     }
-        //     return;
-        // }
-        // finally {
-        //     this.isConnecting = false;
-        // }
+        try {
+            this.infoDialog = {
+                state: "info",
+                message: "Connecting to BLE device..."
+            };
 
-        // TODO: Handoff connection to the main app view
-        // const deviceManager = new DeviceManager();
+            const provider = await OssmBleDevice.initializeInstance(cts.token);
+
+            this.viewManager.setViewAndProps(MainControlView, { viewManager: this.viewManager, ossmProvider: provider });
+        } catch (error) {
+            const allowedErrors: string[] = [
+                "NotFoundError", //Occurs when user cancels the pairing prompt
+            ];
+            if (error instanceof DOMException && allowedErrors.includes(error.name))
+                return;
+
+            console.error("[BLE] Connection failed:", error);
+            this.infoDialog = {
+                state: "error",
+                title: "Failed to connect to device",
+            };
+
+            if (error instanceof Error) {
+                this.infoDialog.extra = error.message;
+            }
+        } finally {
+            cts.dispose();
+            this.isConnecting = false;
+            if (this.infoDialog?.state !== "error")
+                this.infoDialog = null;
+        }
     }
     // #endregion
 }

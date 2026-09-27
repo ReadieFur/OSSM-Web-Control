@@ -6,7 +6,7 @@
     import LandingView from "$view/LandingView.svelte";
     import { svelteFade } from "$lib/utils/Animation.svelte";
 	import { isDevMode } from "$lib/utils/Helpers.svelte";
-    import { DummyOssmDevice } from "$lib/services/OssmInterface.svelte";
+    import { DummyProvider } from "$lib/services/OssmProvider.svelte";
 
     // Styles
     import "$lib/styles/global.scss";
@@ -35,7 +35,7 @@
             if (fileName === pageParam) {
                 devViewOverride = true;
 
-                if (fileName === "MainControlView") vm.viewProps = { ossmInterface: new DummyOssmDevice() };
+                if (fileName === "MainControlView") vm.viewProps = { ossmProvider: new DummyProvider() };
 
                 viewModules[view]()
                     .then((module) => { vm.view = module.default; })

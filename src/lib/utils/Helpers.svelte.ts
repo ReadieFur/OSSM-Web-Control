@@ -22,17 +22,6 @@ export function prefersReducedMotion(): boolean {
     return typeof window === "undefined" ? false : window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 }
 
-export enum DOMExceptionError {
-    InvalidState = "InvalidStateError",
-    NetworkError = "NetworkError",
-    Timeout = "TimeoutError",
-    TypeError = "TypeError",
-    OperationError = "OperationError",
-    DataError = "DataError",
-    AbortError = "AbortError",
-    NotFoundError = "NotFoundError",
-}
-
 export function mediaQuery(query: string) {
     let matches = $state(false);
 
