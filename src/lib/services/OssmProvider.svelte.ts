@@ -6,7 +6,8 @@ export enum State {
     Reconnecting = "reconnecting",
     Calibrating = "calibrating",
     Ready = "ready",
-    Error = "error"
+    Error = "error",
+    EmergencyStop = "estop"
 }
 
 export interface PlayState {

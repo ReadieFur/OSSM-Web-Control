@@ -19,10 +19,10 @@ export class MainControlView {
     controlCanInvertSensation = $derived.by(() => this.ossmProvider.patterns.get(this.selectedPattern)?.canSensationInvert ?? false);
     controlSensation = $state(0);
     controlInvertSensation = $state(false);
+    estopClickCount = $state(0);
 
     #disposed = false;
     #estopClickTimer?: number;
-    #estopClickCount = $state(0);
 
     // Getters for inherited props (via the "private ..." parameter in the constructor)
     get viewManager() { return this.getProps().viewManager; }
@@ -149,15 +149,16 @@ export class MainControlView {
 
     // Buttons
     onUiStopClick(): void {
-        this.#estopClickCount++;
+        this.estopClickCount++;
 
         // If multiple presses are detected in short succession, immediately call for an emergency stop
-        if (this.#estopClickCount >= 2) {
+        // If emergency stop is active, make all presses on the stop button trigger another estop
+        if (this.ossmProvider.state === State.EmergencyStop || this.estopClickCount >= 2) {
             if (this.#estopClickTimer) {
                 clearTimeout(this.#estopClickTimer);
                 this.#estopClickTimer = undefined;
             }
-            this.#estopClickCount = 0;
+            this.estopClickCount = 0;
 
             console.warn("[ControlView] Emergency stop!");
             this.ossmProvider.emergencyStop();
@@ -169,7 +170,7 @@ export class MainControlView {
 
         // If the timeout occurs, perform a regular stop instead of the above emergency stop
         this.#estopClickTimer = window.setTimeout(async () => {
-            this.#estopClickCount = 0;
+            this.estopClickCount = 0;
             this.#estopClickTimer = undefined;
             
             this.ossmProvider.playState = {

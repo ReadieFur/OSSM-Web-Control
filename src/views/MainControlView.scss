@@ -54,22 +54,14 @@
     $states: (
         disconnected: $red,
         reconnecting: $yellow,
-        connected: $accent-2,
+        estop: $yellow,
+        calibrating: $accent-2,
         ready: $green,
     );
     @each $state, $color in $states {
         &[data-state="#{$state}"] {
             > span {
                 color: hsl(from $color h s l / 1);
-            }
-        }
-    }
-
-    &[data-state="reconnecting"] {
-        > span {
-            animation: opacity-pulse 2s ease-in-out infinite;
-            @media (prefers-reduced-motion: reduce) {
-                animation: none;
             }
         }
     }

@@ -13,12 +13,21 @@
     import { MainControlView, type MainControlViewProps } from "./MainControlView.svelte.ts";
     import type { RangeChangeEvent } from "$component/SliderDoubleInput.svelte";
 	import { svelteFade } from "$lib/utils/Animation.svelte";
+	import { State } from "$lib/services/OssmProvider.svelte";
 
     let props: MainControlViewProps = $props();
     const self = new MainControlView(() => props);
 
     const isLandscape = mediaQuery("(orientation: landscape)");
     const orientation = $derived(isLandscape.matches ? "horizontal" : "vertical");
+    const stateText = $derived.by(() => {
+        switch (self.ossmProvider.state) {
+            case State.EmergencyStop:
+                return "EMERGENCY STOP - Recalibrate to resume";
+            default:
+                return self.ossmProvider.state[0].toUpperCase() + self.ossmProvider.state.slice(1);
+        }
+    });
     const minGap = 1;
 </script>
 
@@ -26,22 +35,37 @@
     <section class="control-screen">
         <div class="status card">
             <div>
-                <p class="state-indicator" data-state={self.ossmProvider.state} data-text={self.ossmProvider.state[0].toUpperCase() + self.ossmProvider.state.slice(1)}>
-                    <span class="material-symbol fill small" data-icon="circle"></span>
+                <p class="state-indicator" data-state={self.ossmProvider.state} data-text={stateText}>
+                    <span
+                        class="material-symbol fill small"
+                        data-icon="circle"
+                        class:scale-pulse={self.ossmProvider.state === State.Calibrating || self.ossmProvider.state === State.EmergencyStop}
+                    ></span>
                 </p>
             </div>
             <div>
-                <Button class="stop-button" aria-label="Stop" icon="dangerous" onclick={self.onUiStopClick.bind(self)} />
+                <Button
+                    class="stop-button"
+                    aria-label="Stop"
+                    icon="dangerous"
+                    onclick={self.onUiStopClick.bind(self)}/>
             </div>
             <div>
-                 <Button aria-label="Recalibrate" icon="reset_settings" onclick={self.onUiRecalibrateClick.bind(self)} />
-                 <Button aria-label="Disconnect" icon="logout" onclick={self.onUiDisconnectClick.bind(self)} />
+                <Button
+                    aria-label="Recalibrate"
+                    class={self.ossmProvider.state === State.EmergencyStop ? 'highlight' : ''}
+                    icon="reset_settings"
+                    onclick={self.onUiRecalibrateClick.bind(self)}/>
+                <Button
+                    aria-label="Disconnect"
+                    icon="logout"
+                    onclick={self.onUiDisconnectClick.bind(self)}/>
             </div>
         </div>
 
         <div
             class="options-and-controls"
-            class:scale-pulse={self.ossmProvider.state === "reconnecting"}>
+            class:scale-pulse={self.ossmProvider.state === State.Calibrating || self.ossmProvider.state === State.EmergencyStop}>
             <div class="options card">
                 <div class="patterns-panel">
                     <div class="pattern-list">

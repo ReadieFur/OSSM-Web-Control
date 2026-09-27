@@ -6,6 +6,7 @@ import { RadSurface } from "$lib/ossm-ble-web/dist/ossm-ble-web";
 import { OssmMenu } from "$lib/ossm-ble-web/dist/ossm-ble-web";
 import { OssmStateString } from "$lib/ossm-ble-web/dist/ossm-ble-web";
 
+const disconnectTimeout = 5000;
 const snapshotTimerInterval = 1000;
 
 export class OssmBleDevice extends OssmProvider implements Disposable {
@@ -24,6 +25,10 @@ export class OssmBleDevice extends OssmProvider implements Disposable {
     }
 
     readonly #client: OssmBleClient;
+    readonly #onBleConnectSignature = this.#onBleConnect.bind(this);
+    readonly #onBleDisconnectSignature = this.#onBleDisconnect.bind(this);
+    readonly #onMotionSnapshotSnapshot = this.#onMotionSnapshot.bind(this);
+    #disconnectTimeoutHandle?: number;
     #snapshotTimerHandle?: number;
     #playState: PlayState = $state({
         patternId: 0,
@@ -43,73 +48,132 @@ export class OssmBleDevice extends OssmProvider implements Disposable {
 
         this.#client = client;
         this.#client.debug = isDevMode;
+        if (isDevMode) console.log("OssmBleClient:", this.#client);
 
-        this.#client.onSurface[RadSurface.Motion].subscribe(this.#onMotionSnapshot.bind(this));
+        this.#client.onSurface[RadSurface.Motion].subscribe(this.#onMotionSnapshotSnapshot);
     }
 
     [Symbol.dispose](): void {
+        this.disconnect();
     }
 
     async #begin(ct?: ICancellationToken): Promise<void> {
         this.state = State.Reconnecting;
 
-        if (this.#snapshotTimerHandle)
-            window.clearInterval(this.#snapshotTimerHandle);
-
-        ct?.throwIfCancellationRequested();
-        this.#client.autoReconnect = true;
-        await this.#client.begin();
-
-        ct?.throwIfCancellationRequested();
-        await this.#client.acquireLease(true);
-
-        ct?.throwIfCancellationRequested();
-        for await (const pattern of this.#client.getPatterns()) {
+        try {
+            if (this.#snapshotTimerHandle)
+                window.clearInterval(this.#snapshotTimerHandle);
+    
             ct?.throwIfCancellationRequested();
-            this.patterns.set(pattern.idx, {
-                name: pattern.name,
-                description: pattern.description,
-                hasSensation: true,
-                canSensationInvert: false
-            });
+            this.#client.autoReconnect = true;
+            await this.#client.begin();
+    
+            ct?.throwIfCancellationRequested();
+            await this.#client.acquireLease(true);
+    
+            ct?.throwIfCancellationRequested();
+            for await (const pattern of this.#client.getPatterns()) {
+                ct?.throwIfCancellationRequested();
+                this.patterns.set(pattern.idx, {
+                    name: pattern.name,
+                    description: pattern.description,
+                    hasSensation: true,
+                    canSensationInvert: false
+                });
+            }
+
+            // Manual trigger of the connect callback for the setup so things run in the right order
+            await this.#onBleConnect();
+            this.#client.disconnectedEvent.subscribe(this.#onBleDisconnectSignature);
+            this.#client.connectedEvent.subscribe(this.#onBleConnectSignature);
+    
+            ct?.throwIfCancellationRequested();
+            this.#snapshotTimerHandle = window.setInterval(this.#onSnapshotTimerTick.bind(this), snapshotTimerInterval);
+        } catch (err) {
+            this.state = State.Error;
+            throw err;
         }
-
-        await this.#onStateSnapshot(await this.#client.getStateSnapshot());
-
-        ct?.throwIfCancellationRequested();
-        await this.#client.getMotionSnapshot();
-
-        ct?.throwIfCancellationRequested();
-        this.#snapshotTimerHandle = window.setInterval(this.#onSnapshotTimerTick.bind(this), snapshotTimerInterval);
-
-        this.state = State.Ready;
     }
 
     override async emergencyStop(): Promise<void> {
+        this.state = State.EmergencyStop;
         await this.#client.emergencyStop();
+        await this.#client.getMotionSnapshot();
     }
 
     override async recalibrate(): Promise<void> {
+        /* To recover from estop on the device we must navigate to strokeEngine which will cause a re-homing of the device
+         * If you call homeRail from an estop state it will get stuck in homing.backward forever, and that state cannot be escaped via a navigateTo call
+         */
+        if (this.state === State.EmergencyStop) {
+            this.state = State.Calibrating;
+            await this.#client.navigateTo(OssmMenu.StrokeEngine);
+            return;
+        }
+
+        this.state = State.Calibrating;
         await this.#client.homeRail();
     }
 
     override async disconnect(): Promise<void> {
         this.state = State.Disconnected;
+
+        if (this.#disconnectTimeoutHandle) window.clearInterval(this.#disconnectTimeoutHandle);
         if (this.#snapshotTimerHandle) window.clearInterval(this.#snapshotTimerHandle);
+
+        this.#client.connectedEvent.unsubscribe(this.#onBleConnectSignature);
+        this.#client.disconnectedEvent.unsubscribe(this.#onBleDisconnectSignature);
+
         await this.#client.disconnect();
     }
 
-    async #onSnapshotTimerTick(): Promise<void> {
-        // I forgot to wrap this one for OssmBleClient.onSurface so I will have to fetch the raw data stream here for now
-        // The state telemetry is always streamed, so we don't need to waste time with calling via getStateSnapshot()
-        this.#onStateSnapshot(await this.#client.getStateSnapshot());
+    async #onBleConnect(): Promise<void> {
+        // The state gets set by this function
+        await this.#client.setSpeedKnobAsLimit(false);
+        await this.#onStateSnapshot(await this.#client.getStateSnapshot());
+        await this.#client.getMotionSnapshot();
+    }
 
-        // TODO: Periodically fetch motion snapshots from the machine to synchronize with any other external controllers
-        // await this.#client.getMotionSnapshot();
+    #onBleDisconnect() {
+        if (!this.#client.autoReconnect)
+            return;
+
+        this.state = State.Reconnecting;
+
+        if (this.#disconnectTimeoutHandle)
+            return;
+
+        this.#disconnectTimeoutHandle = window.setTimeout(() => {
+            if (!this.#client.isConnected) {
+                this.state = State.Error; // Set once so its the first thing caught by any watchers
+                this.disconnect(); // Dispose of this instance if we have timed out
+                this.state = State.Error; // Set again to override disconnect (messy I know)
+            }
+        }, disconnectTimeout);
+    }
+
+    async #onSnapshotTimerTick(): Promise<void> {
+        try {
+            await Promise.all([
+                // I forgot to wrap this one for OssmBleClient.onSurface so I will have to fetch the raw data stream here for now
+                // The state telemetry is always streamed, so we don't need to waste time with calling via getStateSnapshot()
+                this.#onStateSnapshot(await this.#client.getStateSnapshot()),
+    
+                // TODO: Periodically fetch motion snapshots from the machine to synchronize with any other external controllers
+                // this.#client.getMotionSnapshot(),
+    
+                // TODO: Analytics
+                // this.#client.getAnalogSnapshot()
+            ]);
+        } catch (err) {
+            console.warn("Error on snapshot timer tick:", err);
+        }
     }
 
     async #onStateSnapshot(snapshot: OssmStateSnapshot): Promise<void> {
         const [mainState, subState] = snapshot.state.split('.', 2);
+
+        console.log(snapshot.state);
 
         switch (snapshot.state) {
             case OssmStateString.Idle:
@@ -121,6 +185,8 @@ export class OssmBleDevice extends OssmProvider implements Disposable {
             case "streaming" as OssmStateString: // I forgot to add this one into the enum :/
             case "streaming.idle" as OssmStateString:
                 // Known states we can transition from
+                if (this.state === State.EmergencyStop)
+                    break;
                 await this.#client.navigateTo(OssmMenu.StrokeEngine);
                 this.state = State.Calibrating;
                 break;
@@ -159,7 +225,7 @@ export class OssmBleDevice extends OssmProvider implements Disposable {
     }
 
     async #onMotionSnapshot(snapshot: OssmMotionSnapshot): Promise<void> {
-        this.playState = {
+        this.#playState = {
             patternId: snapshot.pattern,
             depth: snapshot.depth,
             stroke: snapshot.stroke,

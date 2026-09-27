@@ -4,7 +4,7 @@
 
     interface Props extends HTMLButtonAttributes {
         icon?: string;
-        iconPosition?: "left" | "right";
+        iconPosition?: "left" | "right" | "both";
         children?: Snippet;
     }
 

@@ -14,7 +14,7 @@ export interface LandingViewProps extends ViewManagerProps {
     readonly viewManager: ViewManager;
 }
 
-const defaultConnectionTimeout = 15_000;
+const defaultConnectionTimeout = 30_000;
 
 export class LandingView {
     isPwaInstalling = $state<boolean>(false);
