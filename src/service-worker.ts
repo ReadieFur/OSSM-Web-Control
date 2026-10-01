@@ -4,7 +4,7 @@
 import { build, files, version } from "$service-worker";
 
 // "version" updates automatically on every build/deployment
-const CACHE_NAME = `ossm-cache-${version}`;
+const CACHE_NAME = `ossm-web-control_cache_${version}`;
 
 // "build" contains all Vite-generated JS/CSS chunks
 // "files" contains everything from your /static directory

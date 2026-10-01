@@ -7,6 +7,7 @@
     import { svelteFade } from "$lib/utils/Animation.svelte";
 	import { isDevMode } from "$lib/utils/Helpers.svelte";
     import { DummyProvider } from "$lib/services/DummyProvider.svelte";
+	import { version } from "$app/environment";
 
     // Styles
     import "$lib/styles/global.scss";
@@ -24,6 +25,8 @@
     let devViewOverride = $state<boolean>(false);
     (() => {
         if (!isDevMode) return;
+
+        console.log("[DEV] OSSM Web Control version:", version);
 
         const pageParam = new URLSearchParams(globalThis.location?.search).get("viewOverride");
         if (!pageParam) return;
