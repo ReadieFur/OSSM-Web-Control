@@ -29,6 +29,7 @@
         }
     });
     const minGap = 1;
+    const dragUpdateInterval = 1000;
 </script>
 
 <main class="fill-page">
@@ -116,9 +117,11 @@
                             min={0}
                             max={100}
                             minGap={minGap}
+                            dragUpdateInterval={dragUpdateInterval}
                             bind:from={self.controlRange.from}
                             bind:to={self.controlRange.to}
-                            onchange={(event: RangeChangeEvent) => self.onUiRangeChange(event) }
+                            onchange={(event: RangeChangeEvent) => self.onUiRangeChange(event)}
+                            ondrag={(event: RangeChangeEvent) => self.onUiRangeChange(event)}
                         />
                         <span class="material-symbol no-offset" data-icon="arrow_range"></span>
                     </div>
@@ -149,8 +152,10 @@
                             orientation={orientation}
                             min={0}
                             max={100}
+                            dragUpdateInterval={dragUpdateInterval}
                             bind:value={self.controlSpeed}
                             onchange={(event: { value: number }) => self.onUiSpeedChange(event.value) }
+                            ondrag={(event: { value: number }) => self.onUiSpeedChange(event.value) }
                         />
                         <span class="material-symbol no-offset" data-icon="speed"></span>
                     </div>
@@ -183,8 +188,10 @@
                                 orientation={orientation}
                                 min={0}
                                 max={100}
+                                dragUpdateInterval={dragUpdateInterval}
                                 bind:value={self.controlSensation}
                                 onchange={(event: { value: number }) => self.onUiSensationChange(event.value) }
+                                ondrag={(event: { value: number }) => self.onUiSensationChange(event.value) }
                             />
                             <span class="material-symbol no-offset" data-icon="nest_true_radiant"></span>
                         </div>

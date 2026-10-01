@@ -14,7 +14,7 @@
         activeHandle: InputHandle;
     };
 
-    interface Props extends Omit<HTMLAttributes<HTMLDivElement>, "onchange"> {
+    interface Props extends Omit<HTMLAttributes<HTMLDivElement>, "onchange" | "ondrag"> {
         from?: number;
         to?: number;
         min?: number;
@@ -23,7 +23,9 @@
         minGap?: number;
         orientation?: "horizontal" | "vertical";
         disabled?: boolean;
+        dragUpdateInterval?: number,
         onchange?: (event: RangeChangeEvent) => void;
+        ondrag?: (event: RangeChangeEvent) => void;
     }
 
     let {
@@ -35,9 +37,11 @@
         minGap = 0,
         orientation = "horizontal",
         disabled = false,
+        dragUpdateInterval = 1000,
         class: className = "",
         style = "",
         onchange,
+        ondrag,
         ...restProps
     }: Props = $props();
 
@@ -45,6 +49,7 @@
     let toInputRef = $state<HTMLInputElement | null>(null);
     let activeHandle = $state<InputHandle | null>(null);
     let pointerInteracting = $state(false);
+    let lastDispatchedValue = $state<RangeValue>({ from: 0, to: 100 });
 
     let fromPercent = $derived.by(() => {
         const rangeDistance = max - min;
@@ -108,6 +113,8 @@
         ref.setPointerCapture(event.pointerId);
         activeHandle = handle;
         updateHandleValue(handle, event, ref);
+        lastDispatchedValue = { from, to };
+        // ondrag?.({ value: { from, to }, activeHandle });
     }
 
     function handlePointerMove(handle: InputHandle, event: PointerEvent) {
@@ -165,6 +172,24 @@
             activeHandle: handle
         });
     }
+
+    // Periodic drag updates
+    $effect(() => {
+        if (!activeHandle || !dragUpdateInterval || !ondrag)
+            return;
+
+        const intervalId = setInterval(() => {
+            if (activeHandle && (from !== lastDispatchedValue.from || to !== lastDispatchedValue.to)) {
+                lastDispatchedValue = { from, to };
+                ondrag({
+                    value: { from, to },
+                    activeHandle
+                });
+            }
+        }, dragUpdateInterval);
+
+        return () => clearInterval(intervalId);
+    });
 
     const tweenDefaultDuration = 150;
     const animatedFromPercent = new Tween(0, { duration: tweenDefaultDuration, easing: cubicOut });
