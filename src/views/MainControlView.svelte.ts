@@ -1,6 +1,6 @@
 import type { ViewManager, ViewManagerProps } from "$lib/services/ViewManager.svelte";
 import LandingView from "$view/LandingView.svelte";
-import { State, type OssmProvider } from "$lib/services/OssmProvider.svelte";
+import { SensationType, State, type OssmProvider } from "$lib/services/OssmProvider.svelte";
 import type { RangeChangeEvent } from "$component/SliderDoubleInput.svelte";
 
 export interface MainControlViewProps extends ViewManagerProps {
@@ -15,8 +15,8 @@ export class MainControlView {
     selectedPattern = $state(0);
     controlRange = $state({ from: 0, to: 0 });
     controlSpeed = $state(0);
-    controlHasSensation = $derived.by(() => this.ossmProvider.patterns.get(this.selectedPattern)?.hasSensation ?? true);
-    controlCanInvertSensation = $derived.by(() => this.ossmProvider.patterns.get(this.selectedPattern)?.canSensationInvert ?? false);
+    controlHasSensation = $derived.by(() => this.ossmProvider.patterns.get(this.selectedPattern)?.sensationType ?? SensationType.Normal);
+    controlCanInvertSensation = $derived.by(() => this.ossmProvider.patterns.get(this.selectedPattern)?.sensationType === SensationType.Invertible);
     controlSensation = $state(0);
     controlInvertSensation = $state(false);
     estopClickCount = $state(0);

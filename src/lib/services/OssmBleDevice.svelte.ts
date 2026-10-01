@@ -1,10 +1,11 @@
 import { SvelteMap } from "svelte/reactivity";
-import { OssmProvider, State, type Pattern, type PlayState } from "./OssmProvider.svelte";
+import { OssmProvider, SensationType, State, type Pattern, type PlayState } from "./OssmProvider.svelte";
 import { CancellationTokenSource, type ICancellationToken, OssmBleClient, type OssmCommonPlayParameters, type OssmMotionSnapshot, type OssmStateSnapshot } from "$lib/ossm-ble-web/dist/ossm-ble-web";
 import { isDevMode } from "$lib/utils/Helpers.svelte";
 import { RadSurface } from "$lib/ossm-ble-web/dist/ossm-ble-web";
 import { OssmMenu } from "$lib/ossm-ble-web/dist/ossm-ble-web";
 import { OssmStateString } from "$lib/ossm-ble-web/dist/ossm-ble-web";
+import { KnownPatterns } from "$lib/utils/KnownPatterns"
 
 const disconnectTimeout = 5000;
 const snapshotTimerInterval = 1000;
@@ -74,12 +75,21 @@ export class OssmBleDevice extends OssmProvider implements Disposable {
             ct?.throwIfCancellationRequested();
             for await (const pattern of this.#client.getPatterns()) {
                 ct?.throwIfCancellationRequested();
-                this.patterns.set(pattern.idx, {
-                    name: pattern.name,
-                    description: pattern.description,
-                    hasSensation: true,
-                    canSensationInvert: false
-                });
+
+                /* If the pattern is a known default one, set some custom overrides
+                 * (since I know what the parameters do for the default patterns and I can provide better descriptions for them)
+                 */
+                const knownPattern = KnownPatterns.get(pattern.idx);
+                if (knownPattern && knownPattern.name === pattern.name) {
+                    this.patterns.set(pattern.idx, knownPattern);
+                } else {
+                    // Otherwise fall back to display the device descriptor & exposing a normal sensation control
+                    this.patterns.set(pattern.idx, {
+                        name: pattern.name,
+                        description: pattern.description,
+                        sensationType: SensationType.Normal
+                    });
+                }
             }
 
             // Manual trigger of the connect callback for the setup so things run in the right order

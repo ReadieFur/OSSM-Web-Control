@@ -6,7 +6,7 @@
     import LandingView from "$view/LandingView.svelte";
     import { svelteFade } from "$lib/utils/Animation.svelte";
 	import { isDevMode } from "$lib/utils/Helpers.svelte";
-    import { DummyProvider } from "$lib/services/OssmProvider.svelte";
+    import { DummyProvider } from "$lib/services/DummyProvider.svelte";
 
     // Styles
     import "$lib/styles/global.scss";
@@ -65,7 +65,7 @@
 {#if devViewOverride}
 <div class="app-shell">
     <!-- Dev view override (disables navigation animations) -->
-    <ActiveView viewManager={vm} {...vm.viewProps} />
+    <ActiveView {...vm.viewProps} viewManager={vm} />
 </div>
 
 {:else if appShellVisible}
@@ -74,7 +74,7 @@
         {#key ActiveView}
             <!-- App shell wraps the main content and transitions between views -->
             <div class="app-shell" transition:svelteFade={{ duration: 500, switching: true }}>
-                <ActiveView viewManager={vm} {...vm.viewProps} />
+                <ActiveView {...vm.viewProps} viewManager={vm} />
                 <Footer /> <!-- Due to how I position the footer (directly under the main content), this must live inside the app-shell -->
             </div>
         {/key}

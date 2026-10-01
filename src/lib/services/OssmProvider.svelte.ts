@@ -1,4 +1,3 @@
-import { isDevMode } from "$lib/utils/Helpers.svelte";
 import { SvelteMap } from "svelte/reactivity";
 
 export enum State {
@@ -18,13 +17,22 @@ export interface PlayState {
     sensation: number,
 }
 
+export enum SensationType {
+    /** Defines that the pattern has no sensation parameter */
+    None,
+    /** Defines that the pattern has a normal 0-100 sensation parameter */
+    Normal,
+    /** Defines that the pattern has a 0-50/50-100 sensation parameter (i.e. changing the value past a certain point inverts the pattern sensation) */
+    Invertible
+}
+
 export interface Pattern {
     name: string;
     description: string;
-    hasSensation: boolean;
-    canSensationInvert: boolean;
+    sensationType: SensationType;
 }
 
+/** For an example implementation, see {@link DummyProvider} */
 export abstract class OssmProvider {
     abstract get state(): State;
     abstract get patterns(): SvelteMap<number, Pattern>;
@@ -36,44 +44,4 @@ export abstract class OssmProvider {
     abstract emergencyStop(): Promise<void>;
     abstract recalibrate(): Promise<void>;
     abstract disconnect(): Promise<void>;
-}
-
-export class DummyProvider extends OssmProvider {
-    override state: State = $state(State.Ready);
-    override patterns: SvelteMap<number, Pattern> = new SvelteMap<number, Pattern>([
-        [0, { name: "Pattern 1", description: "Lorem ipsum dolor sit amet", hasSensation: true, canSensationInvert: true }],
-        [1, { name: "Pattern 2", description: "consectetur adipiscing elit", hasSensation: false, canSensationInvert: false }]
-    ]);
-    override playState: PlayState = $state({
-        patternId: 0,
-        depth: 45,
-        stroke: 25,
-        speed: 30,
-        sensation: 55,
-    });
-
-    constructor(doDynamicUpdate: boolean = false) {
-        super();
-
-        if (isDevMode) {
-            // eslint-disable-next-line svelte/no-inspect
-            $inspect(this.playState).with((_, playState) => console.log("[DummyProvider] Play state changed: ", playState));
-        }
-
-        if (doDynamicUpdate) {
-            setTimeout(() => {
-                this.playState = {
-                    patternId: 1,
-                    depth: 20,
-                    stroke: 5,
-                    speed: 70,
-                    sensation: 40,
-                };
-            }, 2000);
-        }
-    }
-
-    override emergencyStop(): Promise<void> { return Promise.resolve(); }
-    override recalibrate(): Promise<void> { return Promise.resolve(); }
-    override disconnect(): Promise<void> { return Promise.resolve(); }
 }

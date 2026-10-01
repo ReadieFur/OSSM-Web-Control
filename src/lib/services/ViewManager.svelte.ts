@@ -35,7 +35,14 @@ export class ViewManager extends EventTarget {
         this.setViewAndProps(view, this.viewProps as any); 
     }
 
-    viewProps = $state<ViewManagerProps>({ viewManager: this });
+    #viewProps = $state<ViewManagerProps>({ viewManager: this });
+    get viewProps() { return this.#viewProps; }
+    set viewProps(value: Omit<ViewManagerProps, "viewManager">) {
+        this.#viewProps = {
+            ...value,
+            viewManager: this
+        }
+    }
 
     constructor(initialView: ViewManagerComponent<any> | null = null, initialProps?: ViewManagerProps) {
         super();
