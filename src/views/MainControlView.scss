@@ -152,6 +152,9 @@
     gap: 0.5rem;
     text-align: left;
     flex: 1;
+    overflow: hidden;
+    min-height: 0;
+    min-width: 0;
 
     > div {
         flex: 1 1 0;
@@ -162,8 +165,10 @@
         flex-direction: column;
         gap: inherit;
         overflow: hidden;
-        flex: 0 1 35%; // Take up at least 35%
-        max-width: 50%; // Max width of 50%
+        flex: 1 1 35%; // Take up at least 35%
+        max-width: 45%; // Max width of 50%
+        min-height: 0;
+        min-width: 0;
 
         > .pattern-select {
             display: inherit;
@@ -180,9 +185,11 @@
         flex-direction: column;
         justify-content: space-between;
         gap: inherit;
+        min-height: 0;
 
         > .description-text {
             margin-bottom: auto;
+            overflow-y: auto;
         }
     }
 
@@ -190,7 +197,7 @@
         flex-direction: column;
 
         > .pattern-list {
-            flex: 0 1 auto; // Make "box 1 (aka radio buttons section)" take up, up to 65% in horizontal mode
+            flex: 1 1 auto; // Make "box 1 (aka radio buttons section)" take up, up to 65% in horizontal mode
             max-height: 65%;
             max-width: 100%;
         }

@@ -5,38 +5,38 @@ import { SensationType, type Pattern } from "$lib/services/OssmProvider.svelte"
 export const KnownPatterns: ReadonlyMap<number, Pattern> = new Map([
     [0, {
         name: "Simple Stroke",
-        description: "Acceleration, coasting, deceleration equally split",
+        description: "Acceleration, coasting, deceleration equally split.",
         sensationType: SensationType.None
     }],
     [1, {
         name: "Teasing Pounding",
-        description: "Provides a thrusting motion; sensation changes how aggressively the actuator moves in one direction direction, direction can be inverted",
+        description: "Provides a thrusting motion; sensation changes how aggressively the actuator moves in one direction direction, direction can be inverted.",
         sensationType: SensationType.Invertible
     }],
     [2, {
         name: "Robo Stroke",
-        description: "Robotic-style strokes; sensation changes how smoothed the motion is",
+        description: "Robotic-style strokes; sensation changes how smoothed the motion is.",
         sensationType: SensationType.Normal
     }],
     [3, {
         name: "Half'n'Half",
-        description: "Full and half depth strokes alternate; sensation affects how pronounced the half/full depth effect is",
+        description: "Full and half depth strokes alternate; sensation affects how pronounced the half/full depth effect is.",
         sensationType: SensationType.Invertible
     }],
     [4, {
         name: "Deeper",
-        description: "Gradually deepens the stroke over a number of cycles; sensation sets how many cycles occur before restarting",
+        description: "Gradually deepens the stroke over a number of cycles; sensation sets how many cycles occur before restarting.",
         sensationType: SensationType.Normal
     }],
     [5, {
         name: "Stop'n'Go",
-        description: "Pauses between strokes; sensation adjusts pause duration",
+        description: "Pauses between strokes; sensation adjusts pause duration.",
         sensationType: SensationType.Normal
     }],
     [6, {
         name: "Insist",
         // TODO: Clarify this description
-        description: "Modifies length, maintains speed; sensation influences direction",
+        description: "Modifies length, maintains speed; sensation influences direction.",
         sensationType: SensationType.Normal
     }]
 ]);

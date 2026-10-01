@@ -29,7 +29,7 @@
         }
     });
     const minGap = 1;
-    const dragUpdateInterval = 1000;
+    const dragUpdateInterval = 500;
 </script>
 
 <main class="fill-page">
