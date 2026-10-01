@@ -8,9 +8,6 @@
 	import { isDevMode } from "$lib/utils/Helpers.svelte";
     import { DummyProvider } from "$lib/services/DummyProvider.svelte";
 	import { version } from "$app/environment";
-
-    // Styles
-    import "$lib/styles/global.scss";
     import "$lib/styles/layout.scss";
 
     // Initial app state
@@ -62,8 +59,6 @@
         }
     });
 </script>
-
-<div class="app-background"></div>
 
 {#if devViewOverride}
 <div class="app-shell">
