@@ -10,7 +10,7 @@ export interface MainControlViewProps extends ViewManagerProps {
 
 const estopClickTimeoutMs = 300;
 
-export class MainControlView {
+export class MainControlView implements Disposable {
     disableControls = $derived(this.ossmProvider.state !== "ready");
     selectedPattern = $state(0);
     controlRange = $state({ from: 0, to: 0 });
@@ -35,6 +35,10 @@ export class MainControlView {
         this.onRemoteRangeChange();
         this.onRemoteSpeedChange();
         this.onRemoteSensationChange();
+    }
+
+    [Symbol.dispose](): void {
+        this.ossmProvider?.disconnect();
     }
 
     onRemoteStateChange(): void {

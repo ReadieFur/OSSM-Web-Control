@@ -29,7 +29,7 @@
         }
     });
     const minGap = 1;
-    const dragUpdateInterval = 500;
+    const updateRateInterval = $derived(1000 / self.ossmProvider.maxUpdateRateHz);
 </script>
 
 <main class="fill-page">
@@ -117,7 +117,7 @@
                             min={0}
                             max={100}
                             minGap={minGap}
-                            dragUpdateInterval={dragUpdateInterval}
+                            dragUpdateInterval={updateRateInterval}
                             bind:from={self.controlRange.from}
                             bind:to={self.controlRange.to}
                             onchange={(event: RangeChangeEvent) => self.onUiRangeChange(event)}
@@ -152,7 +152,7 @@
                             orientation={orientation}
                             min={0}
                             max={100}
-                            dragUpdateInterval={dragUpdateInterval}
+                            dragUpdateInterval={updateRateInterval}
                             bind:value={self.controlSpeed}
                             onchange={(event: { value: number }) => self.onUiSpeedChange(event.value) }
                             ondrag={(event: { value: number }) => self.onUiSpeedChange(event.value) }
@@ -188,7 +188,7 @@
                                 orientation={orientation}
                                 min={0}
                                 max={100}
-                                dragUpdateInterval={dragUpdateInterval}
+                                dragUpdateInterval={updateRateInterval}
                                 bind:value={self.controlSensation}
                                 onchange={(event: { value: number }) => self.onUiSensationChange(event.value) }
                                 ondrag={(event: { value: number }) => self.onUiSensationChange(event.value) }

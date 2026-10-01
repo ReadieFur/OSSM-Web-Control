@@ -6,6 +6,7 @@ import { isDevMode } from "$lib/utils/Helpers.svelte";
 export class DummyProvider extends OssmProvider {
     override state: State = $state(State.Ready);
     override patterns: SvelteMap<number, Pattern> = new SvelteMap<number, Pattern>(KnownPatterns);
+    override readonly maxUpdateRateHz = 1;
     override playState: PlayState = $state({
         patternId: 1,
         depth: 45,

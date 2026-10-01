@@ -41,8 +41,9 @@ export class OssmBleDevice extends OssmProvider implements Disposable {
 
     override state: State = $state(State.Disconnected);
     override patterns: SvelteMap<number, Pattern> = new SvelteMap<number, Pattern>();
-    get playState(): PlayState { return this.#playState; }
-    set playState(playState: PlayState) { this.updateFromUi(playState); }
+    override readonly maxUpdateRateHz = 3; // TODO: Make this dynamic based on how backed up the queue is
+    override get playState(): PlayState { return this.#playState; }
+    override set playState(playState: PlayState) { this.updateFromUi(playState); }
 
     constructor(client: OssmBleClient) {
         super();
@@ -182,8 +183,6 @@ export class OssmBleDevice extends OssmProvider implements Disposable {
 
     async #onStateSnapshot(snapshot: OssmStateSnapshot): Promise<void> {
         const [mainState, subState] = snapshot.state.split('.', 2);
-
-        console.log(snapshot.state);
 
         switch (snapshot.state) {
             case OssmStateString.Idle:
