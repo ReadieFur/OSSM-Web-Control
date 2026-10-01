@@ -7,7 +7,7 @@ export class DummyProvider extends OssmProvider {
     override state: State = $state(State.Ready);
     override patterns: SvelteMap<number, Pattern> = new SvelteMap<number, Pattern>(KnownPatterns);
     override playState: PlayState = $state({
-        patternId: 0,
+        patternId: 1,
         depth: 45,
         stroke: 25,
         speed: 30,
