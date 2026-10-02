@@ -127,6 +127,8 @@ export class OssmBleDevice extends OssmProvider implements Disposable {
     }
 
     override async disconnect(): Promise<void> {
+        this.#client.setSpeed(0);
+
         this.state = State.Disconnected;
 
         if (this.#disconnectTimeoutHandle) window.clearInterval(this.#disconnectTimeoutHandle);
