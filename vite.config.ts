@@ -20,6 +20,6 @@ export default defineConfig({
     server: {
         // Required for me to test on mobile via my private network.
         host: true,
-        allowedHosts: ['.internal', 'localhost']
+        allowedHosts: ['.home.arpa', '.internal', 'localhost']
     }
 });
