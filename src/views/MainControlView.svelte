@@ -30,13 +30,6 @@
     });
     const minGap = 1;
     const updateRateInterval = $derived(1000 / self.ossmProvider.maxUpdateRateHz);
-
-    // let isFullscreen = $state(false);
-    // $effect(() => {
-    //     const handleFullscreenChange = () => isFullscreen = !!document.fullscreenElement;
-    //     document.addEventListener('fullscreenchange', handleFullscreenChange);
-    //     return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
-    // });
 </script>
 
 <main class="fill-page">
@@ -59,16 +52,6 @@
                     onclick={self.onUiStopClick.bind(self)}/>
             </div>
             <div>
-                <!-- TODO: Add a fullscreen button here for small devices (webkit making this janky as usual) -->
-                <!-- <Button
-                    aria-label={isFullscreen ? 'Minimize' : 'Fullscreen'}
-                    icon={isFullscreen ? 'collapse_content' : 'expand_content'}
-                    onclick={() => {
-                        if (!document.fullscreenElement)
-                            document.documentElement.requestFullscreen();
-                        else
-                            document.exitFullscreen?.();
-                    }}/> -->
                 <Button
                     aria-label="Recalibrate"
                     class={self.ossmProvider.state === State.EmergencyStop ? 'highlight' : ''}
