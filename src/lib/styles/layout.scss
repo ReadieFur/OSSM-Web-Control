@@ -39,12 +39,16 @@ body {
     filter: contrast(220%) brightness(90%);
 }
 
-%background-base {
-    position: absolute;
+.app-background {
+    position: fixed;
     top: 0;
     left: 0;
-    width: 100%;
-    height: 100%;
+    width: 100vw;
+    height: 100vh;
+    z-index: -1;
+    inset: 0;
+    isolation: isolate;
+    pointer-events: none;
 
     // Background
     // TODO: Slowly animate these radials around the page
@@ -62,15 +66,6 @@ body {
         ),
         $surface-1;
     background-size: cover;
-}
-
-.app-background {
-    @extend %background-base;
-    z-index: -1;
-    inset: 0;
-    isolation: isolate;
-    pointer-events: none;
-
     background-attachment: fixed;
 
     &::before,
