@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "bump:patch": "node bump-patch.js",
-    "postinstall": "npm --prefix ./src/lib/ossm-ble-web ci",
+    "postinstall": "npm --prefix ./src/lib/ossm-ble-web install --no-save",
     "dev": "concurrently \"npm run dev:ble\" \"vite dev\"",
     "dev:ble": "npm --prefix ./src/lib/ossm-ble-web run dev",
     "build": "npm run build:ble && vite build",
