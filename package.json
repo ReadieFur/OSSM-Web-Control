@@ -1,7 +1,7 @@
 {
   "name": "ossm-web-control",
   "private": true,
-  "version": "2.0.202610012010",
+  "version": "2.0.202610030142",
   "type": "module",
   "scripts": {
     "bump:patch": "node bump-patch.js",
