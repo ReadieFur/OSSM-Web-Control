@@ -42,7 +42,7 @@ A quick overview on what this application supports and what is to come!
 <ul style="list-style-type: none; padding-left: 0;">
     <li><b>Supported platforms:</b> Any BLE capable browser!
         <ul style="list-style-type: none; padding-left: 1.5em;">
-            <li>✅ <b>Desktop:</b> Any Chromium-based browser (Chrome, Edge, Brave)</li>
+            <li>✅ <b>Desktop:</b> Any Chromium-based browser <i>(Chrome, Edge, Brave)</i></li>
             <li>✅ <b>Android:</b> Google Chrome</li>
             <li>✅ <b>iPhone:</b> <a href="https://apps.apple.com/us/app/bluefy-web-ble-browser/id1492822055">Bluefy Browser</a></li>
         </ul>
