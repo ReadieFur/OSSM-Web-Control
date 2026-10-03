@@ -1,0 +1,419 @@
+// Some components are dynamically built, see styles.ts for functionality of these components
+
+// #region Imports
+@use "sass:map";
+@use "sass:list";
+@use "sass:color";
+@use "sass:math";
+@use "sass:meta";
+@use "sass:string";
+// #endregion
+
+// #region Generators
+@function generate-theme($mode) {
+    $result: ();
+
+    @each $key, $colors in $theme-rules {
+        @if map.has-key($colors, $mode) {
+            $result: map.merge($result, ($key: map.get($colors, $mode)));
+        }
+    }
+
+    @return $result;
+}
+
+:root {
+    --is-mobile-ui: true;
+    --is-portrait: true;
+
+    @each $name, $value in generate-theme(dark) {
+        --#{$name}: #{$value};
+    }
+
+    @media (prefers-color-scheme: light) {
+        @each $name, $value in generate-theme(light) {
+            --#{$name}: #{$value};
+        }
+    }
+
+    @media #{$desktop-media-query} {
+        --is-mobile: false;
+    }
+    
+    @media #{$landscape-media-query} {
+        --is-portrait: false;
+    }
+}
+
+@function build-material-symbol-url() {
+    @if list.length($material-symbols) == 0 {
+        @return null;
+    }
+
+    $base-url: "https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:";
+    
+    $symbol-list: "";
+    @each $symbol in $material-symbols {
+        $separator: if(sass($symbol-list == ""): ""; else: ",");
+        $symbol-list: #{$symbol-list}#{$separator}#{$symbol};
+    }
+
+    // Must be in alphabetical order
+    $correct-order: ("opsz", "wght", "FILL", "GRAD");
+    $opt-keys: "";
+    $opt-vals: "";
+    @each $key in $correct-order {
+        @if map.has-key($material-symbols-options, $key) {
+            $separator: if(sass($opt-keys == ""): ""; else: ",");
+            $opt-keys: #{$opt-keys}#{$separator}#{$key};
+            $opt-vals: #{$opt-vals}#{$separator}#{map.get($material-symbols-options, $key)};
+        }
+    }
+
+    @return "#{$base-url}#{$opt-keys}@#{$opt-vals}&icon_names=#{$symbol-list}&display=block";
+}
+$material-symbols-url: build-material-symbol-url();
+@if $material-symbols-url {
+    @import url(#{$material-symbols-url});
+}
+// #endregion
+
+// #region Elements
+html, body {
+    touch-action: manipulation; // Prevents double-tap zoom on mobile devices
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    color: inherit;
+
+    // Remove touch device highlight on press
+    outline: none;
+    -webkit-tap-highlight-color: transparent;
+}
+
+button, a.button {
+    padding: 1rem;
+    border: none;
+    border-radius: $radius-600;
+    transition: background 0.2s ease;
+    text-decoration: none;
+    background-color: hsl(from $surface-1 h s l / 0.5);
+    color: $text-1;
+
+    &:hover:not([disabled]) {
+        background-color: hsl(from $surface-2 h s l / 0.5);
+        cursor: pointer;
+    }
+
+    &[disabled] {
+        opacity: 0.5;
+        cursor: not-allowed;
+    }
+}
+
+input {
+    &:focus {
+        outline: none;
+    }
+
+    &[type="text"],
+    &[type="password"],
+    &[type="email"],
+    &[type="number"] {
+        background-color: transparent;
+        border: none;
+        border-radius: $radius-600;
+        padding: 0.75rem;
+        background-color: hsl(from $surface-1 h s l / 0.5);
+        transition: background-color 0.2s ease, border-color 0.2s ease;
+
+        // &:hover:not([disabled]),
+        // &:focus:not([disabled]) {
+        //     background-color: hsl(from $surface-2 h s l / 0.5);
+        // }
+    }
+
+    &[type="checkbox"] {
+        border-radius: $radius-200;
+
+        @include input-checkbox-radio using ($content) {
+            @if $content == "box" {
+                border-radius: $radius-200; //Must explicitly be set again here
+            }
+
+            @if $content == "checked" {
+                background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='white'%3E%3Cpath d='M20.285 6.709l-11.025 11.025-5.285-5.285 1.414-1.414 3.871 3.871 9.611-9.611z'/%3E%3C/svg%3E");
+            }
+        }
+    }
+
+    &[type="radio"] {
+        border-radius: 100%;
+
+        @include input-checkbox-radio using ($content) {
+            @if $content == "box" {
+                border-radius: 100%;
+            }
+
+            @if $content == "checked" {
+                background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='white'%3E%3Ccircle cx='12' cy='12' r='6'/%3E%3C/svg%3E");
+            }
+        }
+    }
+
+    &[type="range"] {
+        // Set in script
+        --range-value: 50%;
+        --range-track-thickness: 100%;
+
+        border-radius: $radius-600;
+        appearance: none;
+        background: transparent;
+        cursor: pointer;
+        user-select: none;
+
+        @include range-track {
+            // TODO: Fix this not working if the track is smaller than the thumb (cause: gradient hack)
+            border-radius: $radius-600;
+            transition: background 0.2s ease;
+        }
+
+        @include range-thumb {
+            opacity: 0;
+
+            @include ifWebKit {
+                width: 1rem;
+                height: var(--range-track-thickness);
+            }
+        }
+
+        @include ifWebKit {
+            touch-action: none; // Controlled by script.
+            -webkit-user-select: none; // Disable text selection when clicking and dragging (since this functionality is required for out custom input code in script and we don't want to end up enabling the text selection dialog).
+            -webkit-touch-callout: none;
+        }
+        
+        &:active {
+            cursor: grabbing;
+        }
+
+        // Horizontal
+        &:not([data-orientation="vertical"]) {
+            min-height: 1rem;
+
+            @include range-track {
+                --track-bg: #{hsl(from $surface-2 h s l / 0.5)};
+                --track-fill-1: #{hsl(from $accent-1 h s l / 0.5)};
+                --track-fill-2: #{hsl(from $accent-1 h s l / 0.5)};
+                // In order to set the proper bounding box, we set the height to the larger of the track thickness or thumb size
+                height: var(--range-track-thickness);
+                // We then set the background to a gradient that is centered vertically, with the height of the desired track thickness
+                background:
+                    linear-gradient(
+                        to right,
+                        var(--track-fill-1) 0%,
+                        var(--track-fill-2) var(--range-value),
+                        var(--track-bg) var(--range-value),
+                        var(--track-bg) 100%
+                    ) center / 100% var(--range-track-thickness) no-repeat;
+            }
+        }
+
+        &[data-orientation="vertical"] {
+            @include range-thumb {
+                @include ifWebKit {
+                    width: var(--range-track-thickness);
+                    height: 1rem;
+                }
+            }
+
+            // Vertical in a mixin because it needs to be repeated elsewhere
+            @include range-vertical;
+            // width: fit-content;
+        }
+    }
+}
+
+section {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    padding: 1.5rem;
+
+    @media #{$small-media-query} {
+        padding: 1rem;
+        gap: 0.75rem;
+    }
+}
+
+p {
+    line-height: 1.5;
+}
+// #endregion
+
+// #region Reusable classes
+.material-symbol {
+    --icon-scale: 1;
+
+    // Make larger icon not take up extra space
+    display: inline-block;
+    width: 1.5em; //1.5x the inherited font size
+    height: 0;
+    line-height: 0;
+    vertical-align: middle;
+    font-family: "Material Symbols Outlined";
+    font-size: 1.5em;
+    overflow: visible;
+    transform-origin: center;
+    transform: scale(var(--icon-scale));
+
+    &.fill {
+        font-variation-settings: 'FILL' 1;
+    }
+
+    &.small {
+        width: 1em;
+        font-size: 1em;
+    }
+
+    &::before {
+        content: attr(data-icon);
+        display: block;
+        transform: translateY(-0.075em);
+    }
+
+    &.no-offset::before {
+        transform: translateY(0);
+    }
+}
+
+.no-border {
+    border: none !important;
+}
+
+.space-between {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.glass-border {
+    &::before {
+        content: "";
+        @include glass-border;
+    }
+}
+
+.card {
+    border-radius: $radius-800;
+    background: hsl(from $surface-3 h s l / 0.25);
+    backdrop-filter: blur($blur);
+
+    &::before {
+        content: "";
+        @include glass-border;
+    }
+}
+
+.hidden {
+    display: none !important;
+    opacity: 0 !important;
+}
+
+.highlight {
+    background-color: hsl(from $accent-2 h s l / 0.9);
+    animation: opacity-pulse 2s ease-in-out infinite;
+}
+// #endregion
+
+// #region Animations
+.transition-bounds {
+    transition: width 0.5s ease, height 0.5s ease;
+    // https://www.youtube.com/watch?v=JN-nme9oF10
+    // I would program this in script but I can't be arsed and given that this app requires WebBLE it will only run on chrome anyway.
+    interpolate-size: allow-keywords;
+    // width: calc-size(auto);
+    // height: calc-size(auto);
+
+    @media (prefers-reduced-motion: reduce) {
+        transition: none;
+        interpolate-size: none;
+    }
+}
+
+@keyframes fade-in {
+    from {
+        opacity: 0;
+        transform: scale(0.9);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+@keyframes fade-out {
+    from {
+        opacity: 1;
+        transform: scale(1);
+    }
+    to {
+        opacity: 0;
+        transform: scale(0.9);
+    }
+}
+
+.transition-fade {
+    // Set in script
+    --transition-fade-duration: 0.5s;
+
+    animation-duration: var(--transition-fade-duration);
+    animation-timing-function: ease;
+
+    &[data-transition-fade="in"] {
+        animation-name: fade-in;
+    }
+
+    &[data-transition-fade="out"] {
+        animation-name: fade-out;
+    }
+}
+
+.transition-delay-hidden {
+    display: none !important;
+}
+
+@keyframes grain-fade {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0; }
+}
+
+@keyframes opacity-pulse {
+    0%, 100% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.7;
+    }
+}
+
+@keyframes scale-pulse {
+    0%, 100% {
+        transform: scale(1);
+    }
+    50% {
+        transform: scale(0.975);
+    }
+}
+
+.scale-pulse {
+    animation: scale-pulse 2s ease-in-out infinite;
+
+    @media (prefers-reduced-motion: reduce) {
+        animation: none;
+    }
+}
+// #endregion

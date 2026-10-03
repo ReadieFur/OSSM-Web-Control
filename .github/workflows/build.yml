@@ -1,7 +1,13 @@
+# .github/workflows/build.yml
 name: Build
 
 on:
   workflow_call:
+    inputs:
+      ref:
+        description: "The commit SHA or ref to checkout"
+        required: false
+        type: string
 
 jobs:
   build:
@@ -10,37 +16,32 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref || github.ref }}
+          submodules: recursive
 
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
           cache: npm
 
       - name: Install dependencies
         run: npm ci
 
-      - name: Compile SCSS
-        run: npm run build:scss
-
-      - name: Compile TypeScript
-        run: npm run build:ts
-
-      - name: Copy static files
+      - name: Build submodule
         run: |
-          mkdir -p dist
-          rsync -av src/ dist/ \
-            --exclude='*.ts' \
-            --exclude='*.d.ts' \
-            --exclude='*.scss' \
-            --exclude='*.map' \
-            --exclude='SOURCE'
+          cd src/lib/ossm-ble-web
+          npm install
+          npm run build
 
-      - name: Copy LICENSE
-        run: cp LICENSE dist/
+      - name: Type check
+        run: npm run check
 
-      # IMPORTANT: Pages artifact (NOT upload-artifact)
+      - name: Run production build
+        run: npm run build
+
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: dist
+          path: build/

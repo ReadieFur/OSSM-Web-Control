@@ -1,0 +1,11 @@
+# .github/workflows/pr-validation.yml
+name: PR Validation
+
+on:
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  verify-build:
+    uses: ./.github/workflows/build.yml

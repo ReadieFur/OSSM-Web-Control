@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="en">
+	<head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+        <meta name="color-scheme" content="dark light">
+
+		<script>
+			// Check if we should load mobile dev tools (helps debug Webkit fuckery)
+			if (
+				(/iPhone|iPad|iPod/.test(navigator.userAgent)) &&
+				(
+					globalThis.location?.hostname === "localhost" ||
+					(globalThis.location?.hostname && /^(?:[0-9]{1,3}\.){3}[0-9]{1,3}$/.test(globalThis.location.hostname)) ||
+					(globalThis.location?.search && new URLSearchParams(globalThis.location.search).has("dev"))
+				)
+			) {
+				const script = document.createElement("script");
+				script.src = "https://cdn.jsdelivr.net/npm/eruda";
+				script.onload = () => eruda.init();
+				document.head.appendChild(script);
+			}
+		</script>
+
+		<title>OSSM Web Control</title>
+		<link rel="icon" type="image/png" sizes="256x256" media="(prefers-color-scheme: dark)" href="%sveltekit.assets%/favicon.png">
+
+        <meta name="mobile-web-app-capable" content="yes">
+        <meta name="apple-mobile-web-app-capable" content="yes">
+        <meta name="apple-mobile-web-app-title" content="OSSM">
+        <link rel="manifest" href="%sveltekit.assets%/manifest.json">
+
+		<meta property="og:site_name" content="OSSM Web Control">
+		<meta property="og:title" content="OSSM Web Control">
+		<meta property="og:description" content="Control your OSSM device over Bluetooth from your browser!">
+		<meta property="og:image" content="https://ossm-web.forestpuppy.pet/favicon.png"/>
+		<meta property="og:image:type" content="image/png">
+		<meta property="og:image:width" content="256">
+		<meta property="og:image:height" content="256">
+		<meta property="og:url" content="https://ossm-web.forestpuppy.pet/">
+
+		<script>console.log(`[BLEAT] 👁️🦌👁️! What are you doing here?`);</script>
+
+		<script>
+			window.addEventListener("beforeinstallprompt", (event) => {
+				event.preventDefault();
+				window.pwaInstallContext = event;
+			}, { once: true });
+		</script>
+
+        %sveltekit.head%
+	</head>
+
+	<body data-sveltekit-preload-data="hover">
+		<noscript class="app-shell">
+			<!-- Stylesheet is loaded in the <head> via +page.svelte thanks to the static compiler so I don"t need to mess with trying to load that here
+			(although it does spaghettify this noscript section a bit, but for the sake of noscript I don"t care)-->
+			<main>
+				<section class="card">
+					<h1>OSSM Web Control</h1>
+					<div class="info-container" data-state="error">
+						<p><strong>JavaScript is required</strong></p>
+						<p>Please enable JavaScript in your browser to continue</p>
+					</div>
+				</section>
+			</main>
+		</noscript>
+
+		<div style="display: contents">%sveltekit.body%</div>
+	</body>
+</html>

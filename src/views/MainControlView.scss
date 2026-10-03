@@ -1,0 +1,417 @@
+.control-screen {
+    // Layout
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-grow: 1;
+    flex-direction: column;
+
+    div.card {
+        padding: 1rem;
+
+        @media #{$small-media-query} {
+            padding: 0.75rem 1rem;
+        }
+    }
+
+    > .stop-button {
+        border-radius: $radius-800;
+        backdrop-filter: blur($blur);
+
+        // font-size: 1em;
+        // padding: 0.5rem 1rem;
+
+        @media #{$landscape-media-query} {
+            display: none;
+        }
+    }
+
+    @media #{$mobile-media-query} {
+        border: none;
+        border-radius: 0;
+    }
+}
+
+.stop-button {
+    // border: 2px solid hsl(from $red h s l / 0.7);
+    // background-color: hsl(from var(--surface-2) h s l / 0.3);
+    background-color: hsl(from $red h s l / 0.7);
+    transition: background 0.2s ease, color 0.2s ease;
+
+    &:hover {
+        background-color: hsl(from $red h s l / 1) !important;
+    }
+
+    &:disabled {
+        // background-color: hsl(from $red h s l / 0.3);
+        background: hsl(from $surface-3 h s l / 0.25);
+    }
+
+    > .material-symbol {
+        --icon-scale: 1.2;
+
+        @media #{$small-media-query} {
+            --icon-scale: 1.5;
+        }
+    }
+}
+
+.state-indicator {
+    $text-placement: "after"; // "before" or "after"
+    $gap: 0.5em;
+
+    $margin-property: if(sass($text-placement == "before"): "margin-right"; else: "margin-left");
+    &::#{$text-placement} {
+        content: attr(data-text);
+        #{$margin-property}: $gap;
+        // font-size: 0.9em
+    }
+
+    $states: (
+        disconnected: $red,
+        reconnecting: $yellow,
+        estop: $yellow,
+        calibrating: $accent-2,
+        ready: $green,
+    );
+    @each $state, $color in $states {
+        &[data-state="#{$state}"] {
+            > span {
+                color: hsl(from $color h s l / 1);
+            }
+        }
+    }
+}
+
+.status {
+    display: grid;
+    grid-template-columns: auto 1fr auto; 
+    align-items: center;
+    padding: 0.5rem 0.75rem !important;
+
+    @media #{$small-media-query} {
+        padding: 0.25rem 0.75rem !important;
+    }
+
+    > *:nth-child(1) { 
+        justify-self: start; 
+    }
+    
+    > *:nth-child(2) { 
+        justify-self: stretch; 
+        display: flex;
+        justify-content: center;
+        align-items: center;
+    }
+    
+    > *:nth-child(3) { 
+        justify-self: end; 
+    }
+
+    > div {
+        display: flex;
+        gap: 0.5rem;
+    }
+
+    button {
+        padding: 0.75rem 0.5rem;
+
+        &.stop-button {
+            padding: 0.75rem 1.5rem;
+            width: 75%;
+
+            @media #{$portrait-media-query} {
+                display: none;
+            }
+        }
+
+        &:last-child {
+            margin-right: -0.25rem;
+        }
+    }
+}
+
+.options-and-controls {
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    gap: 1rem;
+    $controls-size: 70%;
+    user-select: none;
+    min-height: 0;
+    
+    > .options {
+        flex: 1 1 auto;
+        min-height: 0;
+    }
+
+    > .controls {
+        flex: 0 0 $controls-size;
+    }
+
+    @media #{$landscape-media-query} {
+        flex-direction: row;
+
+        > .options {
+            flex: 1 1 auto;
+            min-width: 0;
+        }
+
+        > .controls {
+            flex: 0 0 $controls-size;
+        }
+    }
+
+    @media #{$small-media-query} {
+        gap: 0.75rem;
+    }
+}
+
+.options {
+    display: flex;
+}
+
+.patterns-panel {
+    display: flex;
+    flex-direction: row;
+    gap: 0.5rem;
+    text-align: left;
+    flex: 1;
+    overflow: hidden;
+    min-height: 0;
+    min-width: 0;
+
+    > div {
+        flex: 1 1 0;
+    }
+
+    > .pattern-list {
+        display: flex;
+        flex-direction: column;
+        gap: inherit;
+        overflow: hidden;
+        flex: 1 1 35%; // Take up at least 35%
+        max-width: 45%; // Max width of 50%
+        min-height: 0;
+        min-width: 0;
+
+        > h3 {
+            @media #{$small-media-query} {
+                font-size: 1.1em; // Default is 1.17
+            }
+        }
+
+        > .pattern-select {
+            display: inherit;
+            flex-direction: inherit;
+            gap: inherit;
+            min-height: 0;
+            overflow-y: auto;
+            scrollbar-gutter: stable;
+            // TODO: Make it apparent that this is scrollable
+
+            @media #{$small-media-query} {
+                font-size: 0.9em;
+            }
+        }
+    }
+
+    > .pattern-settings {
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        gap: inherit;
+        min-height: 0;
+
+        > .description-text {
+            margin-bottom: auto;
+            overflow-y: auto;
+
+            @media #{$small-media-query} {
+                font-size: 0.9em;
+                line-height: 1.4;
+            }
+        }
+    }
+
+    @media #{$landscape-media-query} {
+        flex-direction: column;
+
+        > .pattern-list {
+            flex: 1 1 auto; // Make "box 1 (aka radio buttons section)" take up, up to 65% in horizontal mode
+            max-height: 65%;
+            max-width: 100%;
+        }
+    }
+}
+
+.controls {
+    $column-max-width: 6rem;
+
+    // #region Layout
+    height: 100%;
+    display: grid;
+    grid-template-rows: auto 1fr auto;
+    grid-auto-flow: column;
+    grid-template-columns: repeat(auto-fit, minmax(0, 1fr));
+    justify-items: center;
+    justify-content: space-evenly; // Column alignment
+    align-content: space-evenly; // Row alignment
+    align-items: center; // Content alignment
+    gap: 1rem;
+
+    @media #{$small-media-query} {
+        gap: 0.65rem 1rem;
+    }
+
+    // Column
+    > div {
+        min-width: 0;
+        display: contents;
+
+        // Rows
+        @for $i from 1 through 3 {
+            > :nth-child(#{$i}) {
+                display: flex;
+                position: relative;
+                grid-row: $i;
+            }
+        }
+
+        > :nth-child(2) {
+            width: 100%;
+            height: 100%
+        }
+
+        > * {
+            max-width: $column-max-width;
+        }
+
+        // TODO: Change the border here if the element is pending remote confirmation?
+        > .glass-border {
+            $track-highlight-colour: hsl(from $accent-1 h s l / 0.8);
+
+            input[type="range"] {
+                @include range-track {
+                    transition: --track-fill-1 0.2s ease, --track-fill-2 0.2s ease;
+                    --track-bg: transparent !important;
+                }
+
+                &.input-range,
+                &[data-component="to"] {
+                    &:active,
+                    &:focus-visible {
+                        @include range-track {
+                            --track-fill-2: #{$track-highlight-colour};
+                        }
+                    }
+                }
+
+                &.is-animating,
+                &.is-animating-to {
+                    @include range-track {
+                        --track-fill-2: #{$track-highlight-colour};
+                    }
+                }
+
+                &[data-component="from"] {
+                    &:active,
+                    &:focus-visible {
+                        /* Due to how the scss works for the double input sliders, the "from" track is actually always transparent
+                         * but we still use that as the activator and then set the value on the bottom side of the "to" component
+                         */
+                        ~ input[data-component="to"] {
+                            @include range-track {
+                                --track-fill-1: #{$track-highlight-colour};
+                            }
+                        }
+                    }
+                }
+
+                &.is-animating-from {
+                    @include range-track {
+                        --track-fill-1: #{$track-highlight-colour};
+                    }
+                }
+            }
+
+            &::before {
+                transition: --glass-border-1 0.2s ease, --glass-border-2 0.2s ease;
+            }
+
+            &:hover {
+                &::before {
+                    --glass-border-1: #{$border-hover-2};
+                    --glass-border-2: #{$border-hover-1};
+                }
+            }
+        }
+    }
+
+    @media #{$landscape-media-query} {
+        // Flip layout direction in landscape mode
+        grid-template-rows: repeat(auto-fit, minmax(0, 1fr));
+        grid-template-columns: auto 1fr auto;
+
+        // Column becomes row
+        > div {
+            // Row becomes column with 1st and 3rd elements swapped
+            @for $i from 1 through 3 {
+                > :nth-child(#{$i}) {
+                    grid-column: 4 - $i; // Swap 1st and 3rd elements
+                    grid-row: auto;
+                    max-height: clamp(3rem, 40%, 10rem); // Caps row elements vertically
+                }
+            }
+
+            > :nth-child(2) {
+                max-width: unset;
+            }
+        }
+    }
+    // #endregion
+
+    > div > :nth-child(2) {
+        border-radius: $radius-600;
+
+        > .input-container-range-double,
+        > input[type="range"] {
+            flex: 1;
+        }
+
+        > .material-symbol {
+            position: absolute;
+            pointer-events: none;
+            left: 50%;
+            transform: translateX(-50%);
+            color: hsl(from $text-1 h s l / 0.7);
+            bottom: min(10%, 3rem);
+
+            @media #{$landscape-media-query} {
+                bottom: unset;
+                top: 50%;
+                left: min(15%, 2rem);
+            }
+        }
+    }
+
+    .invert-sensation {
+        $size: 1.5em;
+
+        justify-content: center;
+        font-size: $size;
+        transform-origin: center;
+
+        &::after {
+            width: $size;
+            height: $size;
+            line-height: $size !important;
+            // I originally wanted this to fade to the new rotation instead of spin however the spin is a good indicator for what it does.
+            transition: transform 0.4s ease, background-color 0.2s ease;
+        }
+
+        &:checked::after {
+            transform: rotateY(180deg);
+        }
+    }
+}

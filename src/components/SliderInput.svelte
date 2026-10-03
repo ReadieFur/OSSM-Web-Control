@@ -1,0 +1,167 @@
+<script lang="ts">
+	import { cubicOut } from "svelte/easing";
+    import type { HTMLInputAttributes } from "svelte/elements";
+	import { Tween } from "svelte/motion";
+
+    interface Props extends Omit<HTMLInputAttributes, "value" | "type" | "onchange" | "ondrag"> {
+        value?: number;
+        min?: number;
+        max?: number;
+        step?: number | "any";
+        orientation?: "horizontal" | "vertical";
+        disabled?: boolean;
+        dragUpdateInterval?: number;
+        onchange?: (event: { value: number }) => void;
+        ondrag?: (event: { value: number }) => void;
+    }
+
+    let {
+        value = $bindable(0),
+        min = 0,
+        max = 100,
+        step = 1,
+        orientation = "horizontal",
+        disabled = false,
+        dragUpdateInterval = 1000,
+        class: className = "",
+        style = "",
+        onchange,
+        ondrag,
+        ...restProps
+    }: Props = $props();
+
+    let inputRef = $state<HTMLInputElement | null>(null);
+    let isDragging = $state(false);
+    let pointerInteracting = $state(false);
+    let lastDispatchedValue = $state(0);
+
+    // Dynamic track fill percentage for CSS --range-value
+    let percent = $derived.by(() => {
+        const numMin = Number(min);
+        const numMax = Number(max);
+        if (numMax <= numMin) return 0;
+        const current = value ?? numMin;
+        const clamped = Math.max(numMin, Math.min(numMax, current));
+        return ((clamped - numMin) / (numMax - numMin)) * 100;
+    });
+
+    // This is a workaround for WebKit browsers where clicking and dragging on the track of a range input does not move the thumb
+    function calculateValueFromPointer(event: PointerEvent): number {
+        if (!inputRef) return value ?? Number(min);
+
+        const rect = inputRef.getBoundingClientRect();
+        let positionPercent: number;
+
+        if (orientation === "vertical") {
+            const offsetY = event.clientY - rect.top;
+            positionPercent = 1 - (offsetY / rect.height); // Invert due to CSS using rtl/v-lr to flip the input for vertical orientation
+        } else {
+            const offsetX = event.clientX - rect.left;
+            positionPercent = offsetX / rect.width;
+        }
+
+        positionPercent = Math.max(0, Math.min(1, positionPercent));
+
+        const numMin = Number(min);
+        const numMax = Number(max);
+        let computedValue = numMin + positionPercent * (numMax - numMin);
+
+        if (step !== "any" && Number(step) > 0) {
+            const numStep = Number(step);
+            const steps = Math.round((computedValue - numMin) / numStep);
+            computedValue = numMin + steps * numStep;
+        }
+
+        return Math.max(numMin, Math.min(numMax, computedValue));
+    }
+
+    function handlePointerDown(event: PointerEvent) {
+        if (!inputRef || disabled) return;
+        event.preventDefault(); // Prevent default single-snapping
+        inputRef.setPointerCapture(event.pointerId); // Capture pointer to continue receiving events even if the pointer goes outside the element (required for the release to work properly)
+        isDragging = true;
+        value = calculateValueFromPointer(event);
+        lastDispatchedValue = value;
+        // ondrag?.({ value }); // Dispatch for the first drag event
+    }
+
+    function handlePointerMove(event: PointerEvent) {
+        if (!isDragging || disabled) return;
+        value = calculateValueFromPointer(event);
+    }
+
+    function handlePointerUp(event: PointerEvent) {
+        if (!isDragging || !inputRef) return;
+        isDragging = false;
+
+        try { inputRef.releasePointerCapture(event.pointerId); }
+        catch { /* Pointer capture release safety guard */ }
+
+        if (disabled) return;
+
+        value = calculateValueFromPointer(event);
+        pointerInteracting = true;
+        onchange?.({ value });
+    }
+
+    function handlePointerCancel() {
+        isDragging = false;
+        pointerInteracting = false;
+    }
+
+    function handleNativeChange() {
+        if (pointerInteracting) {
+            pointerInteracting = false;
+            return; // Ignore the native change event if it was triggered by pointer interaction, as we already handled it in handlePointerUp
+        }
+
+        onchange?.({ value });
+    }
+
+    // Periodic drag updates
+    $effect(() => {
+        if (!isDragging || !dragUpdateInterval || !ondrag)
+            return;
+
+        const intervalId = setInterval(() => {
+            if (isDragging && value !== lastDispatchedValue) {
+                lastDispatchedValue = value;
+                ondrag({ value });
+            }
+        }, dragUpdateInterval);
+
+        /* In Svelte if a function is returned from an $effect, then it is called before the next $effect call
+         * In this instance that will cancel the last interval dispatcher to instead start a new one, so updates aren't sent out multiple times
+         */
+        return () => clearInterval(intervalId);
+    });
+
+    const tweenDefaultDuration = 150;
+    const animatedPercent = new Tween(0, { duration: tweenDefaultDuration, easing: cubicOut });
+    $effect(() => {
+        animatedPercent.set(percent, {
+            // duration: isDragging ? 100 : tweenDefaultDuration // Leave both the same for now
+        });
+    });
+    const isAnimating = $derived(Math.abs(animatedPercent.current - animatedPercent.target) > 0.01);
+</script>
+
+<input
+    bind:this={inputRef}
+    class:is-animating={isAnimating}
+    type="range"
+    bind:value={value}
+    {min}
+    {max}
+    {step}
+    data-orientation={orientation}
+    {disabled}
+    class="input-range {className}"
+    style="--range-value: {animatedPercent.current}%; {style}"
+    onpointerdown={handlePointerDown}
+    onpointermove={handlePointerMove}
+    onpointerup={handlePointerUp}
+    onpointercancel={handlePointerCancel}
+    onchange={handleNativeChange}
+    {...restProps}
+/>

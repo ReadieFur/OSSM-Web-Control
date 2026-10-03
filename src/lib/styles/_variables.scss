@@ -1,0 +1,488 @@
+// #region Imports
+@use "sass:map";
+@use "sass:list";
+@use "sass:color";
+@use "sass:math";
+@use "sass:string";
+// #endregion
+
+// #region Theme variables
+/* Site is designed mobile first & dark first
+ * Inspired by the following:
+ * https://codepen.io/kevinpowell/pen/XJJwaxG?editors=1100
+ * https://www.youtube.com/watch?v=_ZFghigBmqo
+ */
+
+$mobile-width-threshold: 500;
+$mobile-height-threshold: 1000;
+$small-width-threshold: 380;
+$small-height-threshold: 720;
+
+$material-symbols: (
+    "arrow_range",
+    "bluetooth_searching",
+    "circle",
+    "dangerous",
+    "dashboard",
+    "deployed_code_update",
+    "flip",
+    "logout",
+    "nest_true_radiant",
+    "next_plan",
+    "reset_settings",
+    "share",
+    "speed",
+);
+
+$material-symbols-options: (
+    "FILL": "0..1",
+);
+
+// #020817
+$primary-900: hsl(256, 43%, 7%);
+$primary-800: hsl(240, 24%, 13%);
+$primary-700: hsl(243, 26%, 15%);
+$primary-600: hsl(252, 9%, 22%);
+$primary-500: hsl(259, 13%, 28%);
+$primary-400: hsl(254, 22%, 32%);
+$primary-350: hsl(250, 14%, 36%);
+$primary-300: hsl(251, 13%, 68%);
+$primary-200: hsl(240, 15%, 76%);
+$primary-100: hsl(240, 21%, 88%);
+
+$neutral-900: hsl(0, 0%, 0%);
+$neutral-100: hsl(0, 0%, 100%);
+
+$accent-1: hsl(275, 100%, 69%);
+$accent-2: hsl(204, 85%, 60%);
+
+$font-family: system-ui;
+$text-1: var(--text-1);
+$text-2: var(--text-2);
+$text-3: var(--text-3);
+
+$surface-1: var(--surface-1);
+$surface-2: var(--surface-2);
+$surface-3: var(--surface-3);
+
+$border-hover-1: var(--border-hover-1);
+$border-hover-2: var(--border-hover-2);
+$border-1: var(--border-1);
+$border-2: var(--border-2);
+
+$radius-800: 1em;
+$radius-600: 0.75em;
+$radius-400: 0.5em;
+$radius-200: 0.25em;
+
+$blur: 12px;
+
+$green: hsl(135, 64%, 50%);
+$red: hsl(352, 100%, 61%);
+$yellow: hsl(48, 100%, 50%);
+
+$theme-rules: (
+    text-1: (
+        dark: $neutral-100,
+        light: $neutral-900,
+    ),
+    text-2: (
+        dark: $primary-100,
+        light: $primary-900,
+    ),
+    text-3: (
+        dark: $primary-200,
+        light: $primary-800,
+    ),
+    surface-1: (
+        dark: $primary-900,
+        light: $primary-100,
+    ),
+    surface-2: (
+        dark: $primary-800,
+        light: $primary-200,
+    ),
+    surface-3: (
+        dark: $primary-700,
+        light: $primary-300,
+    ),
+    border-hover-1: (
+        dark: $primary-350,
+        light: $primary-100,
+    ),
+    border-hover-2: (
+        dark: $primary-400,
+        light: $primary-200,
+    ),
+    border-1: (
+        dark: $primary-500,
+        light: $primary-400,
+    ),
+    border-2: (
+        dark: $primary-600,
+        light: $primary-500,
+    ),
+);
+// #endregion
+
+// #region Generators
+$desktop-media-query: "(min-width: #{$mobile-width-threshold + 1}px) and (min-height: #{$mobile-height-threshold + 1}px)";
+$mobile-media-query: "(max-width: #{$mobile-width-threshold}px), (max-height: #{$mobile-height-threshold}px)";
+$small-media-query: "(max-width: #{$small-width-threshold}px), (max-height: #{$small-height-threshold}px)";
+$portrait-media-query: "(orientation: portrait)";
+$landscape-media-query: "(orientation: landscape)";
+// #endregion
+
+// #region Mixins
+@mixin ifWebKit {
+    @supports (-webkit-touch-callout: none) {
+        @content;
+    }
+}
+
+@mixin border-debug($color: null) {
+    @if $color == null {
+        $color: hsl(math.random(360), 100%, 50%);
+    }
+    border: 1px solid $color !important;
+}
+
+@property --glass-border-1 {
+    syntax: '<color>';
+    inherits: true;
+    initial-value: transparent;
+}
+
+@property --glass-border-2 {
+    syntax: '<color>';
+    inherits: true;
+    initial-value: transparent;
+}
+
+@mixin glass-border {
+    --glass-border-1: #{$border-1};
+    --glass-border-2: #{$border-2};
+    position: absolute;
+    z-index: -1;
+    inset: 0;
+    border-radius: inherit;
+    border: 1px solid transparent;
+    background: linear-gradient(var(--glass-border-1), var(--glass-border-2)) border-box;
+    mask: linear-gradient(black, black) border-box,
+        linear-gradient(black, black) padding-box;
+    mask-composite: subtract;
+}
+
+@mixin range-track {
+    // These must be separate for some reason, comma separated browser selectors don't seem to work.
+    &::-webkit-slider-runnable-track {
+        @content;
+    }
+
+    &::-moz-range-track {
+        @content;
+    }
+
+    &::-ms-track {
+        @content;
+    }
+}
+
+@mixin range-thumb {
+    &::-webkit-slider-thumb {
+        // appearance: none;
+
+        // Apple/WebKit fixes.
+        @include ifWebKit {
+            -webkit-appearance: none;
+            border: none;
+        }
+
+        @content;
+    }
+
+    &::-moz-range-thumb {
+        @content;
+    }
+
+    &::-ms-thumb {
+        @content;
+    }
+}
+
+// This is a new thing I've found out about and like :3
+@property --track-fill-1 {
+    syntax: '<color>';
+    inherits: true;
+    initial-value: transparent;
+}
+
+@property --track-fill-2 {
+    syntax: '<color>';
+    inherits: true;
+    initial-value: transparent;
+}
+
+@property --track-bg {
+    syntax: '<color>';
+    inherits: true;
+    initial-value: transparent;
+}
+
+@mixin range-vertical {
+    // https://stackoverflow.com/questions/15935837/how-to-display-a-range-input-slider-vertically
+    writing-mode: vertical-lr;
+    direction: rtl;
+
+    min-width: 1rem;
+    // height: 100%;
+
+    @include range-track {
+        // TODO: Make this more transparent without getting "muddy"
+        --track-bg: #{hsl(from $surface-2 h s l / 0.5)};
+        --track-fill-1: #{hsl(from $accent-1 h s l / 0.5)};
+        --track-fill-2: #{hsl(from $accent-1 h s l / 0.5)};
+        width: var(--range-track-thickness);
+        background:
+            linear-gradient(
+                to top,
+                var(--track-fill-1) 0%,
+                var(--track-fill-2) var(--range-value),
+                var(--track-bg) var(--range-value),
+                var(--track-bg) 100%
+            ) center / var(--range-track-thickness) 100% no-repeat;
+    }
+}
+
+@mixin input-checkbox-radio-box {
+    content: "";
+    display: inline-block;
+    width: 1em;
+    height: 1em;
+    vertical-align: middle;
+    background-color: hsl(from $surface-1 h s l / 0.5);
+    transition: background-color 0.2s ease, border-color 0.2s ease;
+    // border-radius: inherit;
+    // @include glass-border;
+}
+
+@mixin input-checkbox-radio-checked {
+    // background-color: hsl(from $surface-2 h s l / 0.5);
+    background-color: hsl(from $accent-1 h s l / 0.5);
+    background-repeat: no-repeat;
+    background-position: center;
+}
+
+@mixin input-checkbox-radio-hover {
+    background-color: hsl(from $surface-2 h s l / 0.5);
+}
+
+@mixin input-checkbox-radio-checked-hover {
+    background-color: hsl(from $accent-1 h s l / 0.3);
+}
+
+@mixin input-checkbox-radio {
+    $cursor: pointer;
+    cursor: $cursor;
+
+    &:has(+label) {
+        display: inline;
+
+        +label {
+            cursor: $cursor;
+            vertical-align: middle;
+        }
+    }
+
+    // Standalone input
+    &:not(:has(+label)) {
+        // Keep the original input visible but visually hidden, required to still display the custom input and receive click events
+        // SCSS automatically handles the other browser appearance properties (webkit, moz)
+        appearance: none;
+
+        // Webkit fix, force the host <input> box to align as a flex container
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        vertical-align: middle;
+
+        &:after {
+            @include input-checkbox-radio-box;
+            width: 1.2em; //Standalone boxes are slightly smaller when there is no accompanying label so increase by 20%~ (seems to be ok)
+            height: 1.2em;
+            @content("box");
+        }
+
+        &:checked:after {
+            @include input-checkbox-radio-checked;
+            @content("checked");
+        }
+
+        &:hover:after {
+            @include input-checkbox-radio-hover;
+            @content("hover");
+        }
+
+        &:checked:hover:after {
+            @include input-checkbox-radio-checked-hover;
+            @content("checked-hover");
+        }
+    }
+
+    &:has(+label) {
+        // Input (left) with label (right)
+        &:not(.after-label) {
+            // Set checkbox on the label
+            // Hide the original input entirely, the click events are tied to the attached label
+            display: none;
+
+            +label:before {
+                @include input-checkbox-radio-box;
+                margin-right: calc(1rem / 2);
+                @content("box");
+            }
+
+            &:checked+label:before {
+                @include input-checkbox-radio-checked;
+                @content("checked");
+            }
+
+            &:hover+label:before {
+                @include input-checkbox-radio-hover;
+                @content("hover");
+            }
+
+            &:checked:hover+label:before {
+                @include input-checkbox-radio-checked-hover;
+                @content("checked-hover");
+            }
+
+            // Set checkbox on the input
+            // appearance: none;
+            
+            // &+label {
+            //     margin-left: calc(1rem / 4);
+            // }
+
+            // &:after {
+            //     @include input-checkbox-radio-box;
+            //     @content("box");
+            // }
+
+            // &:checked:after {
+            //     @include input-checkbox-radio-checked;
+            //     @content("checked");
+            // }
+
+            // &:hover:after {
+            //     @include input-checkbox-radio-hover;
+            //     @content("hover");
+            // }
+
+            // &:checked:hover:after {
+            //     @include input-checkbox-radio-checked-hover;
+            //     @content("checked-hover");
+            // }
+        }
+    }
+
+    // Input (right) with label (left)
+    &.after-label {
+        display: none;
+
+        +label:after {
+            @include input-checkbox-radio-box;
+            margin-left: calc(1rem / 2);
+            @content("box");
+        }
+
+        &:checked+label:after {
+            @include input-checkbox-radio-checked;
+            @content("checked");
+        }
+
+        &:hover+label:after {
+            @include input-checkbox-radio-hover;
+            @content("hover");
+        }
+
+        &:checked:hover+label:after {
+            @include input-checkbox-radio-checked-hover;
+            @content("checked-hover");
+        }
+    }
+
+    &.hidden {
+        display: none;
+
+        +label {
+            display: none;
+        }
+    }
+
+    &.icon {
+        $icon-offset: 1.2em;
+
+        // Remove default checked styling and set to font icon
+        +label:before,
+        +label:after,
+        &::after {
+            background-image: none !important;
+            font-family: "Material Symbols Outlined";
+            font-size: 1em;
+            text-align: center;
+        }
+
+        &:checked {
+            +label:before,
+            +label:after,
+            &::after {
+                background-image: none !important;
+            }
+        }
+
+        // Standalone input
+        &:not(:has(+label)) {
+            &:after {
+                line-height: $icon-offset;
+                content: attr(data-unchecked-icon);
+
+                // Apple/WebKit fixes.
+                @include ifWebKit {
+                    padding-left: 0.25em;
+                    padding-right: 0.25em;
+                }
+            }
+
+            &:checked:after {
+                content: attr(data-checked-icon);
+            }
+        }
+
+        // TODO: Try and hack around the requirement on this one where the data attributes have to be on the label instead of the input
+        // Input (left) with label (right)
+        &:has(+label):not(.after-label) {
+            +label:before {
+                line-height: $icon-offset;
+                content: attr(data-unchecked-icon);
+            }
+
+            &:checked+label:before {
+                content: attr(data-checked-icon);
+            }
+        }
+
+        // Input (right) with label (left)
+        &.after-label {
+            +label:after {
+                line-height: $icon-offset;
+                content: attr(data-unchecked-icon);
+            }
+
+            &:checked+label:after {
+                content: attr(data-checked-icon);
+            }
+        }
+    }
+}
+// #endregion

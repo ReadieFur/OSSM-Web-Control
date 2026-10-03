@@ -1,36 +1,104 @@
 # OSSM Web Control
-This is a web application that allows you to control your OSSM (Open Source Sex Machine) device over Bluetooth from your browser.  
-It is accessible through your browser at [ossm-web.forestpuppy.pet](https://ossm-web.forestpuppy.pet/) or can be installed to your device as a Progressive Web App (PWA) for offline use! *(If your device supports it)*  
+A web application that allows you to control your [OSSM (Open Source Sex Machine)](https://github.com/KinkyMakers/OSSM-hardware) device over Bluetooth from your browser on [all major devices](#compatibility--features).  
+It is accessible at [ossm-web.forestpuppy.pet](https://ossm-web.forestpuppy.pet/) and can be installed to your device from there for offline use!  
 
-### Disclaimer:  
-- As per the official OSSM notices, the Bluetooth API is still experimental and may be unsafe, **use this tool at your own risk**, I am not liable for any harm that may occur, you are using this site willingly.  
-- There is currently a known issue where if multiple inputs are made in rapid succession, the app may enter an error state. Currently if this is detected the app will signal the OSSM to stop any movement and return to a stable state. A fix for this is being worked on.  
+> [!WARNING]
+> As per official OSSM notices, **use BLE controls at your own risk**.  
+> The author is not liable for any personal injury, hardware damage, or malfunction that may occur. You choose to use this application entirely of your own accord.
 
-### Compatibility & Features:  
-- [x] **Desktop:** Chrome, Edge, Opera, and other Chromium-based browsers
-- [x] **Android:** Chrome
-- [x] **iOS/iPadOS:** [Bluefy](https://apps.apple.com/us/app/bluefy-web-ble-browser/id1492822055)
-- [x] Speed & stroke control
-- [x] Pattern & intensity control
-- [ ] State checking *(Safety features [1 bug], work in progress, high priority)*
-- [ ] Session sharing over web
+> [!IMPORTANT]
+> **Firmware Requirement:**  
+> Please ensure your OSSM is running **v1.0.50 or newer**.  
+> You can update your device using the official [OSSM Web Flasher](https://docs.researchanddesire.com/ossm/tools/web-flasher).
 
-### Contributing:  
-Contributions are welcome! If you find any issues or have suggestions for improvements, please open an [issue](https://github.com/ReadieFur/OSSM-Web-Control/issues) or submit a pull request on the [GitHub repository](https://github.com/ReadieFur/OSSM-Web-Control/). The more issues found & fixed, the safer the app will be for everyone!
+> [Overview](#ossm-web-control) • [Previews](#preview) • [Features](#compatibility--features) • [Contributing](#contributing) • [Developer Quickstart](#developer-quickstart)  
 
-### Demos:  
-<img src="./resources/demo-live.gif" alt="Live demo of OSSM Web Control in action!" style="max-width: 600px"/>
-<div style-="display: flex; flex-wrap: wrap; gap: 0.25rem; justify-content: center; align-items: center;">
-  <img src="./resources/demo-portrait.gif" alt="Demo of OSSM Web Control UI in portrait mode installed as a PWA" style="max-height: 400px"/>
-  <img src="./resources/demo-landscape.gif" alt="Demo of OSSM Web Control UI in landscape mode installed as a PWA" style="max-width: 400px"/>
-</div>
+<hr>
+<a id="preview"></a>
+<table align="center">
+    <tr>
+        <td align="center" width="50%">
+            <b>Speed & Range Control</b><br>
+            <img src="docs/Live00000409_V1-0001.gif" width="400" alt="Desktop Speed & Range Control">
+        </td>
+        <td align="center" width="50%">
+            <b>Portrait UI</b><br>
+            <img src="docs/iPhone_Portrait.gif" width="200" alt="Mobile Portrait UI">
+        </td>
+    </tr>
+    <tr>
+        <td align="center" width="50%">
+            <b>Pattern Support</b><br>
+            <img src="docs/Live00001607_V1-0002.gif" width="400" alt="Desktop Pattern Control">
+        </td>
+        <td align="center" width="50%">
+            <b>Landscape UI</b><br>
+            <img src="docs/iPhone_Landscape.gif" width="400" alt="Mobile Landscape UI">
+        </td>
+    </tr>
+</table>
 
-### References:  
-| Resource | Used for |
-| :------- | :------- |
-| [OSSM GitHub Repository](https://github.com/KinkyMakers/OSSM-hardware) | OSSM device specifications and communication protocols. |
-| [Ossm-BLE-Web](https://github.com/ReadieFur/OSSM-BLE-Web) | Library for Bluetooth communication with OSSM devices. |
-| [Kevin Powell](https://codepen.io/kevinpowell/pen/XJJwaxG) | Inspiration for the CSS glass effect. |
-| [Mozilla Web API Documentation](https://developer.mozilla.org/en-US/docs/Web/Progressive_web_apps/Guides/Offline_and_background_operation) | Reference for implementing PWA features. |
-| [PitClamp-Mini](https://github.com/armpitMFG/PitClamp-Mini) | Model used in the logo design. |
-| Source Code | Other smaller references are included in the source code comments. |
+## Compatibility & Features  
+A quick overview on what this application supports and what is to come!  
+
+> **Legend:** ✅ Working | ⚠️ Issue | ⬜ Planned
+
+<!-- Using custom HTML here since GitHub's default markup styling isn't quite adequate for what I wanted to do here -->
+<ul style="list-style-type: none; padding-left: 0;">
+    <li><b>Supported platforms:</b> Any BLE capable browser!
+        <ul style="list-style-type: none; padding-left: 1.5em;">
+            <li>✅ <b>Desktop:</b> Any Chromium-based browser <i>(Chrome, Edge, Brave)</i></li>
+            <li>✅ <b>Android:</b> Google Chrome</li>
+            <li>✅ <b>iPhone:</b> <a href="https://apps.apple.com/us/app/bluefy-web-ble-browser/id1492822055">Bluefy Browser</a></li>
+        </ul>
+    </li>
+    <li style="margin-top: 0.5em;"><b>Control Features:</b>
+        <ul style="list-style-type: none; padding-left: 1.5em;">
+            <li>✅ Speed and range adjustments</li>
+            <li>✅ Custom patterns & sensation</li>
+            <li>⬜ Absolute positioning</li>
+        </ul>
+    </li>
+    <li style="margin-top: 0.5em;"><b>Safety & Reliability:</b>
+        <ul style="list-style-type: none; padding-left: 1.5em;">
+            <li>✅ <b>Emergency stop:</b> Immediately halts all movement</li>
+            <li>✅ <b>Recalibration:</b> Allows re-homing of the rail</li>
+            <li>✅ Automatic state handling</li>
+        </ul>
+    </li>
+    <li style="margin-top: 0.5em;"><b>Extras:</b>
+        <ul style="list-style-type: none; padding-left: 1.5em;">
+            <li>✅ <b>Offline mode:</b> Installable as an app (PWA) on supported devices</li>
+            <li>⬜ Remote session sharing</li>
+            <li>⬜ External app syncing <i>(e.g., VRChat integration)</i></li>
+        </ul>
+    </li>
+</ul>
+
+## Contributing
+
+Contributions are welcomed and encouraged! If you run into any issues, have feedback, or want to suggest improvements, feel free to open an issue or submit a pull request on the [GitHub repository](https://github.com/ReadieFur/OSSM-Web-Control/).
+
+> [!TIP]
+> **Reporting Connection Issues:**  
+> If you encounter bugs specifically related to Bluetooth/BLE connectivity, please report them on the [OSSM-BLE-Web repository](https://github.com/ReadieFur/OSSM-BLE-Web).
+
+Finding and fixing bugs helps make the application safer and more reliable for everyone!
+
+## Developer Quickstart  
+
+> [!NOTE]
+> **Architecture Overview:**  
+> - **Architecture:** Single Page Application (SPA) with routing/state managed via `ViewManager`.
+> - **Hardware Abstraction:** Devices implement the `OssmProvider` abstract class, which the UI interacts with to read/set state.
+> - **BLE Core:** Low-level Bluetooth logic resides in the `OSSM-BLE-Web` submodule.
+
+```sh
+# Clone the repository along with all submodules
+git clone --recurse-submodules https://github.com/ReadieFur/OSSM-Web-Control.git
+cd OSSM-Web-Control
+
+# Install dependencies and start local dev server
+npm install
+npm run dev -- --open
+```
