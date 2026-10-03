@@ -12,21 +12,21 @@ It is accessible at [ossm-web.forestpuppy.pet](https://ossm-web.forestpuppy.pet/
 <a id="preview"></a>
 <table align="center">
     <tr>
-        <td align="center">
+        <td align="center" width="50%">
             <b>Speed & Range Control</b><br>
             <img src="docs/Live00000409_V1-0001.gif" width="400" alt="Desktop Speed & Range Control">
         </td>
-        <td align="center">
+        <td align="center" width="50%">
             <b>Portrait UI</b><br>
-            <img src="docs/iPhone_Portrait.gif" width="220" alt="Mobile Portrait UI">
+            <img src="docs/iPhone_Portrait.gif" width="200" alt="Mobile Portrait UI">
         </td>
     </tr>
     <tr>
-        <td align="center">
+        <td align="center" width="50%">
             <b>Pattern Support</b><br>
             <img src="docs/Live00001607_V1-0002.gif" width="400" alt="Desktop Pattern Control">
         </td>
-        <td align="center">
+        <td align="center" width="50%">
             <b>Landscape UI</b><br>
             <img src="docs/iPhone_Landscape.gif" width="400" alt="Mobile Landscape UI">
         </td>
@@ -36,24 +36,39 @@ It is accessible at [ossm-web.forestpuppy.pet](https://ossm-web.forestpuppy.pet/
 ## Compatibility & Features  
 A quick overview on what this application supports and what is to come!  
 
-> **Legend:** ☑️ Working | ⬜ Planned | ➖ Broken / In Progress
+> **Legend:** ✅ Working | ⚠️ Issue | ⬜ Planned
 
-- **Supported platforms:** Any BLE capable browser!  
-  - [x] **Desktop:** Any Chromium-based browser (Chrome, Edge, Brave)
-  - [x] **Android:** Google Chrome
-  - [x] **iPhone:** [Bluefy Browser](https://apps.apple.com/us/app/bluefy-web-ble-browser/id1492822055)
-- **Control Features:**
-  - [x] Speed and range adjustments
-  - [x] Custom patterns & sensation
-  - [ ] Absolute positioning
-- **Safety & Reliability:**
-  - [x] **Emergency stop:** Immediately halts all movement
-  - [x] **Recalibration:** Allows re-homing of the rail
-  - [x] Automatic state handling
-- **Extras:**
-  - [x] **Offline mode:** Installable as an app (PWA) on supported devices
-  - [ ] Remote session sharing
-  - [ ] External app syncing *(e.g., VRChat integration)*
+<!-- Using custom HTML here since GitHub's default markup styling isn't quite adequate for what I wanted to do here -->
+<ul style="list-style-type: none; padding-left: 0;">
+    <li><b>Supported platforms:</b> Any BLE capable browser!
+        <ul style="list-style-type: none; padding-left: 1.5em;">
+            <li>✅ <b>Desktop:</b> Any Chromium-based browser (Chrome, Edge, Brave)</li>
+            <li>✅ <b>Android:</b> Google Chrome</li>
+            <li>✅ <b>iPhone:</b> <a href="https://apps.apple.com/us/app/bluefy-web-ble-browser/id1492822055">Bluefy Browser</a></li>
+        </ul>
+    </li>
+    <li style="margin-top: 0.5em;"><b>Control Features:</b>
+        <ul style="list-style-type: none; padding-left: 1.5em;">
+            <li>✅ Speed and range adjustments</li>
+            <li>✅ Custom patterns & sensation</li>
+            <li>⬜ Absolute positioning</li>
+        </ul>
+    </li>
+    <li style="margin-top: 0.5em;"><b>Safety & Reliability:</b>
+        <ul style="list-style-type: none; padding-left: 1.5em;">
+            <li>✅ <b>Emergency stop:</b> Immediately halts all movement</li>
+            <li>✅ <b>Recalibration:</b> Allows re-homing of the rail</li>
+            <li>✅ Automatic state handling</li>
+        </ul>
+    </li>
+    <li style="margin-top: 0.5em;"><b>Extras:</b>
+        <ul style="list-style-type: none; padding-left: 1.5em;">
+            <li>✅ <b>Offline mode:</b> Installable as an app (PWA) on supported devices</li>
+            <li>⬜ Remote session sharing</li>
+            <li>⬜ External app syncing <i>(e.g., VRChat integration)</i></li>
+        </ul>
+    </li>
+</ul>
 
 ## Contributing
 
