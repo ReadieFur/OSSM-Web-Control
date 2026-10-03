@@ -6,6 +6,11 @@ It is accessible at [ossm-web.forestpuppy.pet](https://ossm-web.forestpuppy.pet/
 > As per official OSSM notices, **use BLE controls at your own risk**.  
 > The author is not liable for any personal injury, hardware damage, or malfunction that may occur. You choose to use this application entirely of your own accord.
 
+> [!IMPORTANT]
+> **Firmware Requirement:**  
+> Please ensure your OSSM is running **v1.0.50 or newer**.  
+> You can update your device using the official [OSSM Web Flasher](https://docs.researchanddesire.com/ossm/tools/web-flasher).
+
 > [Overview](#ossm-web-control) • [Previews](#preview) • [Features](#compatibility--features) • [Contributing](#contributing) • [Developer Quickstart](#developer-quickstart)  
 
 <hr>
