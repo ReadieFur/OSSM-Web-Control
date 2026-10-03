@@ -16,5 +16,9 @@
         "verbatimModuleSyntax": true,
         "isolatedModules": true,
 		"noUnusedLocals": false
-	}
+	},
+	"exclude": [
+		"node_modules/**",
+		"src/lib/ossm-ble-web/**"
+	]
 }

@@ -29,7 +29,7 @@
         <NumericInput placeholder="Number input" />
         <NumericInput spin="left" placeholder="Number input (spin-left)" />
         <NumericInput spin="right" placeholder="Number input (spin-right)" />
-        <NumericInput spin="split" placeholder="Number input (spin-split)" min="0" max="10" />
+        <NumericInput spin="split" placeholder="Number input (spin-split)" min={0} max={10} />
     </div>
 
     <div>
