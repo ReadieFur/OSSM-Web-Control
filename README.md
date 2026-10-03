@@ -1,6 +1,6 @@
 # OSSM Web Control
-This is a web application that allows you to control your OSSM (Open Source Sex Machine) device over Bluetooth from your browser!  
-It is accessible at [ossm-web.forestpuppy.pet](https://ossm-web.forestpuppy.pet/) and can be installed to your device from there for offline use! *(If your device supports it)*  
+A web application that allows you to control your [OSSM (Open Source Sex Machine)](https://github.com/KinkyMakers/OSSM-hardware) device over Bluetooth from your browser on [all major devices](#compatibility--features).  
+It is accessible at [ossm-web.forestpuppy.pet](https://ossm-web.forestpuppy.pet/) and can be installed to your device from there for offline use!  
 
 > [!WARNING]
 > As per official OSSM notices, **use BLE controls at your own risk**.  
