@@ -172,15 +172,16 @@ export class MainControlView implements Disposable {
         // Reset the timer for regular clicks
         if (this.#estopClickTimer) clearTimeout(this.#estopClickTimer);
 
+        // Immediately send speed 0 on the first click
+        this.ossmProvider.playState = {
+            ...this.ossmProvider.playState,
+            speed: 0
+        };
+
         // If the timeout occurs, perform a regular stop instead of the above emergency stop
         this.#estopClickTimer = window.setTimeout(async () => {
             this.estopClickCount = 0;
             this.#estopClickTimer = undefined;
-            
-            this.ossmProvider.playState = {
-                ...this.ossmProvider.playState,
-                speed: 0
-            };
         }, estopClickTimeoutMs);
     }
 
