@@ -253,19 +253,28 @@ export class OssmBleDevice extends OssmProvider implements Disposable {
         this.#playState = newPlayState;
 
         // Don't let the request last more than 500ms
-        const ct = CancellationTokenSource.createWithTimeout(500);
+        const cts = CancellationTokenSource.createWithTimeout(500);
+
+        /* Always send setSpeed(0) if the speed is 0
+         * Due to how my setCommonPlayParameters works, if the values match, nothing will be sent, but for a speed value of 0 we will override this for safety reasons.
+         */
+        if (libraryOldState.speed === 0 && libraryNewState.speed === 0)
+            await this.#client.setSpeed({ value: 0, ct: cts.token });
+
         try {
             // setCommonPlayParameters internally picks the safest order to apply changes and skips identical values
             this.#client.setCommonPlayParameters({
                 newState: libraryNewState,
                 oldState: libraryOldState,
-                ct: ct.token
+                ct: cts.token
             });
         }
         catch (error) {
             console.warn("Failed to update device controls from UI:", error);
+            // If the update failed, fetch the current state to refresh the UI
+            this.#client.getMotionSnapshot(); // Don't await this call, state update is handled by the onMotionSnapshot callback
         } finally {
-            ct.dispose();
+            cts.dispose();
         }
     }
 
