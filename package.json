@@ -1,7 +1,7 @@
 {
   "name": "ossm-web-control",
   "private": true,
-  "version": "2.0.202610092355",
+  "version": "2.1.202610092355",
   "type": "module",
   "scripts": {
     "bump:patch": "node bump-patch.js",
@@ -23,6 +23,7 @@
     "@sveltejs/kit": "^2.63.0",
     "@sveltejs/vite-plugin-svelte": "^7.1.2",
     "@types/node": "^24",
+    "@types/web-bluetooth": "^0.0.22",
     "concurrently": "^10.0.5",
     "eslint": "^10.4.1",
     "eslint-config-prettier": "^10.1.8",
@@ -33,7 +34,7 @@
     "sass-embedded": "^1.104.1",
     "svelte": "^5.56.1",
     "svelte-check": "^4.6.0",
-    "typescript": "^6.0.3",
+    "typescript": "^5.6.3",
     "typescript-eslint": "^8.60.1",
     "vite": "^8.0.16"
   },
