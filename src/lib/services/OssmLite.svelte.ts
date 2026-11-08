@@ -4,6 +4,8 @@ import { CancellationTokenSource, OssmLiteClient, type ICancellationToken } from
 import { isDevMode, type ResolveReject } from "$lib/utils/Helpers.svelte";
 import { KnownPatterns } from "$lib/utils/KnownPatterns";
 
+const disconnectTimeout = 5000;
+
 export class OssmLite implements OssmProvider, Disposable {
     static initializeInstance(device: BluetoothDevice, ct: ICancellationToken): Promise<OssmLite>;
     static initializeInstance(ct: ICancellationToken): Promise<OssmLite>;
@@ -36,11 +38,14 @@ export class OssmLite implements OssmProvider, Disposable {
     }
 
     readonly #client: OssmLiteClient;
-    readonly onBlePatternSignature = this.#onBlePattern.bind(this);
-    readonly onBleMinDepthSignature = this.#onBleMinDepth.bind(this);
-    readonly onBleMaxDepthSignature = this.#onBleMaxDepth.bind(this);
-    readonly onBleSpeedSignature = this.#onBleSpeed.bind(this);
-    readonly onBleSensationSignature = this.#onBleSensation.bind(this);
+    readonly #onBleConnectSignature = this.#onBleConnect.bind(this);
+    readonly #onBleDisconnectSignature = this.#onBleDisconnect.bind(this);
+    readonly #onBlePatternSignature = this.#onBlePattern.bind(this);
+    readonly #onBleMinDepthSignature = this.#onBleMinDepth.bind(this);
+    readonly #onBleMaxDepthSignature = this.#onBleMaxDepth.bind(this);
+    readonly #onBleSpeedSignature = this.#onBleSpeed.bind(this);
+    readonly #onBleSensationSignature = this.#onBleSensation.bind(this);
+    #disconnectTimeoutHandle?: number;
     #playState: PlayState = $state({
         patternId: 0,
         depth: 0,
@@ -60,11 +65,11 @@ export class OssmLite implements OssmProvider, Disposable {
         this.#client.debug = isDevMode;
         if (isDevMode) console.log("OssmLiteClient:", this.#client);
 
-        this.#client.on.pattern.subscribe(this.onBlePatternSignature);
-        this.#client.on.minDepth.subscribe(this.onBleMinDepthSignature);
-        this.#client.on.maxDepth.subscribe(this.onBleMaxDepthSignature);
-        this.#client.on.speed.subscribe(this.onBleSpeedSignature);
-        this.#client.on.sensation.subscribe(this.onBleSensationSignature);
+        this.#client.on.pattern.subscribe(this.#onBlePatternSignature);
+        this.#client.on.minDepth.subscribe(this.#onBleMinDepthSignature);
+        this.#client.on.maxDepth.subscribe(this.#onBleMaxDepthSignature);
+        this.#client.on.speed.subscribe(this.#onBleSpeedSignature);
+        this.#client.on.sensation.subscribe(this.#onBleSensationSignature);
     }
 
     [Symbol.dispose](): void {
@@ -82,10 +87,6 @@ export class OssmLite implements OssmProvider, Disposable {
             await this.#client.waitForConnection(ct);
 
             await this.#client.setHomeBetweenModes(false); // Stop the device from recalibrating between normal and AP mode
-            
-            // Enter known initial state
-            await this.#client.setPattern(0);
-            await this.#client.setSensation(50);
 
             // eslint-disable-next-line svelte/prefer-svelte-reactivity
             const basePatternNames: Set<string> = new Set();
@@ -107,7 +108,7 @@ export class OssmLite implements OssmProvider, Disposable {
                     });
                 }
             }
-        
+
             /* Future
             ct?.throwIfCancellationRequested();
             let apPatternIndex = -1; // Sneaky way to assign indexes to the advanced penetration config patterns
@@ -124,11 +125,56 @@ export class OssmLite implements OssmProvider, Disposable {
                 });
             }*/
 
-            this.state = State.Ready;
+            await this.#onBleConnect();
+            this.#client.connectedEvent.subscribe(this.#onBleConnectSignature);
+            this.#client.disconnectedEvent.subscribe(this.#onBleDisconnectSignature);
         } catch (err) {
             this.state = State.Error;
             throw err;
         }
+    }
+
+    async disconnect(): Promise<void> {
+        this.#client.setSpeed(0);
+
+        this.state = State.Disconnected;
+
+        if (this.#disconnectTimeoutHandle) window.clearInterval(this.#disconnectTimeoutHandle);
+
+        this.#client.on.pattern.unsubscribe(this.#onBlePatternSignature);
+        this.#client.on.minDepth.unsubscribe(this.#onBleMinDepthSignature);
+        this.#client.on.maxDepth.unsubscribe(this.#onBleMaxDepthSignature);
+        this.#client.on.speed.unsubscribe(this.#onBleSpeedSignature);
+        this.#client.on.sensation.unsubscribe(this.#onBleSensationSignature);
+
+        await this.#client.disconnect();
+    }
+
+    async #onBleConnect(): Promise<void> {
+        // These calls trigger the notify callbacks
+        // Force into stroke engine mode (weird quirk with reconnects it seems to get stuck unable to move unless pattern is read/set?)
+        await this.#client.setPattern(await this.#client.getPattern());
+        await this.#client.getMinDepth();
+        await this.#client.getMaxDepth()
+        await this.#client.getSpeed();
+        await this.#client.getSensation();
+
+        this.state = State.Ready;
+    }
+
+    #onBleDisconnect() {
+        if (!this.#client.autoReconnect)
+            return;
+
+        this.state = State.Reconnecting;
+
+        this.#disconnectTimeoutHandle = window.setTimeout(() => {
+            if (!this.#client.isConnected) {
+                this.state = State.Error;
+                this.disconnect();
+                this.state = State.Error;
+            }
+        }, disconnectTimeout);
     }
 
     emergencyStop(): Promise<void> {
@@ -138,20 +184,6 @@ export class OssmLite implements OssmProvider, Disposable {
     recalibrate(): Promise<void> {
         // OssmLite does not support recalibration
         return Promise.resolve();
-    }
-
-    async disconnect(): Promise<void> {
-        this.#client.setSpeed(0);
-
-        this.state = State.Disconnected;
-
-        this.#client.on.pattern.unsubscribe(this.onBlePatternSignature);
-        this.#client.on.minDepth.unsubscribe(this.onBleMinDepthSignature);
-        this.#client.on.maxDepth.unsubscribe(this.onBleMaxDepthSignature);
-        this.#client.on.speed.unsubscribe(this.onBleSpeedSignature);
-        this.#client.on.sensation.unsubscribe(this.onBleSensationSignature);
-
-        await this.#client.disconnect();
     }
 
     async #updateFromUi(newPlayState: PlayState): Promise<void> {
@@ -165,12 +197,6 @@ export class OssmLite implements OssmProvider, Disposable {
                 rangeDiff[key] = newRange[key];
 
         if (Object.keys(diff).length === 0 && Object.keys(rangeDiff).length === 0) return;
-
-        /* Lite firmware uses sensation on basic stroke which creates randomness
-         * for my UI I want consistency across firmwares so will disable that by setting sensation to 50 (neutral)
-         */
-        if (diff.patternId === 0 && this.patterns.get(0)?.name === KnownPatterns.get(0)?.name)
-            diff.sensation = 50;
 
         const oldState = { ...this.playState };
 
@@ -234,12 +260,18 @@ export class OssmLite implements OssmProvider, Disposable {
         finally { cts.dispose(); }
     }
 
-    #onBlePattern(patternId: number): Promise<void> {
-        if (this.#playState.patternId) this.#playState = { ...this.#playState, patternId };
-        return Promise.resolve();
+    async #onBlePattern(patternId: number): Promise<void> {
+        if (this.#playState.patternId !== patternId)
+            this.#playState = { ...this.#playState, patternId };
+
+        /* Lite firmware uses sensation on basic stroke which creates randomness
+         * for my UI I want consistency across firmwares so will disable that by setting sensation to 50 (neutral)
+         */
+        if (patternId === 0 && this.patterns.get(0)?.name === KnownPatterns.get(0)?.name)
+            await this.#client.setSensation(50);
     }
 
-    #onBleMinDepth(minDepth: number): Promise<void> {
+    async #onBleMinDepth(minDepth: number): Promise<void> {
         const currentRange = OssmProviderHelpers.depthAndStrokeToRange(this.#playState.depth, this.playState.stroke);
         if (currentRange.from !== minDepth) {
             const newRange = OssmProviderHelpers.rangeToDepthAndStroke(minDepth, currentRange.to);
@@ -249,10 +281,9 @@ export class OssmLite implements OssmProvider, Disposable {
                 stroke: newRange.stroke
             };
         }
-        return Promise.resolve();
     }
 
-    #onBleMaxDepth(maxDepth: number): Promise<void> {
+    async #onBleMaxDepth(maxDepth: number): Promise<void> {
         const currentRange = OssmProviderHelpers.depthAndStrokeToRange(this.#playState.depth, this.playState.stroke);
         if (currentRange.to !== maxDepth) {
             const newRange = OssmProviderHelpers.rangeToDepthAndStroke(currentRange.from, maxDepth);
@@ -262,16 +293,15 @@ export class OssmLite implements OssmProvider, Disposable {
                 stroke: newRange.stroke
             };
         }
-        return Promise.resolve();
     }
 
-    #onBleSpeed(speed: number): Promise<void> {
-        if (this.#playState.speed) this.#playState = { ...this.#playState, speed };
-        return Promise.resolve();
+    async #onBleSpeed(speed: number): Promise<void> {
+        if (this.#playState.speed !== speed)
+            this.#playState = { ...this.#playState, speed };
     }
 
-    #onBleSensation(sensation: number): Promise<void> {
-        if (this.#playState.sensation) this.#playState = { ...this.#playState, sensation };
-        return Promise.resolve();
+    async #onBleSensation(sensation: number): Promise<void> {
+        if (this.#playState.sensation !== sensation)
+            this.#playState = { ...this.#playState, sensation };
     }
 }
