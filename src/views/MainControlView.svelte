@@ -71,6 +71,8 @@
             </div>
         </div>
 
+        <!-- <div class="settings-panel"></div> -->
+
         <div
             class="options-and-controls"
             class:scale-pulse={self.ossmProvider.state === State.Calibrating || self.ossmProvider.state === State.EmergencyStop}>
