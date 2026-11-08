@@ -71,7 +71,11 @@ export class MainControlView implements Disposable {
         // Local pattern ID does not need to be set here since onRemotePatternChange watches for changes of the value below
         this.ossmProvider.playState = {
             ...this.ossmProvider.playState,
-            patternId: id
+            patternId: id,
+            /* When switching patterns set the sensation to 50
+             * This is often a neutral value, which should be safer and prevent any very sudden motion profile changes
+             */
+            sensation: 50
         };
     }
 
