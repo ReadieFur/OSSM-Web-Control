@@ -1,7 +1,8 @@
 import type { ViewManager, ViewManagerProps } from "$lib/services/ViewManager.svelte";
 import LandingView from "$view/LandingView.svelte";
-import { SensationType, State, type OssmProvider } from "$lib/services/OssmProvider.svelte";
+import { OssmProviderHelpers, SensationType, State, type OssmProvider } from "$lib/services/OssmProvider.svelte";
 import type { RangeChangeEvent } from "$component/SliderDoubleInput.svelte";
+import { clamp } from "$lib/utils/Helpers.svelte";
 
 export interface MainControlViewProps extends ViewManagerProps {
     readonly viewManager: ViewManager;
@@ -77,33 +78,25 @@ export class MainControlView implements Disposable {
     // Range
     onRemoteRangeChange(): void {
         $effect(() => {
-            let depth = this.ossmProvider.playState.depth;
-            let stroke = this.ossmProvider.playState.stroke;
-
-            depth = this.#clampWhole(depth, 0, 100);
-            stroke = this.#clampWhole(stroke, 0, 100);
-
-            // Cap stroke so that it cant make a negative from value
-            stroke = this.#clampWhole(stroke, 0, depth);
-
-            this.controlRange = {
-                from: depth - stroke,
-                to: depth
-            };
+            this.controlRange = OssmProviderHelpers.depthAndStrokeToRange(
+                Math.round(this.ossmProvider.playState.depth), 
+                Math.round(this.ossmProvider.playState.stroke)
+            );
         });
     }
 
     onUiRangeChange(range: RangeChangeEvent): void {
+        const { depth, stroke } = OssmProviderHelpers.rangeToDepthAndStroke(Math.round(range.value.from), Math.round(range.value.to));
         this.ossmProvider.playState = {
             ...this.ossmProvider.playState, // Use expansion here to avoid firing two events for the value change (i.e. change everything all at once)
-            depth: this.#clampWhole(range.value.to, 0, 100),
-            stroke: this.#clampWhole(range.value.to - range.value.from, 0, 100)
+            depth,
+            stroke
         };
     }
 
     // Speed
     onRemoteSpeedChange(): void {
-        $effect(() => { this.controlSpeed = this.#clampWhole(this.ossmProvider.playState.speed, 0, 100); });
+        $effect(() => { this.controlSpeed = Math.round(clamp(this.ossmProvider.playState.speed, 0, 100)); });
     }
 
     onUiSpeedChange(speed: number): void {
@@ -116,7 +109,7 @@ export class MainControlView implements Disposable {
     // Sensation
     onRemoteSensationChange(): void {
         $effect(() => {
-            const rawSensation = this.#clampWhole(this.ossmProvider.playState.sensation, 0, 100);
+            const rawSensation = Math.round(clamp(this.ossmProvider.playState.sensation, 0, 100));
 
             if (this.controlCanInvertSensation) {
                 // Sensation < 50 means inverted=true
@@ -147,7 +140,7 @@ export class MainControlView implements Disposable {
         // Clamp value between 0 and 100 before committing
         this.ossmProvider.playState = {
             ...this.ossmProvider.playState,
-            sensation: this.#clampWhole(targetSensation, 0, 100)
+            sensation: Math.round(clamp(targetSensation, 0, 100))
         };
     }
 
@@ -194,10 +187,4 @@ export class MainControlView implements Disposable {
         if (!this.#disposed)
             this.viewManager.setViewAndProps(LandingView);
     }
-
-    // #region Helpers
-    #clampWhole(value: number, min: number, max: number): number {
-        return Math.round(Math.min(Math.max(value, min), max));
-    }
-    // #endregion
 }

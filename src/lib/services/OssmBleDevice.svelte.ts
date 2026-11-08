@@ -1,5 +1,5 @@
 import { SvelteMap } from "svelte/reactivity";
-import { OssmProvider, SensationType, State, type Pattern, type PlayState } from "./OssmProvider.svelte";
+import { type OssmProvider, SensationType, State, type Pattern, type PlayState } from "./OssmProvider.svelte";
 import { CancellationTokenSource, type ICancellationToken, OssmBleClient, type OssmCommonPlayParameters, type OssmMotionSnapshot, type OssmStateSnapshot } from "$lib/ossm-ble-web/dist/ossm-ble-web";
 import { isDevMode } from "$lib/utils/Helpers.svelte";
 import { RadSurface } from "$lib/ossm-ble-web/dist/ossm-ble-web";
@@ -10,16 +10,34 @@ import { KnownPatterns } from "$lib/utils/KnownPatterns"
 const disconnectTimeout = 5000;
 const snapshotTimerInterval = 1000;
 
-export class OssmBleDevice extends OssmProvider implements Disposable {
-    static async initializeInstance(ct: ICancellationToken): Promise<OssmBleDevice> {
-        const client = await OssmBleClient.pairDevice();
-        ct.throwIfCancellationRequested();
+export class OssmBleDevice implements OssmProvider, Disposable {
+    static initializeInstance(device: BluetoothDevice, ct: ICancellationToken): Promise<OssmBleDevice>;
+    static initializeInstance(ct: ICancellationToken): Promise<OssmBleDevice>;
+    static async initializeInstance(deviceOrCt: BluetoothDevice | ICancellationToken, ct?: ICancellationToken): Promise<OssmBleDevice> {
+        let client: OssmBleClient;
+        let cancellationToken: ICancellationToken;
+        let forgetDevice: () => Promise<void> | undefined;
+
+        // Determine path based on whether the first parameter is the cancellation token
+        if ('isCancellationRequested' in deviceOrCt) {
+            cancellationToken = deviceOrCt;
+            client = await OssmBleClient.pairDevice();
+        } else {
+            cancellationToken = ct!;
+            client = new OssmBleClient(deviceOrCt);
+            forgetDevice = deviceOrCt.forget; // TODO: Move this forget into the dispose method on the OSSM BLE library
+        }
+
+        cancellationToken.throwIfCancellationRequested();
 
         const instance = new OssmBleDevice(client);
         // If we time out after this point we will need to clean up the connection, so register a timeout function with the cancellation token.
-        const ctCb = ct.register(() => client.disconnect());
+        const ctCb = cancellationToken.register(() => {
+            client.disconnect();
+            if (forgetDevice !== undefined) forgetDevice();
+        });
 
-        await instance.#begin(ct);
+        await instance.#begin(cancellationToken);
 
         ctCb.unregister();
         return instance;
@@ -39,15 +57,13 @@ export class OssmBleDevice extends OssmProvider implements Disposable {
         sensation: 0
     });
 
-    override state: State = $state(State.Disconnected);
-    override patterns: SvelteMap<number, Pattern> = new SvelteMap<number, Pattern>();
-    override readonly maxUpdateRateHz = 3; // TODO: Make this dynamic based on how backed up the queue is
-    override get playState(): PlayState { return this.#playState; }
-    override set playState(playState: PlayState) { this.updateFromUi(playState); }
+    state: State = $state(State.Disconnected);
+    patterns: SvelteMap<number, Pattern> = new SvelteMap<number, Pattern>();
+    readonly maxUpdateRateHz = 3; // TODO: Make this dynamic based on how backed up the queue is
+    get playState(): Readonly<PlayState> { return this.#playState; }
+    set playState(playState: PlayState) { this.#updateFromUi(playState); }
 
     constructor(client: OssmBleClient) {
-        super();
-
         this.#client = client;
         this.#client.debug = isDevMode;
         if (isDevMode) console.log("OssmBleClient:", this.#client);
@@ -57,6 +73,7 @@ export class OssmBleDevice extends OssmProvider implements Disposable {
 
     [Symbol.dispose](): void {
         this.disconnect();
+        this.#client[Symbol.dispose]();
     }
 
     async #begin(ct?: ICancellationToken): Promise<void> {
@@ -69,6 +86,7 @@ export class OssmBleDevice extends OssmProvider implements Disposable {
             ct?.throwIfCancellationRequested();
             this.#client.autoReconnect = true;
             await this.#client.begin();
+            await this.#client.waitForConnection(ct);
     
             ct?.throwIfCancellationRequested();
             await this.#client.acquireLease(true);
@@ -106,13 +124,13 @@ export class OssmBleDevice extends OssmProvider implements Disposable {
         }
     }
 
-    override async emergencyStop(): Promise<void> {
+    async emergencyStop(): Promise<void> {
         this.state = State.EmergencyStop;
         await this.#client.emergencyStop();
         await this.#client.getMotionSnapshot();
     }
 
-    override async recalibrate(): Promise<void> {
+    async recalibrate(): Promise<void> {
         /* To recover from estop on the device we must navigate to strokeEngine which will cause a re-homing of the device
          * If you call homeRail from an estop state it will get stuck in homing.backward forever, and that state cannot be escaped via a navigateTo call
          */
@@ -126,7 +144,7 @@ export class OssmBleDevice extends OssmProvider implements Disposable {
         await this.#client.homeRail();
     }
 
-    override async disconnect(): Promise<void> {
+    async disconnect(): Promise<void> {
         this.#client.setSpeed(0);
 
         this.state = State.Disconnected;
@@ -245,7 +263,7 @@ export class OssmBleDevice extends OssmProvider implements Disposable {
         };
     }
 
-    async updateFromUi(newPlayState: PlayState): Promise<void> {
+    async #updateFromUi(newPlayState: PlayState): Promise<void> {
         const libraryOldState = this.#uiToLibraryState(this.playState);
         const libraryNewState = this.#uiToLibraryState(newPlayState)
 
