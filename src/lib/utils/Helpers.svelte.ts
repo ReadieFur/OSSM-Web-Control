@@ -41,3 +41,8 @@ export function mediaQuery(query: string) {
         }
     };
 }
+
+export type ResolveReject<T = unknown> = {
+    resolve: [T] extends [unknown] ? (value?: T) => void : (value: T) => void;
+    reject: (reason?: Error) => void;
+};

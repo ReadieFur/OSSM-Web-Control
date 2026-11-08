@@ -5,12 +5,14 @@
 
     let props: LandingViewProps = $props();
     const self = new LandingView(() => props);
+
+    const noPulse = $derived(self.discoveredBleProviders !== undefined);
 </script>
 
 <main>
     <section
         class="card"
-        class:scale-pulse={self.isConnecting}>
+        class:scale-pulse={self.isConnecting && !noPulse}>
         <h1>OSSM Web Control</h1>
 
         {#if self.isSecureContext}
@@ -73,6 +75,21 @@
                 message={self.infoDialog.message}>
                 <small><i>{self.infoDialog.extra}</i></small>
             </InfoContainer>
+        {/if}
+
+        {#if self.discoveredBleProviders !== undefined}
+            {#each self.discoveredBleProviders.providers as provider (provider.friendlyName)}
+                <button
+                    class="space-between"
+                    onclick={() => {self.discoveredBleProviders?.solver.resolve(provider)}}>
+                    <span class="material-symbol" data-icon="terminal_2"></span>{provider.friendlyName}
+                </button>
+            {/each}
+            <button
+                class="space-between"
+                onclick={() => {self.discoveredBleProviders?.solver.reject(new DOMException("User cancelled the operation", "NotFoundError"))}}>
+                <span class="material-symbol" data-icon="close"></span>Cancel
+            </button>
         {/if}
     </section>
 </main>
