@@ -182,10 +182,6 @@ export class MainControlView implements Disposable {
         }, estopClickTimeoutMs);
     }
 
-    onUiRecalibrateClick(): void {
-        this.ossmProvider.recalibrate();
-    }
-
     onUiDisconnectClick(): void {
         this.ossmProvider.disconnect();
         if (!this.#disposed)

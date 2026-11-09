@@ -1,6 +1,6 @@
-import { SvelteMap } from "svelte/reactivity";
-import { type OssmProvider, SensationType, State, type Pattern, type PlayState, OssmProviderHelpers } from "./OssmProvider.svelte";
-import { CancellationTokenSource, OssmLiteClient, type ICancellationToken } from "$lib/ossm-ble-web/dist/ossm-ble-web";
+import { SvelteMap, SvelteSet } from "svelte/reactivity";
+import { type OssmProvider, SensationType, State, type Pattern, type PlayState, OssmProviderHelpers, type ReactiveSetting } from "./OssmProvider.svelte";
+import { CancellationTokenSource, LiteHomingType, OssmLiteClient, type ICancellationToken, type SingleEvent } from "$lib/ossm-ble-web/dist/ossm-ble-web";
 import { isDevMode, type ResolveReject } from "$lib/utils/Helpers.svelte";
 import { KnownPatterns } from "$lib/utils/KnownPatterns";
 
@@ -37,15 +37,14 @@ export class OssmLite implements OssmProvider, Disposable {
         return instance;
     }
 
+    #hasCalledBegin = false;
     readonly #client: OssmLiteClient;
-    readonly #onBleConnectSignature = this.#onBleConnect.bind(this);
-    readonly #onBleDisconnectSignature = this.#onBleDisconnect.bind(this);
-    readonly #onBlePatternSignature = this.#onBlePattern.bind(this);
-    readonly #onBleMinDepthSignature = this.#onBleMinDepth.bind(this);
-    readonly #onBleMaxDepthSignature = this.#onBleMaxDepth.bind(this);
-    readonly #onBleSpeedSignature = this.#onBleSpeed.bind(this);
-    readonly #onBleSensationSignature = this.#onBleSensation.bind(this);
+    readonly maxUpdateRateHz = 8;
+    patterns: SvelteMap<number, Pattern> = new SvelteMap<number, Pattern>();
     #disconnectTimeoutHandle?: number;
+
+    #eventSubscriptions: { event: SingleEvent, signature: Parameters<SingleEvent['subscribe']>[0] }[] = [];
+
     #playState: PlayState = $state({
         patternId: 0,
         depth: 0,
@@ -54,9 +53,141 @@ export class OssmLite implements OssmProvider, Disposable {
         sensation: 0
     });
 
+    // These cannot be marked as #private as Svelte cannot watch real private values
+    private _railDirectionInverted = $state(false);
+    private _maxAcceleration = $state(0);
+    private _maxMotorRpm = $state(0);
+    private _stepsPerRevolution = $state(0);
+    private _pulleyTeeth = $state(0);
+    private _beltPitch = $state(0);
+    private _speedCurve = $state(0);
+    private _homingSpeed = $state(0);
+    /* TODO: Make these settings dynamically generated from the reported API config properties (this is supported by Fray-d's API and is the intended way for it to be used)
+     * The reason I have not done it that way just yet is because of how I keep my library type-strict. But I do intend to add a .discovered property onto the class for this exact purpose
+     */
+    readonly settings: SvelteSet<ReactiveSetting> = new SvelteSet([
+        {
+            type: "label",
+            friendlyName: "Changing any of these settings pauses motion",
+            italic: true,
+            bold: false
+        },
+        {
+            type: "label",
+            friendlyName: "Motor presets"
+        },
+        {
+            friendlyName: "57AIM30",
+            type: "button",
+            action: () => this.#setCommonOptions(1500, 800).finally(() => this.#refreshStrokeEngine()).catch(console.error)
+        },
+        {
+            friendlyName: "60AIM40",
+            type: "button",
+            action: () => this.#setCommonOptions(1500, 800).finally(() => this.#refreshStrokeEngine()).catch(console.error)
+        },
+        {
+            friendlyName: "IHSV",
+            type: "button",
+            action: () => this.#setCommonOptions(3500, 2000).finally(() => this.#refreshStrokeEngine()).catch(console.error)
+        },
+        {
+            type: "label",
+            friendlyName: "Advanced"
+        },
+        {
+            friendlyName: "Max motor RPM",
+            type: "number",
+            get: () => this._maxMotorRpm,
+            set: v => this.#uiUpdateSettingCommon(
+                () => this._maxMotorRpm = v,
+                () => this.#client.getMaxMotorRpm,
+                () => this.#client.setMaxMotorRpm
+            )
+        },
+        {
+            friendlyName: "Steps per revolution",
+            type: "number",
+            get: () => this._stepsPerRevolution,
+            set: v => this.#uiUpdateSettingCommon(
+                () => this._stepsPerRevolution = v,
+                () => this.#client.getStepsPerRevolution,
+                () => this.#client.setStepsPerRevolution
+            )
+        },
+        {
+            friendlyName: "Max acceleration",
+            type: "number",
+            get: () => this._maxAcceleration,
+            set: v => this.#uiUpdateSettingCommon(
+                () => this._maxAcceleration = v,
+                () => this.#client.getMaxAcceleration,
+                () => this.#client.setMaxAcceleration
+            )
+        },
+        {
+            friendlyName: "Pulley teeth #",
+            type: "number",
+            get: () => this._pulleyTeeth,
+            set: v => this.#uiUpdateSettingCommon(
+                () => this._pulleyTeeth = v,
+                () => this.#client.getPulleyTeeth,
+                () => this.#client.setPulleyTeeth
+            )
+        },
+        {
+            friendlyName: "Belt pitch",
+            type: "number",
+            get: () => this._beltPitch,
+            set: v => this.#uiUpdateSettingCommon(
+                () => this._beltPitch = v,
+                () => this.#client.getBeltPitch,
+                () => this.#client.setBeltPitch
+            )
+        },
+        {
+            friendlyName: "Speed curve",
+            type: "number",
+            get: () => this._speedCurve,
+            set: v => this.#uiUpdateSettingCommon(
+                () => this._speedCurve = v,
+                () => this.#client.getSpeedCurve,
+                () => this.#client.setSpeedCurve
+            )
+        },
+        {
+            friendlyName: "Homing speed",
+            type: "number",
+            get: () => this._homingSpeed,
+            set: v => this.#uiUpdateSettingCommon(
+                () => this._homingSpeed = v,
+                () => this.#client.getHomingSpeed,
+                () => this.#client.setHomingSpeed
+            )
+        },
+        {
+            friendlyName: "Invert rail direction (re-homes & restarts device)",
+            type: "boolean",
+            get: () => this._railDirectionInverted,
+            set: async v => {
+                try { await this.#client.setInvertRailDirection(v); }
+                catch (err) {
+                    console.error("Failed to change rail direction", err);
+                    await this.#client.getInvertRailDirection().catch(console.error);
+                    return;
+                }
+
+                try { this.disconnect(); }
+                catch (err) {
+                    console.log(err);
+                    this.state = State.Error;
+                }
+            }
+        },
+        // TODO: Use create a recalibrate button by switching modes and reading off of the legacy API to check while it is in the homing state
+    ]);
+
     state: State = $state(State.Disconnected);
-    patterns: SvelteMap<number, Pattern> = new SvelteMap<number, Pattern>();
-    readonly maxUpdateRateHz = 8;
     get playState(): Readonly<PlayState> { return this.#playState; }
     set playState(playState: PlayState) { this.#updateFromUi(playState); }
 
@@ -65,11 +196,19 @@ export class OssmLite implements OssmProvider, Disposable {
         this.#client.debug = isDevMode;
         if (isDevMode) console.log("OssmLiteClient:", this.#client);
 
-        this.#client.on.pattern.subscribe(this.#onBlePatternSignature);
-        this.#client.on.minDepth.subscribe(this.#onBleMinDepthSignature);
-        this.#client.on.maxDepth.subscribe(this.#onBleMaxDepthSignature);
-        this.#client.on.speed.subscribe(this.#onBleSpeedSignature);
-        this.#client.on.sensation.subscribe(this.#onBleSensationSignature);
+        this.#setupSubscription(this.#client.on.pattern, this.#onBlePattern.bind(this));
+        this.#setupSubscription(this.#client.on.minDepth, this.#onBleMinDepth.bind(this));
+        this.#setupSubscription(this.#client.on.maxDepth, this.#onBleMaxDepth.bind(this));
+        this.#setupSubscription(this.#client.on.speed, this.#onBleSpeed.bind(this));
+        this.#setupSubscription(this.#client.on.sensation, this.#onBleSensation.bind(this));
+        this.#setupSubscription(this.#client.on.invertRailDirection, v => this._railDirectionInverted = v);
+        this.#setupSubscription(this.#client.on.maxAcceleration, v => this._maxAcceleration = v);
+        this.#setupSubscription(this.#client.on.maxMotorRpm, v => this._maxMotorRpm = v);
+        this.#setupSubscription(this.#client.on.stepsPerRevolution, v => this._stepsPerRevolution = v);
+        this.#setupSubscription(this.#client.on.pulleyTeeth, v => this._pulleyTeeth = v);
+        this.#setupSubscription(this.#client.on.beltPitch, v => this._beltPitch = v);
+        this.#setupSubscription(this.#client.on.speedCurve, v => this._speedCurve = v);
+        this.#setupSubscription(this.#client.on.homingSpeed, v => this._homingSpeed = v);
     }
 
     [Symbol.dispose](): void {
@@ -77,7 +216,18 @@ export class OssmLite implements OssmProvider, Disposable {
         this.#client[Symbol.dispose]();
     }
 
+    #setupSubscription<T extends unknown[]>(event: SingleEvent<T>, callback: Parameters<SingleEvent<T>['subscribe']>[0]): void {
+        event.subscribe(callback);
+        this.#eventSubscriptions.push({
+            event,
+            signature: callback
+        });
+    }
+
     async #begin(ct?: ICancellationToken): Promise<void> {
+        if (this.#hasCalledBegin) throw new DOMException("Begin can only be called once", "OperationError");
+        this.#hasCalledBegin = true;
+
         this.state = State.Reconnecting;
 
         try {
@@ -86,6 +236,7 @@ export class OssmLite implements OssmProvider, Disposable {
             await this.#client.begin();
             await this.#client.waitForConnection(ct);
 
+            await this.#client.setHomingType(LiteHomingType.Default); // Configure automatic homing which means we don't need to manually specify the rail length
             await this.#client.setHomeBetweenModes(false); // Stop the device from recalibrating between normal and AP mode
 
             // eslint-disable-next-line svelte/prefer-svelte-reactivity
@@ -96,7 +247,7 @@ export class OssmLite implements OssmProvider, Disposable {
                 ct?.throwIfCancellationRequested();
         
                 basePatternNames.add(pattern.name);
-        
+
                 const knownPattern = KnownPatterns.get(pattern.idx);
                 if (knownPattern && knownPattern.name === pattern.name) {
                         this.patterns.set(pattern.idx, knownPattern);
@@ -125,9 +276,9 @@ export class OssmLite implements OssmProvider, Disposable {
                 });
             }*/
 
-            await this.#onBleConnect();
-            this.#client.connectedEvent.subscribe(this.#onBleConnectSignature);
-            this.#client.disconnectedEvent.subscribe(this.#onBleDisconnectSignature);
+            await this.#onBleConnect(ct);
+            this.#setupSubscription(this.#client.connectedEvent, this.#onBleConnect.bind(this));
+            this.#setupSubscription(this.#client.disconnectedEvent, this.#onBleDisconnect.bind(this));
         } catch (err) {
             this.state = State.Error;
             throw err;
@@ -141,23 +292,40 @@ export class OssmLite implements OssmProvider, Disposable {
 
         if (this.#disconnectTimeoutHandle) window.clearInterval(this.#disconnectTimeoutHandle);
 
-        this.#client.on.pattern.unsubscribe(this.#onBlePatternSignature);
-        this.#client.on.minDepth.unsubscribe(this.#onBleMinDepthSignature);
-        this.#client.on.maxDepth.unsubscribe(this.#onBleMaxDepthSignature);
-        this.#client.on.speed.unsubscribe(this.#onBleSpeedSignature);
-        this.#client.on.sensation.unsubscribe(this.#onBleSensationSignature);
+        for (const subscription of this.#eventSubscriptions)
+            subscription.event.unsubscribe(subscription.signature);
+        this.#eventSubscriptions = [];
 
         await this.#client.disconnect();
     }
 
-    async #onBleConnect(): Promise<void> {
-        // These calls trigger the notify callbacks
-        // Force into stroke engine mode (weird quirk with reconnects it seems to get stuck unable to move unless pattern is read/set?)
-        await this.#client.setPattern(await this.#client.getPattern());
-        await this.#client.getMinDepth();
-        await this.#client.getMaxDepth()
-        await this.#client.getSpeed();
-        await this.#client.getSensation();
+    async #onBleConnect(ct?: ICancellationToken): Promise<void> {
+        /* Let all of these operations run in parallel and wait for all to complete/fail
+         * Backend lib queues them but from a consumer standpoint they should be run like this
+         */
+        const results = await Promise.allSettled([
+            // These calls trigger the notify callbacks where the client-side values are then set
+            this.#client.getPattern(ct).then(r => this.#client.setPattern(r, ct)), // Force into stroke engine mode (weird quirk with reconnects it seems to get stuck unable to move unless pattern is read/set?)
+            this.#client.getMinDepth(ct),
+            this.#client.getMaxDepth(ct),
+            this.#client.getSpeed(ct),
+            this.#client.getSensation(ct),
+            this.#client.getInvertRailDirection(ct),
+            this.#client.getMaxAcceleration(ct),
+            this.#client.getMaxMotorRpm(ct),
+            this.#client.getStepsPerRevolution(ct),
+            this.#client.getPulleyTeeth(ct),
+            this.#client.getBeltPitch(ct),
+            this.#client.getSpeedCurve(ct),
+            this.#client.getHomingSpeed(ct)
+        ]);
+
+        const errors = results
+            .filter((r): r is PromiseRejectedResult => r.status === "rejected")
+            .map(r => r.reason?.message || String(r.reason));
+
+        if (errors.length > 0)
+            throw new DOMException(`One or more fetch operations failed: ${errors.join("; ")}`, "OperationError");
 
         this.state = State.Ready;
     }
@@ -303,5 +471,96 @@ export class OssmLite implements OssmProvider, Disposable {
     async #onBleSensation(sensation: number): Promise<void> {
         if (this.#playState.sensation !== sensation)
             this.#playState = { ...this.#playState, sensation };
+    }
+
+    async #uiUpdateSettingCommon<T>(
+        localSetter: () => T,
+        liteGetter: () => ((ct?: ICancellationToken) => Promise<T>),
+        liteSetter: () => ((value: T, ct?: ICancellationToken) => Promise<void>)
+    ): Promise<void> {
+        /* The device will only notify listeners if the value written made a change (i.e. was valid and different from the stored one)
+         * For this reason we call the getter again to refresh the UI with the value stored on device in-case what was written was invalid
+         * As the device only does fast writes and does not report back if the set value was invalid
+         * We must set the local state first so that when the remote state is fetched it forces a UI update (since this isn't two-way binding, it could be if I was able to reference 'this' inside a real get/set function)
+         * It's a mess yes I know, but for now it's all I can really be arsed to deal with (I don't like UI work ><)
+         */
+
+        const value = localSetter();
+
+        const cts = CancellationTokenSource.createWithTimeout(1000);
+        try {
+            let setterSuccessful = false;
+            try {
+                await liteSetter()(value, cts.token);
+                setterSuccessful = true;
+            } catch (err) {
+                console.warn("Failed to update setting from UI", err);
+            }
+    
+            if (setterSuccessful) {
+                try {
+                    await this.#refreshStrokeEngine(cts.token);
+                } catch (err) {
+                    console.error("Failed to reload StrokeEngine state", err);
+                    this.state = State.Error; // UI disposes after this is set
+                    return;
+                }
+            }
+
+            try {
+                await liteGetter()(cts.token);
+            } catch (err) {
+                console.warn("Failed to fetch device setting", err);
+            }
+        } finally {
+            cts.dispose();
+        }
+    }
+
+    async #setCommonOptions(
+        maxMotorRpm: number,
+        stepsPerRevolution: number,
+        maxAcceleration = 50000,
+        pulleyTeeth = 20,
+        beltPitch = 2
+    ): Promise<void> {
+        const results = await Promise.allSettled([
+            this.#client.setMaxMotorRpm(maxMotorRpm),
+            this.#client.setStepsPerRevolution(stepsPerRevolution),
+            this.#client.setMaxAcceleration(maxAcceleration),
+            this.#client.setPulleyTeeth(pulleyTeeth),
+            this.#client.setBeltPitch(beltPitch)
+        ]);
+
+        const errors = results
+            .filter((r): r is PromiseRejectedResult => r.status === "rejected")
+            .map(r => r.reason?.message || String(r.reason));
+
+        if (errors.length > 0)
+            throw new DOMException(`One or more set operations failed: ${errors.join("; ")}`, "OperationError");
+    }
+
+    async #refreshStrokeEngine(ct?: ICancellationToken): Promise<void> {
+        // Get a snapshot of the current StrokeEngine state
+        const snapshot = { ...this.playState };
+
+        // Force the device to be paused at this point
+        await this.#client.setSpeed(0, ct);
+
+        /* Trigger a state switch into AP mode (if already in AP mode this stops the device)
+         * This is a workaround to: send go:menu to the legacy endpoint 522b443a-4f53-534d-1000-420badbabe69 to exit the current mode and re-apply any changed settings
+         */
+        await this.#client.writeAdvancedPenetrationConfig({ speed: { value: 0 } }, ct);
+
+        // Go back to StrokeEngine mode
+        await this.#client.setPattern(snapshot.patternId, ct);
+
+        // Re-write settings from the snapshot
+        // Ignore restoring speed right now (switching modes causes the device to stop and jump so for safety we will not restore speed)
+        // this.#client.setSpeed(snapshot.speed);
+        const range = OssmProviderHelpers.depthAndStrokeToRange(snapshot.depth, snapshot.stroke);
+        await this.#client.setMinDepth(range.from, ct);
+        await this.#client.setMaxDepth(range.to, ct);
+        await this.#client.setSensation(snapshot.sensation, ct);
     }
 }

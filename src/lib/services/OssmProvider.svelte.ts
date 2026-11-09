@@ -1,5 +1,5 @@
 import { clamp } from "$lib/utils/Helpers.svelte";
-import { SvelteMap } from "svelte/reactivity";
+import { SvelteMap, SvelteSet } from "svelte/reactivity";
 
 export enum State {
     Disconnected = "disconnected",
@@ -10,13 +10,13 @@ export enum State {
     EmergencyStop = "estop"
 }
 
-export interface PlayState {
+export type PlayState = {
     patternId: number,
     depth: number,
     stroke: number,
     speed: number,
-    sensation: number,
-}
+    sensation: number
+};
 
 export enum SensationType {
     /** Defines that the pattern has no sensation parameter */
@@ -27,22 +27,57 @@ export enum SensationType {
     Invertible
 }
 
-export interface Pattern {
-    name: string;
-    description: string;
-    sensationType: SensationType;
-}
+export type Pattern = {
+    name: string,
+    description: string,
+    sensationType: SensationType
+};
+
+type SettingTypeCommon<T> = {
+    /** This should return a reactive value */
+    get: () => T,
+    set: (v: T) => void,
+};
+
+export type ValidateSettingMap<T extends Record<string, Record<string, unknown>>> = T;
+type SettingTypeMap = ValidateSettingMap<{
+    label: {
+        bold?: boolean,
+        italic?: boolean,
+        underline?: boolean,
+        align?: "left" | "right" | "center"
+    },
+    number: SettingTypeCommon<number> & {
+        min?: number,
+        max?: number
+    },
+    boolean: SettingTypeCommon<boolean>,
+    button: {
+        icon?: string,
+        action: () => void
+    };
+}>;
+
+export type ReactiveSetting = {
+    [K in keyof SettingTypeMap]: {
+        readonly friendlyName: string;
+        readonly type: K;
+    } & SettingTypeMap[K];
+}[keyof SettingTypeMap];
 
 /** For an example implementation, see {@link DummyProvider} */
 export interface OssmProvider {
     /** The current state of the device (e.g. ready) */
-    get state(): State;
+    readonly state: State;
 
     /** The list of available patterns on the device */
-    get patterns(): SvelteMap<number, Pattern>;
+    readonly patterns: SvelteMap<number, Pattern>;
 
     /** The maximum update rate in ms the device can handle. Updates sent at a frequency higher than this should be dropped */
-    get maxUpdateRateHz(): number;
+    readonly maxUpdateRateHz: number;
+
+    /** Customizable options on the device */
+    readonly settings?: SvelteSet<ReactiveSetting>;
 
     /** Internal properties set as readonly so updates are forced to come through as 'playState' and not 'playState.*'
      * This allows providers to use getters to intercept the data without having to use $effect in the code behind
@@ -52,9 +87,6 @@ export interface OssmProvider {
 
     /** Emergency stop function that should bypass all pending action queues and immediately stop the device */
     emergencyStop(): Promise<void>;
-
-    /** Function call to recalibrate the device actuator */
-    recalibrate(): Promise<void>;
 
     /** Called when the UI leaves the control screen, does not wait for return. All resources should be released here */
     disconnect(): Promise<void>;

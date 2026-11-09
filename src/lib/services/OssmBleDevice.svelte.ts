@@ -1,5 +1,5 @@
-import { SvelteMap } from "svelte/reactivity";
-import { type OssmProvider, SensationType, State, type Pattern, type PlayState } from "./OssmProvider.svelte";
+import { SvelteMap, SvelteSet } from "svelte/reactivity";
+import { type OssmProvider, SensationType, State, type Pattern, type PlayState, type ReactiveSetting } from "./OssmProvider.svelte";
 import { CancellationTokenSource, type ICancellationToken, OssmBleClient, type OssmCommonPlayParameters, type OssmMotionSnapshot, type OssmStateSnapshot } from "$lib/ossm-ble-web/dist/ossm-ble-web";
 import { isDevMode } from "$lib/utils/Helpers.svelte";
 import { RadSurface } from "$lib/ossm-ble-web/dist/ossm-ble-web";
@@ -43,6 +43,7 @@ export class OssmBleDevice implements OssmProvider, Disposable {
         return instance;
     }
 
+    #hasCalledBegin = false;
     readonly #client: OssmBleClient;
     readonly #onBleConnectSignature = this.#onBleConnect.bind(this);
     readonly #onBleDisconnectSignature = this.#onBleDisconnect.bind(this);
@@ -60,6 +61,13 @@ export class OssmBleDevice implements OssmProvider, Disposable {
     state: State = $state(State.Disconnected);
     patterns: SvelteMap<number, Pattern> = new SvelteMap<number, Pattern>();
     readonly maxUpdateRateHz = 3; // TODO: Make this dynamic based on how backed up the queue is
+    readonly settings: SvelteSet<ReactiveSetting> = new SvelteSet([
+        {
+            friendlyName: "Home rail",
+            type: "button",
+            action: () => this.#recalibrate()
+        }
+    ]);
     get playState(): Readonly<PlayState> { return this.#playState; }
     set playState(playState: PlayState) { this.#updateFromUi(playState); }
 
@@ -77,6 +85,9 @@ export class OssmBleDevice implements OssmProvider, Disposable {
     }
 
     async #begin(ct?: ICancellationToken): Promise<void> {
+        if (this.#hasCalledBegin) throw new DOMException("Begin can only be called once", "OperationError");
+        this.#hasCalledBegin = true;
+
         this.state = State.Reconnecting;
 
         try {
@@ -130,7 +141,7 @@ export class OssmBleDevice implements OssmProvider, Disposable {
         await this.#client.getMotionSnapshot();
     }
 
-    async recalibrate(): Promise<void> {
+    async #recalibrate(): Promise<void> {
         /* To recover from estop on the device we must navigate to strokeEngine which will cause a re-homing of the device
          * If you call homeRail from an estop state it will get stuck in homing.backward forever, and that state cannot be escaped via a navigateTo call
          */

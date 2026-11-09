@@ -60,11 +60,6 @@
             </div>
             <div>
                 <Button
-                    aria-label="Recalibrate"
-                    class={self.ossmProvider.state === State.EmergencyStop ? 'highlight' : ''}
-                    icon="reset_settings"
-                    onclick={self.onUiRecalibrateClick.bind(self)}/>
-                <Button
                     aria-label="Disconnect"
                     icon="logout"
                     onclick={self.onUiDisconnectClick.bind(self)}/>

@@ -1,5 +1,5 @@
-import { type OssmProvider, State, type Pattern, type PlayState } from "./OssmProvider.svelte";
-import { SvelteMap } from "svelte/reactivity";
+import { type OssmProvider, State, type Pattern, type PlayState, type ReactiveSetting } from "./OssmProvider.svelte";
+import { SvelteMap, SvelteSet } from "svelte/reactivity";
 import { KnownPatterns } from "$lib/utils/KnownPatterns";
 import { isDevMode } from "$lib/utils/Helpers.svelte";
 
@@ -15,11 +15,38 @@ export class DummyProvider implements OssmProvider {
         sensation: 55,
     });
 
+    settingNumber = $state(1);
+    settings: SvelteSet<ReactiveSetting> = new SvelteSet([
+        {
+            friendlyName: "Number",
+            type: "number",
+            get: () => this.settingNumber,
+            set: value => this.settingNumber = value,
+        },
+        {
+            friendlyName: "Text",
+            type: "boolean",
+            get: () => true,
+            set: () => {}
+        },
+        {
+            friendlyName: "Button",
+            type: "button",
+            action: () => console.log("settings: button pressed")
+        }
+    ]);
+
     constructor(doDynamicUpdate: boolean = false) {
         if (isDevMode) {
             // eslint-disable-next-line svelte/no-inspect
             $inspect(this.playState).with((_, playState) => console.log("[DummyProvider] Play state changed: ", playState));
         }
+
+        // eslint-disable-next-line svelte/no-inspect
+        $inspect(this.settingNumber).with((_, settingNumber) => console.log("[DummyProvider] settingNumber changed: ", settingNumber));
+        setTimeout(() => {
+            this.settingNumber = 5;
+        }, 1500);
 
         if (doDynamicUpdate) {
             setTimeout(() => {
