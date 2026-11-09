@@ -48,12 +48,14 @@ export class MainControlView implements Disposable {
                 case State.Error:
                     // TODO: Display error message
                     this.viewManager.setViewAndProps(LandingView);
+                    this.ossmProvider.disconnect();
                     break;
                 case State.Disconnected:
                     // TODO: Display error message
                     if (!this.#disposed) {
                         this.#disposed = true;
                         this.viewManager.setViewAndProps(LandingView);
+                        this.ossmProvider.disconnect();
                     }
                     break;
                 default:

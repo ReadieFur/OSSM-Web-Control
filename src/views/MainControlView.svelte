@@ -22,8 +22,14 @@
     /* Auto acquires a wake lock lives on this components lifecycle
      * Used to keep the screen awake while on the controls page,
      * both for user safety having the UI at their fingertips at all times and to keep the underlying connections alive
+     * both for user safety having the UI at their fingertips at all times and to keep the underlying connections alive.
     */
     const _wakeLockSentinel = new SvelteWakeLockSentinel();
+    let _wakeLockSentinel: SvelteWakeLockSentinel | null = null;
+    onMount(() => {
+        _wakeLockSentinel = new SvelteWakeLockSentinel(); // Immediately sets up wake lock
+        return () => _wakeLockSentinel?.dispose(); // Dispose when this component goes out of scope
+    });
 
     const isLandscape = mediaQuery("(orientation: landscape)");
     const orientation = $derived(isLandscape.matches ? "horizontal" : "vertical");
