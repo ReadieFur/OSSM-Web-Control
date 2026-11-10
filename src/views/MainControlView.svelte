@@ -125,6 +125,7 @@
                                         value={setting.get()}
                                         min={setting.min}
                                         max={setting.max}
+                                        step={setting.step}
                                         onchange={e => { if (e.value !== null) setting.set(e.value) }}/>
                                 {:else if setting.type === "boolean"}
                                     <label for="{inputId}">{setting.friendlyName}</label>

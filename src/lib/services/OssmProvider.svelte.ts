@@ -49,13 +49,14 @@ type SettingTypeMap = ValidateSettingMap<{
     },
     number: SettingTypeCommon<number> & {
         min?: number,
-        max?: number
+        max?: number,
+        step?: number
     },
     boolean: SettingTypeCommon<boolean>,
     button: {
         icon?: string,
         spaceBetween?: boolean,
-        iconPosition?: "left" | "right" | "both"
+        iconPosition?: "left" | "right" | "both",
         action: () => void
     };
 }>;

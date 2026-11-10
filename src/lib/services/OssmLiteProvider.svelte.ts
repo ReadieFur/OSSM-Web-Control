@@ -99,6 +99,7 @@ export class OssmLiteProvider implements OssmProvider, Disposable {
         {
             friendlyName: "Max motor RPM",
             type: "number",
+            min: 1,
             get: () => this._maxMotorRpm,
             set: v => this.#uiUpdateSettingCommon(
                 () => this._maxMotorRpm = v,
@@ -109,6 +110,7 @@ export class OssmLiteProvider implements OssmProvider, Disposable {
         {
             friendlyName: "Steps per revolution",
             type: "number",
+            min: 1,
             get: () => this._stepsPerRevolution,
             set: v => this.#uiUpdateSettingCommon(
                 () => this._stepsPerRevolution = v,
@@ -119,6 +121,7 @@ export class OssmLiteProvider implements OssmProvider, Disposable {
         {
             friendlyName: "Max acceleration",
             type: "number",
+            min: 1,
             get: () => this._maxAcceleration,
             set: v => this.#uiUpdateSettingCommon(
                 () => this._maxAcceleration = v,
@@ -129,6 +132,7 @@ export class OssmLiteProvider implements OssmProvider, Disposable {
         {
             friendlyName: "Pulley teeth #",
             type: "number",
+            min: 1,
             get: () => this._pulleyTeeth,
             set: v => this.#uiUpdateSettingCommon(
                 () => this._pulleyTeeth = v,
@@ -139,6 +143,7 @@ export class OssmLiteProvider implements OssmProvider, Disposable {
         {
             friendlyName: "Belt pitch",
             type: "number",
+            min: 0,
             get: () => this._beltPitch,
             set: v => this.#uiUpdateSettingCommon(
                 () => this._beltPitch = v,
@@ -149,6 +154,8 @@ export class OssmLiteProvider implements OssmProvider, Disposable {
         {
             friendlyName: "Speed curve",
             type: "number",
+            min: 0,
+            step: 0.1,
             get: () => this._speedCurve,
             set: v => this.#uiUpdateSettingCommon(
                 () => this._speedCurve = v,
@@ -159,6 +166,7 @@ export class OssmLiteProvider implements OssmProvider, Disposable {
         {
             friendlyName: "Homing speed",
             type: "number",
+            min: 0,
             get: () => this._homingSpeed,
             set: v => this.#uiUpdateSettingCommon(
                 () => this._homingSpeed = v,
@@ -169,6 +177,8 @@ export class OssmLiteProvider implements OssmProvider, Disposable {
         {
             friendlyName: "Current sensor limit",
             type: "number",
+            min: 0,
+            step: 0.1,
             get: () => this._currentSensorLimit,
             set: v => this.#uiUpdateSettingCommon(
                 () => this._currentSensorLimit = v,
@@ -329,7 +339,8 @@ export class OssmLiteProvider implements OssmProvider, Disposable {
             this.#client.getPulleyTeeth(ct),
             this.#client.getBeltPitch(ct),
             this.#client.getSpeedCurve(ct),
-            this.#client.getHomingSpeed(ct)
+            this.#client.getHomingSpeed(ct),
+            this.#client.getCurrentSensorLimit(ct)
         ]);
 
         const errors = results
