@@ -282,7 +282,7 @@ export class OssmLiteProvider implements OssmProvider, Disposable {
                 }
             }
 
-            /* Future
+            /* TODO: Add support for AdvancedPenetration configs/patterns
             ct?.throwIfCancellationRequested();
             let apPatternIndex = -1; // Sneaky way to assign indexes to the advanced penetration config patterns
             for (const patternName in await this.#client.getAdvancedPenetrationConfigNames()) {
