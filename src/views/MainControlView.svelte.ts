@@ -21,6 +21,7 @@ export class MainControlView implements Disposable {
     controlSensation = $state(0);
     controlInvertSensation = $state(false);
     estopClickCount = $state(0);
+    settingsCheckboxChecked = $state(false);
 
     #disposed = false;
     #estopClickTimer?: number;
@@ -57,6 +58,9 @@ export class MainControlView implements Disposable {
                         this.viewManager.setViewAndProps(LandingView);
                         this.ossmProvider.disconnect();
                     }
+                    break;
+                case State.EmergencyStop:
+                    // this.settingsCheckboxChecked = true;
                     break;
                 default:
                     break;

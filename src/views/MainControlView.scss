@@ -129,6 +129,37 @@
             margin-right: -0.25rem;
         }
     }
+
+    // My current setup for checkboxes is jank :/ but I compromise
+    input[type="checkbox"] {
+        $size: 1.25em;
+
+        justify-content: center;
+        font-size: $size;
+        transform-origin: center;
+
+        &::after {
+            width: $size;
+            height: $size;
+            // line-height: $size !important;
+            line-height: calc($size + 0.045em) !important;
+            padding: 0.425rem 0.65rem;
+            border-radius: $radius-400;
+            transition: transform 0.4s ease, background-color 0.2s ease;
+        }
+
+        &.highlight {
+            background-color: unset !important;
+
+            &:checked {
+                animation: unset !important;
+            }
+
+            &:not(:checked)::after {
+                background-color: hsl(from $accent-2 h s l / 0.9);
+            }
+        }
+    }
 }
 
 .options-and-controls {
@@ -412,6 +443,51 @@
 
         &:checked::after {
             transform: rotateY(180deg);
+        }
+    }
+}
+
+.settings-panel {
+    $left-parts: 65; // 0-100 value
+
+    display: grid;
+    grid-template-columns: #{$left-parts}fr #{100 - $left-parts}fr; // 75% left track, 25% right track ratio
+    gap: 0.8rem 0.5rem;
+    box-sizing: border-box;
+
+    // Make container fill space assigned by parent but keep children at default heights & allow vertical scrolling
+    grid-auto-rows: max-content; 
+    overflow-y: auto;
+
+    @media #{$small-media-query} {
+        gap: 0.4rem 0.2rem;
+    }
+
+    @media #{$landscape-media-query} {
+        grid-template-columns: 50fr 50fr;
+    }
+
+    > div {
+        grid-column: 1 / -1; // Default for full-width items like buttons
+        display: flex;
+        flex-direction: column;
+
+        // Check if the entry can be split cleanly into a left/right column (has exactly 2 items)
+        &:has(> label):has(> *:nth-child(2)):not(:has(> *:nth-child(3))) {
+            display: contents; 
+
+            label {
+                grid-column: 1; // Sits in the left track
+                align-self: center;
+                text-align: left;
+                margin: 0;
+            }
+
+            > *:nth-child(2) {
+                grid-column: 2; // Sits in the right track
+                justify-self: center;
+                max-width: 100%;
+            }
         }
     }
 }
