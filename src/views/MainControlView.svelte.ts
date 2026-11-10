@@ -40,7 +40,7 @@ export class MainControlView implements Disposable {
     }
 
     [Symbol.dispose](): void {
-        this.ossmProvider?.disconnect();
+        this.ossmProvider?.disconnect().catch(MainControlView._disconnectErrorHandler);
     }
 
     onRemoteStateChange(): void {
@@ -49,14 +49,14 @@ export class MainControlView implements Disposable {
                 case State.Error:
                     // TODO: Display error message
                     this.viewManager.setViewAndProps(LandingView);
-                    this.ossmProvider.disconnect();
+                    this.ossmProvider.disconnect().catch(MainControlView._disconnectErrorHandler);
                     break;
                 case State.Disconnected:
                     // TODO: Display error message
                     if (!this.#disposed) {
                         this.#disposed = true;
                         this.viewManager.setViewAndProps(LandingView);
-                        this.ossmProvider.disconnect();
+                        this.ossmProvider.disconnect().catch(MainControlView._disconnectErrorHandler);
                     }
                     break;
                 case State.EmergencyStop:
@@ -189,8 +189,12 @@ export class MainControlView implements Disposable {
     }
 
     onUiDisconnectClick(): void {
-        this.ossmProvider.disconnect();
+        this.ossmProvider.disconnect().catch(MainControlView._disconnectErrorHandler);
         if (!this.#disposed)
             this.viewManager.setViewAndProps(LandingView);
+    }
+
+    private static _disconnectErrorHandler(error: unknown): void {
+        console.warn("Error during disconnect", error);
     }
 }
