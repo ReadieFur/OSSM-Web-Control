@@ -135,8 +135,10 @@
                                 {:else if setting.type === "button"}
                                     <Button
                                         id={inputId}
+                                        class={setting.spaceBetween ? 'space-between' : ''}
                                         onclick={setting.action}
-                                        icon={setting.icon}>
+                                        icon={setting.icon}
+                                        iconPosition={setting.iconPosition}>
                                         {setting.friendlyName}
                                     </Button>
                                 {/if}

@@ -63,8 +63,9 @@ export class OssmRadProvider implements OssmProvider, Disposable {
     readonly maxUpdateRateHz = 3; // TODO: Make this dynamic based on how backed up the queue is
     readonly settings: SvelteSet<ReactiveSetting> = new SvelteSet([
         {
-            friendlyName: "Home rail",
+            friendlyName: "Home Rail",
             type: "button",
+            icon: "linear_scale",
             action: () => this.#recalibrate()
         }
     ]);

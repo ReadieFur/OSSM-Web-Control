@@ -24,7 +24,7 @@ export class DummyProvider implements OssmProvider {
             set: value => this.settingNumber = value,
         },
         {
-            friendlyName: "Text",
+            friendlyName: "Checkbox",
             type: "boolean",
             get: () => true,
             set: () => {}
@@ -32,6 +32,7 @@ export class DummyProvider implements OssmProvider {
         {
             friendlyName: "Button",
             type: "button",
+            icon: "linear_scale",
             action: () => console.log("settings: button pressed")
         }
     ]);

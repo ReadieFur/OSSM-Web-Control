@@ -54,6 +54,8 @@ type SettingTypeMap = ValidateSettingMap<{
     boolean: SettingTypeCommon<boolean>,
     button: {
         icon?: string,
+        spaceBetween?: boolean,
+        iconPosition?: "left" | "right" | "both"
         action: () => void
     };
 }>;
