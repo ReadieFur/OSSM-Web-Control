@@ -42,7 +42,7 @@ export class BleInitializer {
     static async pairDeviceAndDiscoverProviders(ct: ICancellationToken): Promise<BleProvidersResult[]> {
         const bleDevice = await navigator.bluetooth.requestDevice({
             filters: [{ name: "OSSM" }],
-            optionalServices: [DEVICE_INFO_SERVICE_UUID, ...BleInitializer.#providers.flatMap(p => p.serviceUuids)],
+            optionalServices: new Set([DEVICE_INFO_SERVICE_UUID, ...BleInitializer.#providers.flatMap(p => p.serviceUuids)]).values().map(BleInitializer.#normalizeUuid).toArray(),
         });
 
         if (!bleDevice.gatt)
@@ -73,8 +73,7 @@ export class BleInitializer {
         ct.throwIfCancellationRequested();
 
         const dec = new TextDecoder();
-        const deviceServices = new Map((await bleDevice.gatt.getPrimaryServices())
-            .map(s => [BleInitializer.#normalizeUuid(s.uuid), s]));
+        const deviceServices = new Map((await bleDevice.gatt.getPrimaryServices()).map(s => [BleInitializer.#normalizeUuid(s.uuid), s]));
 
         let deviceModelId: string | undefined;
         const deviceInfoService = deviceServices.get(BleInitializer.#normalizeUuid(DEVICE_INFO_SERVICE_UUID));
@@ -119,10 +118,19 @@ export class BleInitializer {
         return discoveredProviders;
     }
 
+    /* Returned UUIDs from BLE calls are full length, so we need to convert any short-form ones to full-length
+     * Additionally it seems like the Bluefy browser cannot accept short-form UUIDs
+    */
     static #normalizeUuid(uuid: BluetoothServiceUUID): string {
-        return (typeof uuid === "number"
-            ? `0000${uuid.toString(16).padStart(4, '0')}-0000-1000-8000-00805f9b34fb` // Tail of this is BLE standard
-            : uuid
-        ).toLowerCase().trim();
+        // Convert number to hex string if necessary
+        const stringUuid = typeof uuid === "number" ? uuid.toString(16) : uuid;
+        const trimmed = stringUuid.trim().toLowerCase();
+
+        // If it's a short identifier expand it to the full 128-bit Bluetooth base UUID.
+        if (/^[0-9a-f]{1,4}$/.test(trimmed))
+            return `0000${trimmed.padStart(4, '0')}-0000-1000-8000-00805f9b34fb`;
+
+        // Otherwise return the original UUID
+        return trimmed;
     }
 }
