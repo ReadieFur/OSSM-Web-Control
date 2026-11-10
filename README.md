@@ -1,7 +1,7 @@
 # OSSM Web Control
 A web application that allows you to control your [OSSM (Open Source Sex Machine)](https://github.com/KinkyMakers/OSSM-hardware) device over Bluetooth from your browser on [all major devices](#compatibility--features).  
 It is **accessible at [ossm-web.forestpuppy.pet](https://ossm-web.forestpuppy.pet/)** and can be installed to your device from there for offline use.  
-<small>*Now [officially listed on the R&D community projects site](https://researchanddesire.github.io/community-mods/projects/ossm/ossm-web-control/)!*</samll>
+<small>*Now [officially listed on the R&D community projects site](https://researchanddesire.github.io/community-mods/projects/ossm/ossm-web-control/)!*</small>
 
 > [!WARNING]
 > As per official OSSM notices, **use BLE controls at your own risk**.  
@@ -9,8 +9,10 @@ It is **accessible at [ossm-web.forestpuppy.pet](https://ossm-web.forestpuppy.pe
 
 > [!IMPORTANT]
 > **Firmware Requirement:**  
-> Please ensure your OSSM is running **v1.0.50 or newer**.  
-> You can update your device using the official [OSSM Web Flasher](https://docs.researchanddesire.com/ossm/tools/web-flasher).
+> Please ensure your OSSM is running one of the following:
+> - OSSM Official **v1.0.50 or newer**.  
+>   _You can update your device using the official [OSSM Web Flasher](https://docs.researchanddesire.com/ossm/tools/web-flasher)_
+> - OSSM Lite ([New-Protocols](https://github.com/fray-d/OSSM-Lite/tree/New-Protocols) branch)
 
 > [Overview](#ossm-web-control) • [Previews](#preview) • [Features](#compatibility--features) • [Contributing](#contributing) • [Developer Quickstart](#developer-quickstart)  
 
@@ -53,6 +55,14 @@ A quick overview on what this application supports and what is to come!
             <li>✅ <b>iPhone:</b> <a href="https://apps.apple.com/us/app/bluefy-web-ble-browser/id1492822055">Bluefy Browser</a></li>
         </ul>
     </li>
+    <li><b>Supported firmwares:</b>
+        <ul style="list-style-type: none; padding-left: 1.5em;">
+            <li>✅ <b><a href="https://docs.researchanddesire.com/ossm/tools/web-flasher" target="_self">OSSM Official</a> by R&D:</b> This is the original shipped firmware</li>
+            <li>✅ <b><a href="https://github.com/fray-d/OSSM-Lite/tree/New-Protocols" target="_self">OSSM Lite</a> by Fray-d <small><i>(New-Protocols branch)</i></small>:</b> Lower latency & live motor configuration</li>
+            <li>⬜ <b><a href="https://github.com/ossm-rs/ossm" target="_self">OSSM RS</a>:</b> Rust implementation of the OSSM firmware</li>
+            <li>⬜ <b><a href="https://openvalence.org/" target="_self">OpenValance</a>:</b> Highly advanced firmware but requires a hardware mod</li>
+        </ul>
+    </li>
     <li style="margin-top: 0.5em;"><b>Control Features:</b>
         <ul style="list-style-type: none; padding-left: 1.5em;">
             <li>✅ Speed and range adjustments</li>
@@ -78,7 +88,9 @@ A quick overview on what this application supports and what is to come!
 
 ## Contributing
 
-Contributions are welcomed and encouraged! If you run into any issues, have feedback, or want to suggest improvements, feel free to open an issue or submit a pull request on the [GitHub repository](https://github.com/ReadieFur/OSSM-Web-Control/).
+Contributions are welcomed and encouraged! If you run into any issues, have feedback, or want to suggest improvements, feel free to open an issue or submit a pull request on the [GitHub repository](https://github.com/ReadieFur/OSSM-Web-Control/).  
+
+There is a [Discord thread here](https://discord.com/channels/559409652425687041/1555768529335091210) if you would like to follow that is used for discussion on the project and dev-log updates.  
 
 > [!TIP]
 > **Reporting Connection Issues:**  

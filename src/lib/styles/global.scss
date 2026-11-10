@@ -30,11 +30,12 @@
         --#{$name}: #{$value};
     }
 
-    @media (prefers-color-scheme: light) {
-        @each $name, $value in generate-theme(light) {
-            --#{$name}: #{$value};
-        }
-    }
+    // TODO: Update light mode theming - Light mode disabled for now since the colour scheme is assssssssssssss
+    // @media (prefers-color-scheme: light) {
+    //     @each $name, $value in generate-theme(light) {
+    //         --#{$name}: #{$value};
+    //     }
+    // }
 
     @media #{$desktop-media-query} {
         --is-mobile: false;
@@ -43,6 +44,14 @@
     @media #{$landscape-media-query} {
         --is-portrait: false;
     }
+}
+
+::selection {
+    background-color: $accent-3;
+}
+
+::-moz-selection {
+    background-color: $accent-3;
 }
 
 @function build-material-symbol-url() {
@@ -106,6 +115,20 @@ button, a.button {
     &:hover:not([disabled]) {
         background-color: hsl(from $surface-2 h s l / 0.5);
         cursor: pointer;
+    }
+
+    &.checked {
+        background-color: hsl(from $accent-1 h s l / 0.5);
+
+        &:hover:not([disabled]) {
+            background-color: hsl(from $accent-1 h s l / 0.3);
+        }
+    }
+
+    &.highlight {
+        &:hover {
+            background-color: hsl(from $accent-2 h s l / 0.75);
+        }
     }
 
     &[disabled] {

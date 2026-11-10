@@ -2,26 +2,30 @@
     import { LandingView, type LandingViewProps } from "./LandingView.svelte.ts";
     import InfoContainer from "$component/InfoContainer.svelte";
     import { svelteFade } from "$lib/utils/Animation.svelte";
+	import Button from "$component/Button.svelte";
 
     let props: LandingViewProps = $props();
     const self = new LandingView(() => props);
+
+    const noPulse = $derived(self.discoveredBleProviders !== undefined);
 </script>
 
 <main>
     <section
-        class="card"
-        class:scale-pulse={self.isConnecting}>
+        class="landing-view card"
+        class:scale-pulse={self.isConnecting && !noPulse}>
         <h1>OSSM Web Control</h1>
 
         {#if self.isSecureContext}
             {#if self.isBleSupported}
-                <button
+                <Button
                     class="space-between"
+                    iconPosition="left"
+                    icon="bluetooth_searching"
                     disabled={self.isConnecting}
                     onclick={self.connectBleDevice.bind(self)}>
-                    <span class="material-symbol" data-icon="bluetooth_searching"></span>
                     Connect OSSM
-                </button>
+                </Button>
             {:else}
                 <InfoContainer
                     state="error"
@@ -71,8 +75,35 @@
                 state={self.infoDialog.state}
                 title={self.infoDialog.title}
                 message={self.infoDialog.message}>
-                <small><i>{self.infoDialog.extra}</i></small>
+                <small><i style="white-space: pre-wrap;">{self.infoDialog.extra}</i></small>
             </InfoContainer>
+        {/if}
+
+        {#if self.discoveredBleProviders !== undefined}
+            {#each self.discoveredBleProviders.providers as provider (provider.friendlyName)}
+                <Button
+                    class="space-between"
+                    iconPosition="left"
+                    icon="terminal_2"
+                    disabled={!self.isConnecting}
+                    onclick={() => {self.discoveredBleProviders?.solver.resolve(provider)}}>
+                    {provider.friendlyName}
+                </Button>
+            {/each}
+            <Button
+                class="space-between"
+                iconPosition="left"
+                icon="close"
+                disabled={!self.isConnecting}
+                onclick={() => {self.discoveredBleProviders?.solver.reject(new DOMException("User cancelled the operation", "NotFoundError"))}}>
+                Cancel
+            </Button>
         {/if}
     </section>
 </main>
+
+<style lang="scss">
+.landing-view {
+    user-select: none;
+}
+</style>

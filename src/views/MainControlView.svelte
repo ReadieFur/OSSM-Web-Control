@@ -15,22 +15,27 @@
 	import { svelteFade } from "$lib/utils/Animation.svelte";
 	import { State } from "$lib/services/OssmProvider.svelte";
 	import { SvelteWakeLockSentinel } from "$lib/utils/WakeLockManager.svelte";
+	import { onMount } from "svelte";
 
     let props: MainControlViewProps = $props();
     const self = new MainControlView(() => props);
 
     /* Auto acquires a wake lock lives on this components lifecycle
      * Used to keep the screen awake while on the controls page,
-     * both for user safety having the UI at their fingertips at all times and to keep the underlying connections alive
+     * both for user safety having the UI at their fingertips at all times and to keep the underlying connections alive.
     */
-    const _wakeLockSentinel = new SvelteWakeLockSentinel();
+    let _wakeLockSentinel: SvelteWakeLockSentinel | null = null;
+    onMount(() => {
+        _wakeLockSentinel = new SvelteWakeLockSentinel(); // Immediately sets up wake lock
+        return () => _wakeLockSentinel?.dispose(); // Dispose when this component goes out of scope
+    });
 
     const isLandscape = mediaQuery("(orientation: landscape)");
     const orientation = $derived(isLandscape.matches ? "horizontal" : "vertical");
     const stateText = $derived.by(() => {
         switch (self.ossmProvider.state) {
             case State.EmergencyStop:
-                return "EMERGENCY STOP - Recalibrate to resume";
+                return "EMERGENCY STOP";
             default:
                 return self.ossmProvider.state[0].toUpperCase() + self.ossmProvider.state.slice(1);
         }
@@ -59,11 +64,18 @@
                     onclick={self.onUiStopClick.bind(self)}/>
             </div>
             <div>
-                <Button
-                    aria-label="Recalibrate"
-                    class={self.ossmProvider.state === State.EmergencyStop ? 'highlight' : ''}
-                    icon="reset_settings"
-                    onclick={self.onUiRecalibrateClick.bind(self)}/>
+                {#if self.ossmProvider.settings !== undefined}
+                    <Button
+                        class={(self.settingsCheckboxChecked ? 'checked' : '') + ' ' + (self.ossmProvider.state === State.EmergencyStop && !self.settingsCheckboxChecked ? 'highlight' : '')}
+                        icon={self.settingsCheckboxChecked ? 'tune' : 'settings'}
+                        onclick={() => self.settingsCheckboxChecked = !self.settingsCheckboxChecked}/>
+                    <!-- TODO: Properly fix the scss for this to be consistent with the buttons -->
+                    <!-- <CheckboxInput
+                        class={self.ossmProvider.state === State.EmergencyStop ? 'highlight' : ''}
+                        checkedIcon="tune"
+                        uncheckedIcon="settings"
+                        bind:checked={self.settingsCheckboxChecked}/> -->
+                {/if}
                 <Button
                     aria-label="Disconnect"
                     icon="logout"
@@ -73,32 +85,78 @@
 
         <div
             class="options-and-controls"
-            class:scale-pulse={self.ossmProvider.state === State.Calibrating || self.ossmProvider.state === State.EmergencyStop}>
+            class:scale-pulse={(self.ossmProvider.state === State.Calibrating || self.ossmProvider.state === State.EmergencyStop) && !self.settingsCheckboxChecked}>
             <div class="options card">
-                <div class="patterns-panel">
-                    <div class="pattern-list">
-                        <h3>Patterns</h3>
-                        <div class="pattern-select">
-                            {#each self.ossmProvider.patterns as [id, pattern] (id)}
-                                <RadioInput
-                                    group="pattern"
-                                    checked={self.selectedPattern === id}
-                                    onchange={() => self.onUiPatternChange(id)}
-                                    disabled={self.disableControls}>
-                                    {pattern.name}
-                                </RadioInput>
-                            {/each}
+                {#if !self.settingsCheckboxChecked}
+                    <div class="patterns-panel" transition:svelteFade={{ duration: 200, switching: true }}>
+                        <div class="pattern-list">
+                            <h3>Patterns</h3>
+                            <div class="pattern-select">
+                                {#each self.ossmProvider.patterns as [id, pattern] (id)}
+                                    <RadioInput
+                                        group="pattern"
+                                        checked={self.selectedPattern === id}
+                                        onchange={() => self.onUiPatternChange(id)}
+                                        disabled={self.disableControls}>
+                                        {pattern.name}
+                                    </RadioInput>
+                                {/each}
+                            </div>
+                        </div>
+                        <div class="pattern-settings">
+                            {#key self.selectedPattern}
+                                <p class="description-text" transition:svelteFade={{ duration: 200, switching: true }}>{self.ossmProvider.patterns.get(self.selectedPattern)?.description ?? ""}</p>
+                            {/key}
                         </div>
                     </div>
-                    <div class="pattern-settings">
-                        {#key self.selectedPattern}
-                            <p class="description-text" transition:svelteFade={{ duration: 200, switching: true }}>{self.ossmProvider.patterns.get(self.selectedPattern)?.description ?? ""}</p>
-                        {/key}
+                {:else}
+                    <div class="settings-panel" transition:svelteFade={{ duration: 200, switching: true }}>
+                        {#each self.ossmProvider.settings as setting (setting.friendlyName)}
+                            {@const inputId = `setting-${setting.friendlyName.toLowerCase().replace(/\s+/g, '-')}`}
+                            <div>
+                                {#if setting.type === "label"}
+                                    <p style="
+                                        {setting.bold !== false ? 'font-weight: bold;' : ''}
+                                        {setting.italic ? 'font-style: italic;' : ''}
+                                        {setting.underline ? 'text-decoration: underline;' : ''}
+                                        {setting.align ? `text-align: ${setting.align};` : ''}">
+                                        {setting.friendlyName}
+                                    </p>
+                                {:else if setting.type === "number"}
+                                    <label for="{inputId}">{setting.friendlyName}</label>
+                                    <NumericInput
+                                        id={inputId}
+                                        spin="split"
+                                        value={setting.get()}
+                                        min={setting.min}
+                                        max={setting.max}
+                                        step={setting.step}
+                                        onchange={e => { if (e.value !== null) setting.set(e.value) }}/>
+                                {:else if setting.type === "boolean"}
+                                    <label for="{inputId}">{setting.friendlyName}</label>
+                                    <CheckboxInput
+                                        id={inputId}
+                                        checked={setting.get()}
+                                        onchange={e => setting.set(e.currentTarget.checked)}/>
+                                {:else if setting.type === "button"}
+                                    <Button
+                                        id={inputId}
+                                        class={setting.spaceBetween ? 'space-between' : ''}
+                                        onclick={setting.action}
+                                        icon={setting.icon}
+                                        iconPosition={setting.iconPosition}>
+                                        {setting.friendlyName}
+                                    </Button>
+                                {/if}
+                            </div>
+                        {/each}
                     </div>
-                </div>
+                {/if}
             </div>
 
-            <div class="controls card">
+            <div
+                class="controls card"
+                class:scale-pulse={(self.ossmProvider.state === State.Calibrating || self.ossmProvider.state === State.EmergencyStop) && self.settingsCheckboxChecked}>
                 <!-- Range Control -->
                 <div>
                     <NumericInput

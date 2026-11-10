@@ -1,8 +1,9 @@
-import { onMount } from "svelte";
+import { onMount, type Snippet } from "svelte";
 import type { ViewManager, ViewManagerProps } from "$lib/services/ViewManager.svelte";
 import MainControlView from "./MainControlView.svelte";
 import { CancellationTokenSource, isClientBleCapable } from "ossm-ble-web";
-import { OssmBleDevice } from "$lib/services/OssmBleDevice.svelte";
+import { BleInitializer, type BleProvidersResult } from "$lib/services/BleInitializer";
+import type { ResolveReject } from "$lib/utils/Helpers.svelte";
 
 interface NavigatorUAData {
     userAgentData?: {
@@ -105,26 +106,76 @@ export class LandingView {
     } | null = $state(null);
     isConnecting = $state(false);
 
+    discoveredBleProviders: {
+        solver: ResolveReject<BleProvidersResult>;
+        providers: BleProvidersResult[];
+    } | undefined = $state(undefined);
+
     async connectBleDevice(): Promise<void> {
         if (this.isConnecting) return;
         this.isConnecting = true;
 
         // 'using' keyword cat be used here :c so I will have to handle cleanup of it manually
-        // TODO: Make it so that this cts only starts after a device has been selected
-        const cts = CancellationTokenSource.createWithTimeout(defaultConnectionTimeout, "Connection timed out");
+        let cts = CancellationTokenSource.createWithTimeout(defaultConnectionTimeout, "Connection timed out");
 
         try {
             this.infoDialog = {
                 state: "info",
-                message: "Connecting to BLE device..."
+                message: "Connecting to BLE device...",
+                extra: "This can take a moment"
             };
 
-            const provider = await OssmBleDevice.initializeInstance(cts.token);
+            const providers = await BleInitializer.pairDeviceAndDiscoverProviders(cts.token);
+            if (providers.length === 0)
+                throw new DOMException("Failed to find a matching provider for the selected device", "OperationError");
+            cts.dispose();
 
-            this.viewManager.setViewAndProps(MainControlView, { viewManager: this.viewManager, ossmProvider: provider });
+            let autoDetected;
+            let provider: BleProvidersResult;
+            if (providers.length === 1) {
+                autoDetected = true;
+                provider = providers[0];
+            } else {
+                // Prompt the user to pick a provider for their device
+                let promiseSolvers: ResolveReject<BleProvidersResult>;
+                const optionLock = new Promise<BleProvidersResult>((resolve, reject) => promiseSolvers = {
+                    resolve: resolve as ResolveReject<BleProvidersResult>["resolve"],
+                    reject
+                });
+                this.discoveredBleProviders = {
+                    solver: promiseSolvers!,
+                    providers: providers
+                };
+
+                this.infoDialog = {
+                    state: "info",
+                    message: "Please select the firmware your device is running"
+                };
+
+                // This waits for the user to pick an option from the UI
+                const selectedProvider = await optionLock;
+                this.discoveredBleProviders = undefined;
+
+                autoDetected = false;
+                provider = selectedProvider;
+            }
+
+            this.infoDialog = {
+                state: "info",
+                message: "Initializing device...",
+                extra: "This can take a moment"
+                    + (autoDetected ? `\n- ${provider.friendlyName} -` : '')
+            };
+
+            // Reset timeout here
+            cts = CancellationTokenSource.createWithTimeout(defaultConnectionTimeout, "Connection timed out");
+            const providerInstance = await provider.initialize(cts.token);
+
+            // Provider has successfully initialized, switch view to the control screen
+            this.viewManager.setViewAndProps(MainControlView, { viewManager: this.viewManager, ossmProvider: providerInstance });
         } catch (error) {
             const allowedErrors: string[] = [
-                "NotFoundError", //Occurs when user cancels the pairing prompt
+                "NotFoundError" // Occurs when user cancels the pairing prompt (or cancels selecting a provider)
             ];
             if (error instanceof DOMException && allowedErrors.includes(error.name))
                 return;
@@ -140,6 +191,7 @@ export class LandingView {
             }
         } finally {
             cts.dispose();
+            this.discoveredBleProviders = undefined;
             this.isConnecting = false;
             if (this.infoDialog?.state !== "error")
                 this.infoDialog = null;

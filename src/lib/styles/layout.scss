@@ -155,7 +155,7 @@ main {
 // #region Footer
 footer {
     // Position
-    position: absolute; //Makes sure it doesn't affect main content size
+    position: absolute; // Makes sure it doesn't affect main content size
     left: 0;
     right: 0;
 
@@ -165,6 +165,8 @@ footer {
     color: $text-2;
 
     transition: opacity 0.2s ease;
+
+    user-select: none;
 }
 
 .app-shell > main {

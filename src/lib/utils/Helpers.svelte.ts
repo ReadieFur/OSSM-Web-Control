@@ -41,3 +41,12 @@ export function mediaQuery(query: string) {
         }
     };
 }
+
+export type ResolveReject<T = unknown> = {
+    resolve: [T] extends [unknown] ? (value?: T) => void : (value: T) => void;
+    reject: (reason?: Error) => void;
+};
+
+export function clamp(value: number, min: number, max: number): number {
+    return Math.min(Math.max(value, min), max);
+}
