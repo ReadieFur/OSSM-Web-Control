@@ -28,6 +28,7 @@ export class BleInitializer {
         },
         {
             friendlyName: "Official Firmware",
+            modelString: "OSSM",
             serviceUuids: [OSSM_SERVICE_UUID],
             initializer: OssmRadProvider.initializeInstance
         }
