@@ -30,11 +30,12 @@
         --#{$name}: #{$value};
     }
 
-    @media (prefers-color-scheme: light) {
-        @each $name, $value in generate-theme(light) {
-            --#{$name}: #{$value};
-        }
-    }
+    // TODO: Update light mode theming - Light mode disabled for now since the colour scheme is assssssssssssss
+    // @media (prefers-color-scheme: light) {
+    //     @each $name, $value in generate-theme(light) {
+    //         --#{$name}: #{$value};
+    //     }
+    // }
 
     @media #{$desktop-media-query} {
         --is-mobile: false;
