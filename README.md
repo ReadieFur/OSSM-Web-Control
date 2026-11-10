@@ -57,10 +57,10 @@ A quick overview on what this application supports and what is to come!
     </li>
     <li><b>Supported firmwares:</b>
         <ul style="list-style-type: none; padding-left: 1.5em;">
-            <li>✅ <a href="https://docs.researchanddesire.com/ossm/tools/web-flasher" target="_self">OSSM Official</a> by R&D</li>
-            <li>✅ <a href="https://github.com/fray-d/OSSM-Lite/tree/New-Protocols" target="_self">OSSM Lite</a> by Fray-d <small><i>(New-Protocols branch)</i></small></li>
-            <li>⬜ <a href="https://github.com/ossm-rs/ossm" target="_self">OSSM RS</a></li>
-            <li>⬜ <a href="https://openvalence.org/" target="_self">OpenValance</a></li>
+            <li>✅ <b><a href="https://docs.researchanddesire.com/ossm/tools/web-flasher" target="_self">OSSM Official</a> by R&D:</b> This is the original shipped firmware</li>
+            <li>✅ <b><a href="https://github.com/fray-d/OSSM-Lite/tree/New-Protocols" target="_self">OSSM Lite</a> by Fray-d <small><i>(New-Protocols branch)</i></small>:</b> Lower latency & live motor configuration</li>
+            <li>⬜ <b><a href="https://github.com/ossm-rs/ossm" target="_self">OSSM RS</a>:</b> Rust implementation of the OSSM firmware</li>
+            <li>⬜ <b><a href="https://openvalence.org/" target="_self">OpenValance</a>:</b> Highly advanced firmware but requires a hardware mod</li>
         </ul>
     </li>
     <li style="margin-top: 0.5em;"><b>Control Features:</b>
