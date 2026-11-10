@@ -88,7 +88,9 @@ A quick overview on what this application supports and what is to come!
 
 ## Contributing
 
-Contributions are welcomed and encouraged! If you run into any issues, have feedback, or want to suggest improvements, feel free to open an issue or submit a pull request on the [GitHub repository](https://github.com/ReadieFur/OSSM-Web-Control/).
+Contributions are welcomed and encouraged! If you run into any issues, have feedback, or want to suggest improvements, feel free to open an issue or submit a pull request on the [GitHub repository](https://github.com/ReadieFur/OSSM-Web-Control/).  
+
+There is a [Discord thread here](https://discord.com/channels/559409652425687041/1555768529335091210) if you would like to follow that is used for discussion on the project and dev-log updates.  
 
 > [!TIP]
 > **Reporting Connection Issues:**  
