@@ -91,24 +91,24 @@ export class BleInitializer {
          */
         for (const provider of BleInitializer.#providers.sort((a, b) => b.serviceUuids.length - a.serviceUuids.length)) {
 
+            /*
+             * If the device does not have a model ID, skip this check
+             * If the device has a model ID & the config does not, continue
+             * If the device has a model ID & the config does not match, continue
+             * If the device has a model ID & the config matches, pass
+             * If the device does not have a model string & the config does, continue
+             */
+            if (provider.modelString ? deviceModelId !== provider.modelString : !!deviceModelId)
+                continue;
+            
             /* Check if the provider IDs are advertised by the device, convert short-form UUIDs to full strings */
-            if (new Set(deviceServices.keys()).isSupersetOf(new Set(provider.serviceUuids.map(BleInitializer.#normalizeUuid)))) {
+            if (!new Set(deviceServices.keys()).isSupersetOf(new Set(provider.serviceUuids.map(BleInitializer.#normalizeUuid))))
+                continue;
 
-                /**
-                 * If the device does not have a model ID, skip this check
-                 * If the device has a model ID & the config does not, continue
-                 * If the device has a model ID & the config does not match, continue
-                 * If the device has a model ID & the config matches, pass
-                 * If the device does not have a model string & the config does, continue
-                 */
-                if (provider.modelString ? deviceModelId !== provider.modelString : !!deviceModelId)
-                    continue;
-
-                discoveredProviders.push({
-                    friendlyName: provider.friendlyName,
-                    initialize: ct => provider.initializer(bleDevice, ct)
-                });
-            }
+            discoveredProviders.push({
+                friendlyName: provider.friendlyName,
+                initialize: ct => provider.initializer(bleDevice, ct)
+            });
         }
         ct.throwIfCancellationRequested();
 
