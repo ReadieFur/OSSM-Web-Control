@@ -1,6 +1,6 @@
 import { OSSM_LITE_SERVICE_UUIDS, OSSM_SERVICE_UUID, type ICancellationToken } from "$lib/ossm-ble-web/dist/ossm-ble-web";
-import { OssmBleDevice } from "./OssmBleDevice.svelte";
-import { OssmLite } from "./OssmLite.svelte";
+import { OssmRadProvider } from "./OssmRadProvider.svelte";
+import { OssmLiteProvider } from "./OssmLiteProvider.svelte";
 import type { OssmProvider } from "./OssmProvider.svelte";
 
 type BleProviderInfo = Readonly<{
@@ -24,12 +24,12 @@ export class BleInitializer {
             friendlyName: "OSSM Lite",
             modelString: "OSSM Lite",
             serviceUuids: [...OSSM_LITE_SERVICE_UUIDS],
-            initializer: OssmLite.initializeInstance
+            initializer: OssmLiteProvider.initializeInstance
         },
         {
             friendlyName: "Official Firmware",
             serviceUuids: [OSSM_SERVICE_UUID],
-            initializer: OssmBleDevice.initializeInstance
+            initializer: OssmRadProvider.initializeInstance
         }
     ];
 

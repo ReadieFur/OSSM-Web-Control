@@ -10,10 +10,10 @@ import { KnownPatterns } from "$lib/utils/KnownPatterns"
 const disconnectTimeout = 5000;
 const snapshotTimerInterval = 1000;
 
-export class OssmBleDevice implements OssmProvider, Disposable {
-    static initializeInstance(device: BluetoothDevice, ct: ICancellationToken): Promise<OssmBleDevice>;
-    static initializeInstance(ct: ICancellationToken): Promise<OssmBleDevice>;
-    static async initializeInstance(deviceOrCt: BluetoothDevice | ICancellationToken, ct?: ICancellationToken): Promise<OssmBleDevice> {
+export class OssmRadProvider implements OssmProvider, Disposable {
+    static initializeInstance(device: BluetoothDevice, ct: ICancellationToken): Promise<OssmRadProvider>;
+    static initializeInstance(ct: ICancellationToken): Promise<OssmRadProvider>;
+    static async initializeInstance(deviceOrCt: BluetoothDevice | ICancellationToken, ct?: ICancellationToken): Promise<OssmRadProvider> {
         let client: OssmBleClient;
         let cancellationToken: ICancellationToken;
         let forgetDevice: () => Promise<void> | undefined;
@@ -30,7 +30,7 @@ export class OssmBleDevice implements OssmProvider, Disposable {
 
         cancellationToken.throwIfCancellationRequested();
 
-        const instance = new OssmBleDevice(client);
+        const instance = new OssmRadProvider(client);
         // If we time out after this point we will need to clean up the connection, so register a timeout function with the cancellation token.
         const ctCb = cancellationToken.register(() => {
             client.disconnect();

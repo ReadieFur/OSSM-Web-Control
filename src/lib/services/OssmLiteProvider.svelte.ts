@@ -1,15 +1,15 @@
 import { SvelteMap, SvelteSet } from "svelte/reactivity";
 import { type OssmProvider, SensationType, State, type Pattern, type PlayState, OssmProviderHelpers, type ReactiveSetting } from "./OssmProvider.svelte";
 import { CancellationTokenSource, LiteHomingType, OssmLiteClient, type ICancellationToken, type SingleEvent } from "$lib/ossm-ble-web/dist/ossm-ble-web";
-import { isDevMode, type ResolveReject } from "$lib/utils/Helpers.svelte";
+import { isDevMode } from "$lib/utils/Helpers.svelte";
 import { KnownPatterns } from "$lib/utils/KnownPatterns";
 
 const disconnectTimeout = 5000;
 
-export class OssmLite implements OssmProvider, Disposable {
-    static initializeInstance(device: BluetoothDevice, ct: ICancellationToken): Promise<OssmLite>;
-    static initializeInstance(ct: ICancellationToken): Promise<OssmLite>;
-    static async initializeInstance(deviceOrCt: BluetoothDevice | ICancellationToken, ct?: ICancellationToken): Promise<OssmLite> {
+export class OssmLiteProvider implements OssmProvider, Disposable {
+    static initializeInstance(device: BluetoothDevice, ct: ICancellationToken): Promise<OssmLiteProvider>;
+    static initializeInstance(ct: ICancellationToken): Promise<OssmLiteProvider>;
+    static async initializeInstance(deviceOrCt: BluetoothDevice | ICancellationToken, ct?: ICancellationToken): Promise<OssmLiteProvider> {
         let client: OssmLiteClient;
         let cancellationToken: ICancellationToken;
         let forgetDevice: () => Promise<void> | undefined;
@@ -25,7 +25,7 @@ export class OssmLite implements OssmProvider, Disposable {
 
         cancellationToken.throwIfCancellationRequested();
 
-        const instance = new OssmLite(client);
+        const instance = new OssmLiteProvider(client);
         const ctCb = cancellationToken.register(() => {
             client.disconnect();
             if (forgetDevice !== undefined) forgetDevice();
