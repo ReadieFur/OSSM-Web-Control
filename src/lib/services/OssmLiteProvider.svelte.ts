@@ -62,6 +62,7 @@ export class OssmLiteProvider implements OssmProvider, Disposable {
     private _beltPitch = $state(0);
     private _speedCurve = $state(0);
     private _homingSpeed = $state(0);
+    private _currentSensorLimit = $state(0);
     /* TODO: Make these settings dynamically generated from the reported API config properties (this is supported by Fray-d's API and is the intended way for it to be used)
      * The reason I have not done it that way just yet is because of how I keep my library type-strict. But I do intend to add a .discovered property onto the class for this exact purpose
      */
@@ -166,6 +167,16 @@ export class OssmLiteProvider implements OssmProvider, Disposable {
             )
         },
         {
+            friendlyName: "Current sensor limit",
+            type: "number",
+            get: () => this._currentSensorLimit,
+            set: v => this.#uiUpdateSettingCommon(
+                () => this._currentSensorLimit = v,
+                () => this.#client.getCurrentPosition,
+                () => this.#client.setCurrentSensorLimit
+            )
+        },
+        {
             friendlyName: "Invert rail direction (re-homes & restarts device)",
             type: "boolean",
             get: () => this._railDirectionInverted,
@@ -209,6 +220,7 @@ export class OssmLiteProvider implements OssmProvider, Disposable {
         this.#setupSubscription(this.#client.on.beltPitch, v => this._beltPitch = v);
         this.#setupSubscription(this.#client.on.speedCurve, v => this._speedCurve = v);
         this.#setupSubscription(this.#client.on.homingSpeed, v => this._homingSpeed = v);
+        this.#setupSubscription(this.#client.on.currentSensorLimit, v => this._currentSensorLimit = v);
     }
 
     [Symbol.dispose](): void {
