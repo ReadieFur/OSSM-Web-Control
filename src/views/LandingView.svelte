@@ -12,7 +12,7 @@
 
 <main>
     <section
-        class="card"
+        class="landing-view card"
         class:scale-pulse={self.isConnecting && !noPulse}>
         <h1>OSSM Web Control</h1>
 
@@ -101,3 +101,9 @@
         {/if}
     </section>
 </main>
+
+<style lang="scss">
+.landing-view {
+    user-select: none;
+}
+</style>

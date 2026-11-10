@@ -46,6 +46,14 @@
     }
 }
 
+::selection {
+    background-color: $accent-3;
+}
+
+::-moz-selection {
+    background-color: $accent-3;
+}
+
 @function build-material-symbol-url() {
     @if list.length($material-symbols) == 0 {
         @return null;
