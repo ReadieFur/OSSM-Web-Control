@@ -65,11 +65,16 @@
             </div>
             <div>
                 {#if self.ossmProvider.settings !== undefined}
-                    <CheckboxInput
+                    <Button
+                        class={(self.settingsCheckboxChecked ? 'checked' : '') + ' ' + (self.ossmProvider.state === State.EmergencyStop && !self.settingsCheckboxChecked ? 'highlight' : '')}
+                        icon={self.settingsCheckboxChecked ? 'tune' : 'settings'}
+                        onclick={() => self.settingsCheckboxChecked = !self.settingsCheckboxChecked}/>
+                    <!-- TODO: Properly fix the scss for this to be consistent with the buttons -->
+                    <!-- <CheckboxInput
                         class={self.ossmProvider.state === State.EmergencyStop ? 'highlight' : ''}
                         checkedIcon="tune"
                         uncheckedIcon="settings"
-                        bind:checked={self.settingsCheckboxChecked}/>
+                        bind:checked={self.settingsCheckboxChecked}/> -->
                 {/if}
                 <Button
                     aria-label="Disconnect"

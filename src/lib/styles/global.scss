@@ -117,6 +117,20 @@ button, a.button {
         cursor: pointer;
     }
 
+    &.checked {
+        background-color: hsl(from $accent-1 h s l / 0.5);
+
+        &:hover:not([disabled]) {
+            background-color: hsl(from $accent-1 h s l / 0.3);
+        }
+    }
+
+    &.highlight {
+        &:hover {
+            background-color: hsl(from $accent-2 h s l / 0.75);
+        }
+    }
+
     &[disabled] {
         opacity: 0.5;
         cursor: not-allowed;
