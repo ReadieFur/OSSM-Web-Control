@@ -15,16 +15,15 @@
 	import { svelteFade } from "$lib/utils/Animation.svelte";
 	import { State } from "$lib/services/OssmProvider.svelte";
 	import { SvelteWakeLockSentinel } from "$lib/utils/WakeLockManager.svelte";
+	import { onMount } from "svelte";
 
     let props: MainControlViewProps = $props();
     const self = new MainControlView(() => props);
 
     /* Auto acquires a wake lock lives on this components lifecycle
      * Used to keep the screen awake while on the controls page,
-     * both for user safety having the UI at their fingertips at all times and to keep the underlying connections alive
      * both for user safety having the UI at their fingertips at all times and to keep the underlying connections alive.
     */
-    const _wakeLockSentinel = new SvelteWakeLockSentinel();
     let _wakeLockSentinel: SvelteWakeLockSentinel | null = null;
     onMount(() => {
         _wakeLockSentinel = new SvelteWakeLockSentinel(); // Immediately sets up wake lock
@@ -36,7 +35,7 @@
     const stateText = $derived.by(() => {
         switch (self.ossmProvider.state) {
             case State.EmergencyStop:
-                return "EMERGENCY STOP - Recalibrate to resume";
+                return "EMERGENCY STOP";
             default:
                 return self.ossmProvider.state[0].toUpperCase() + self.ossmProvider.state.slice(1);
         }

@@ -130,9 +130,11 @@ export class LandingView {
                 throw new DOMException("Failed to find a matching provider for the selected device", "OperationError");
             cts.dispose();
 
-            let initializer: BleProvidersResult["initialize"];
+            let autoDetected;
+            let provider: BleProvidersResult;
             if (providers.length === 1) {
-                initializer = providers[0].initialize;
+                autoDetected = true;
+                provider = providers[0];
             } else {
                 // Prompt the user to pick a provider for their device
                 let promiseSolvers: ResolveReject<BleProvidersResult>;
@@ -151,24 +153,26 @@ export class LandingView {
                 };
 
                 // This waits for the user to pick an option from the UI
-                const provider = await optionLock;
+                const selectedProvider = await optionLock;
                 this.discoveredBleProviders = undefined;
 
-                initializer = provider.initialize;
+                autoDetected = false;
+                provider = selectedProvider;
             }
 
             this.infoDialog = {
                 state: "info",
                 message: "Initializing device...",
                 extra: "This can take a moment"
+                    + (autoDetected ? `\n- ${provider.friendlyName} -` : '')
             };
 
             // Reset timeout here
             cts = CancellationTokenSource.createWithTimeout(defaultConnectionTimeout, "Connection timed out");
-            const provider = await initializer(cts.token);
+            const providerInstance = await provider.initialize(cts.token);
 
             // Provider has successfully initialized, switch view to the control screen
-            this.viewManager.setViewAndProps(MainControlView, { viewManager: this.viewManager, ossmProvider: provider });
+            this.viewManager.setViewAndProps(MainControlView, { viewManager: this.viewManager, ossmProvider: providerInstance });
         } catch (error) {
             const allowedErrors: string[] = [
                 "NotFoundError" // Occurs when user cancels the pairing prompt (or cancels selecting a provider)
