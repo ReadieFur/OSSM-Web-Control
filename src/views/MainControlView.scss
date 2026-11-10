@@ -453,6 +453,7 @@
     display: grid;
     grid-template-columns: #{$left-parts}fr #{100 - $left-parts}fr; // 75% left track, 25% right track ratio
     gap: 0.8rem 0.5rem;
+    width: 100%;
     box-sizing: border-box;
 
     // Make container fill space assigned by parent but keep children at default heights & allow vertical scrolling
