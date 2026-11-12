@@ -1,6 +1,66 @@
 import type { ViewManager, ViewManagerProps } from "$lib/services/ViewManager.svelte";
 import { isDevMode } from "$lib/utils/Helpers.svelte";
 import { ESPLoader, Transport, type LoaderOptions, type FlashOptions, type FlashModeValues, type FlashFreqValues, type FlashSizeValues, type IEspLoaderTerminal, } from "esptool-js";
+import { firmwares } from "$lib/assets/firmwares";
+
+// const FirmwareMap: FirmwareOptions[] = [
+//     {
+//         friendlyName: "OSSM Official",
+//         flashMode: "dio",
+//         flashFreq: "40m",
+//         flashSize: "4MB", // PIO config for official says it can use 16mb but the partition.csv file equates to about 4mb
+//         fileArray: [
+//             {
+//                 // Bootloader
+//                 address: 0x1000,
+//                 data: async () => { throw new Error("Method not implemented") },
+//             },
+//             {
+//                 // Partitions
+//                 address: 0x8000,
+//                 data: async () => { throw new Error("Method not implemented") },
+//             },
+//             {
+//                 // OTA
+//                 address: 0xe000,
+//                 data: async () => { throw new Error("Method not implemented") },
+//             },
+//             {
+//                 // Firmware
+//                 address: 0x10000,
+//                 data: async () => { throw new Error("Method not implemented") },
+//             }
+//         ]
+//     },
+//     {
+//         friendlyName: "OSSM Lite",
+//         flashMode: "dio",
+//         flashFreq: "40m",
+//         flashSize: "4MB",
+//         fileArray: [
+//             {
+//                 // Bootloader
+//                 address: 0x1000,
+//                 data: async () => { throw new Error("Method not implemented") },
+//             },
+//             {
+//                 // Partitions
+//                 address: 0x8000,
+//                 data: async () => { throw new Error("Method not implemented") },
+//             },
+//             {
+//                 // OTA
+//                 address: 0xe000,
+//                 data: async () => { throw new Error("Method not implemented") },
+//             },
+//             {
+//                 // Firmware
+//                 address: 0x10000,
+//                 data: async () => { throw new Error("Method not implemented") },
+//             }
+//         ]
+//     }
+// ];
 
 export type FirmwareFlasherParams = {
     readonly transport: Transport;
@@ -10,6 +70,7 @@ export type FirmwareFlasherParams = {
 export type FirmwareFlasherProps = ViewManagerProps & FirmwareFlasherParams;
 
 export class FirmwareFlasher implements Disposable {
+    // #region Static helpers
     static isSupported(): boolean {
         return "serial" in navigator;
     }
@@ -47,6 +108,9 @@ export class FirmwareFlasher implements Disposable {
 
         return { transport, espLoader };
     }
+    // #endregion
+
+    progress = $state(null);
 
     constructor(private getProps: () => FirmwareFlasherProps) {
     }
