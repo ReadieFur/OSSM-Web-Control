@@ -1,4 +1,5 @@
 /// <reference types="web-bluetooth" />
+/// <reference types="web" />
 
 // See https://svelte.dev/docs/kit/types#app.d.ts
 // for information about these interfaces
