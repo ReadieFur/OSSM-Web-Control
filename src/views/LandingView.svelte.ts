@@ -4,6 +4,8 @@ import MainControlView from "./MainControlView.svelte";
 import { CancellationTokenSource, isClientBleCapable } from "ossm-ble-web";
 import { BleInitializer, type BleProvidersResult } from "$lib/services/BleInitializer";
 import type { ResolveReject } from "$lib/utils/Helpers.svelte";
+import FirmwareFlasher from "./FirmwareFlasher.svelte";
+import { FirmwareFlasher as FirmwareFlasherStatic } from "./FirmwareFlasher.svelte.ts";
 
 interface NavigatorUAData {
     userAgentData?: {
@@ -11,9 +13,7 @@ interface NavigatorUAData {
     };
 }
 
-export interface LandingViewProps extends ViewManagerProps {
-    readonly viewManager: ViewManager;
-}
+export type LandingViewProps = ViewManagerProps
 
 const defaultConnectionTimeout = 30_000;
 
@@ -21,6 +21,7 @@ export class LandingView {
     isPwaInstalling = $state<boolean>(false);
     showInstallButton = $derived(this._pwaInstallContext !== null);
     isBleSupported = $state<boolean | null>(null);
+    isFlasherSupported = $state<boolean | null>(null);
     isSecureContext = $state<boolean>(true);
     platform = $state<string | undefined>(undefined);
 
@@ -64,6 +65,9 @@ export class LandingView {
         } else {
             this.isBleSupported = true;
         }
+
+        this.isFlasherSupported = FirmwareFlasherStatic.isSupported();
+        if (!this.isFlasherSupported) console.log("[Serial] Not supported");
     }
     // #endregion
 
@@ -115,16 +119,16 @@ export class LandingView {
         if (this.isConnecting) return;
         this.isConnecting = true;
 
+        this.infoDialog = {
+            state: "info",
+            message: "Connecting to BLE device...",
+            extra: "This can take a moment"
+        };
+
         // 'using' keyword cat be used here :c so I will have to handle cleanup of it manually
         let cts = CancellationTokenSource.createWithTimeout(defaultConnectionTimeout, "Connection timed out");
 
         try {
-            this.infoDialog = {
-                state: "info",
-                message: "Connecting to BLE device...",
-                extra: "This can take a moment"
-            };
-
             const providers = await BleInitializer.pairDeviceAndDiscoverProviders(cts.token);
             if (providers.length === 0)
                 throw new DOMException("Failed to find a matching provider for the selected device", "OperationError");
@@ -184,14 +188,46 @@ export class LandingView {
             this.infoDialog = {
                 state: "error",
                 title: "Failed to connect to device",
+                extra: error instanceof Error ? error.message : undefined
             };
-
-            if (error instanceof Error) {
-                this.infoDialog.extra = error.message;
-            }
         } finally {
             cts.dispose();
             this.discoveredBleProviders = undefined;
+            this.isConnecting = false;
+            if (this.infoDialog?.state !== "error")
+                this.infoDialog = null;
+        }
+    }
+    // #endregion
+
+    // #region Firmware flasher
+    async flashFirmware(): Promise<void> {
+        if (this.isConnecting) return;
+        this.isConnecting = true;
+
+        this.infoDialog = {
+            state: "info",
+            message: "Connecting to USB device...",
+            extra: "Please make sure you have the CP210x driver installed"
+        };
+
+        try {
+            this.viewManager.setViewAndProps(FirmwareFlasher, {
+                viewManager: this.viewManager,
+                ...await FirmwareFlasherStatic.bootstrap()
+            });
+        } catch (error) {
+            const allowedErrors: string[] = ["NotFoundError"];
+            if (error instanceof DOMException && allowedErrors.includes(error.name))
+                return;
+
+            console.error("[Serial] Connection failed:", error);
+            this.infoDialog = {
+                state: "error",
+                title: "Failed to connect to device",
+                extra: error instanceof Error ? error.message : undefined
+            };
+        } finally {
             this.isConnecting = false;
             if (this.infoDialog?.state !== "error")
                 this.infoDialog = null;

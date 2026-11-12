@@ -30,8 +30,7 @@
                 <InfoContainer
                     state="error"
                     title="Unsupported Browser"
-                    message="Your browser does not support the required Bluetooth features"
-                >
+                    message="Your browser does not support the required Bluetooth features">
                     {#if self.platform === "Windows" || self.platform === "Linux" || self.platform === "Macintosh" || self.platform === "Android"}
                         <p><small>Please use a compatible browser such as Chrome</small></p>
                     {:else if self.platform === "iOS"}
@@ -57,9 +56,18 @@
                     class="space-between"
                     disabled={self.isPwaInstalling}
                     onclick={self.installPWA.bind(self)}
-                    transition:svelteFade>
+                    out:svelteFade>
                     <span class="material-symbol" data-icon="deployed_code_update"></span>Install PWA
                 </button>
+            {/if}
+
+            {#if self.isFlasherSupported}
+                <Button
+                    class="space-between"
+                    disabled={self.isConnecting}
+                    onclick={self.flashFirmware.bind(self)}>
+                    <span class="material-symbol" data-icon="usb"></span>Flash Firmware
+                </Button>
             {/if}
 
         {:else}
