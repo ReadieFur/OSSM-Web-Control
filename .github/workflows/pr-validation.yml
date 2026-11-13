@@ -1,11 +1,19 @@
-# .github/workflows/pr-validation.yml
 name: PR Validation
 
 on:
   pull_request:
     branches:
       - main
+  workflow_dispatch:
 
 jobs:
-  verify-build:
-    uses: ./.github/workflows/build.yml
+  webapp-build:
+    uses: ./.github/workflows/build-webapp.yml
+    with:
+      upload-artifact: false
+
+  firmwares-build:
+    uses: ./.github/workflows/build-firmwares.yml
+    with:
+      firmware-selection: "changed"
+      upload-artifact: false

@@ -1,0 +1,100 @@
+name: Build Firmwares
+
+on:
+  workflow_call:
+    inputs:
+      firmware-selection:
+        description: "Which firmware set to build (all or changed)"
+        required: false
+        type: string
+        default: "all"
+      upload-artifact:
+        description: "Whether to upload the firmware artifacts"
+        required: false
+        type: boolean
+        default: true
+  workflow_dispatch:
+    inputs:
+      firmware-selection:
+        description: "Which firmware set to build (all or changed)"
+        required: false
+        type: string
+        default: "all"
+      upload-artifact:
+        description: "Whether to upload the firmware artifacts"
+        required: false
+        type: boolean
+        default: true
+
+jobs:
+  firmwares-diff:
+    runs-on: ubuntu-latest
+    outputs:
+      firmwares_payload: ${{ steps.run-diff.outputs.firmwares_payload }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install Node dependencies
+        run: npm install typescript @types/node tsx --ignore-scripts
+
+      - name: Run Diff Checker
+        id: run-diff
+        run: npx tsx scripts/firmware_builder/DiffChecker.ts
+
+  firmwares-build:
+    needs: firmwares-diff
+    runs-on: ubuntu-latest
+    if: ${{ fromJson(needs.firmwares-diff.outputs.firmwares_payload)[inputs.firmware-selection][0] != null && fromJson(needs.firmwares-diff.outputs.firmwares_payload)[inputs.firmware-selection][0] != '' }}
+    strategy:
+      fail-fast: true
+      matrix:
+        firmware: ${{ fromJson(needs.firmwares-diff.outputs.firmwares_payload)[inputs.firmware-selection] }}
+    steps:
+      - name: Checkout for Build
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install Node dependencies
+        run: npm install typescript @types/node tsx --ignore-scripts
+
+      - name: Install PlatformIO
+        run: pip install platformio
+
+      - name: Run Builder
+        run: npx tsx scripts/firmware_builder/CompileFirmware.ts "${{ matrix.firmware }}"
+
+      - name: Sanitize Artifact Name
+        id: sanitize
+        run: echo "safe_name=$(echo '${{ matrix.firmware }}' | tr '/' '_' | tr '#' '_')" >> $GITHUB_OUTPUT
+
+      - name: Upload Firmware Artifact
+        if: ${{ inputs.upload-artifact }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: firmware_${{ steps.sanitize.outputs.safe_name }}
+          path: build/
+          retention-days: 1

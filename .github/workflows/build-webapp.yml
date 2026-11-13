@@ -1,0 +1,66 @@
+name: Build Webapp
+
+on:
+  workflow_call:
+    inputs:
+      ref:
+        description: "The commit SHA or ref to checkout"
+        required: false
+        type: string
+      upload-artifact:
+        description: "Whether to upload the webapp artifact"
+        required: false
+        type: boolean
+        default: true
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: "The commit SHA or ref to checkout"
+        required: false
+        type: string
+      upload-artifact:
+        description: "Whether to upload the webapp artifact"
+        required: false
+        type: boolean
+        default: true
+
+jobs:
+  webapp-build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout (Act)
+        if: env.ACT == 'true'
+        uses: actions/checkout@v4
+
+      - name: Checkout (GitHub)
+        if: env.ACT != 'true'
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref || github.ref }}
+          submodules: recursive
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Bump version
+        run: npm run bump:patch
+
+      - name: Type check
+        run: npm run check
+
+      - name: Run production build
+        run: npm run build
+
+      - name: Upload Webapp Artifact
+        if: ${{ inputs.upload-artifact }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: webapp
+          path: build/
+          retention-days: 1
