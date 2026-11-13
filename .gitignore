@@ -8,6 +8,7 @@ node_modules
 .wrangler
 /.svelte-kit
 /build
+.artifacts
 
 # OS
 .DS_Store
@@ -25,3 +26,4 @@ vite.config.ts.timestamp-*
 
 # Misc
 videos/
+.act
