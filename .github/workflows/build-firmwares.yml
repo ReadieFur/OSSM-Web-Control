@@ -1,7 +1,7 @@
 name: Build Firmwares
 
 on:
-  workflow_call:
+  workflow_dispatch:
     inputs:
       firmware-selection:
         description: "Which firmware set to build (all or changed)"
@@ -13,7 +13,7 @@ on:
         required: false
         type: boolean
         default: true
-  workflow_dispatch:
+  workflow_call:
     inputs:
       firmware-selection:
         description: "Which firmware set to build (all or changed)"
@@ -53,7 +53,7 @@ jobs:
 
       - name: Run Diff Checker
         id: run-diff
-        run: npx tsx scripts/firmware_builder/DiffChecker.ts
+        run: npx tsx scripts/firmware-builder/DiffChecker.ts
 
   firmwares-build:
     needs: firmwares-diff
@@ -85,7 +85,7 @@ jobs:
         run: pip install platformio
 
       - name: Run Builder
-        run: npx tsx scripts/firmware_builder/CompileFirmware.ts "${{ matrix.firmware }}"
+        run: npx tsx scripts/firmware-builder/CompileFirmware.ts "${{ matrix.firmware }}"
 
       - name: Sanitize Artifact Name
         id: sanitize

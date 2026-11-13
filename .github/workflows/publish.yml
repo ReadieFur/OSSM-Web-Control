@@ -19,6 +19,7 @@ jobs:
   webapp-build:
     uses: ./.github/workflows/build-webapp.yml
     with:
+      bump-patch: true
       upload-artifact: true
 
   firmwares-build:
@@ -65,7 +66,7 @@ jobs:
           done
 
       - name: Generate Firmwares Manifest
-        run: npx tsx scripts/firmware_builder/GenerateManifest.ts public/firmware/
+        run: npx tsx scripts/firmware-builder/GenerateManifest.ts public/firmware/
 
       - name: Upload Pages Artifact (GitHub)
         if: env.ACT != 'true'

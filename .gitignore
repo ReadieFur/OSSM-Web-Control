@@ -26,5 +26,6 @@ vite.config.ts.timestamp-*
 
 # Misc
 videos/
-.act
 line_count.sh
+.act/artifacts
+.act/workflows/test.yml

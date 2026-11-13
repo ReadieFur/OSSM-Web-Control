@@ -4,7 +4,6 @@
   "version": "2.2.202611102346",
   "type": "module",
   "scripts": {
-    "bump:patch": "node scripts/bump-patch.js",
     "postinstall": "npm --prefix ./src/lib/ossm-ble-web install --no-save && npm --prefix ./src/lib/ossm-ble-web run build",
     "dev": "concurrently \"npm run dev:ble\" \"vite dev\"",
     "dev:ble": "npm --prefix ./src/lib/ossm-ble-web run dev",

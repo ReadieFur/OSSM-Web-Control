@@ -1,23 +1,34 @@
 name: Build Webapp
 
 on:
-  workflow_call:
-    inputs:
-      ref:
-        description: "The commit SHA or ref to checkout"
-        required: false
-        type: string
-      upload-artifact:
-        description: "Whether to upload the webapp artifact"
-        required: false
-        type: boolean
-        default: true
+  # Rip <<: not being supported in GitHub Actions, repetitive params it is then
   workflow_dispatch:
     inputs:
       ref:
         description: "The commit SHA or ref to checkout"
         required: false
         type: string
+      bump-patch:
+        description: "Whether to bump the patch version in-memory"
+        required: false
+        type: boolean
+        default: false
+      upload-artifact:
+        description: "Whether to upload the webapp artifact"
+        required: false
+        type: boolean
+        default: true
+  workflow_call:
+    inputs:
+      ref:
+        description: "The commit SHA or ref to checkout"
+        required: false
+        type: string
+      bump-patch:
+        description: "Whether to bump the patch version in-memory"
+        required: false
+        type: boolean
+        default: false
       upload-artifact:
         description: "Whether to upload the webapp artifact"
         required: false
@@ -49,7 +60,7 @@ jobs:
         run: npm ci
 
       - name: Bump version
-        run: npm run bump:patch
+        run: node scripts/BumpPatch.js
 
       - name: Type check
         run: npm run check
