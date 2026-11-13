@@ -35,11 +35,14 @@ export async function main(): Promise<void> {
     const resultPayload: {
         changed: string[],
         unchanged: string[],
+        all: string[],
     } = {
         changed: [],
-        unchanged: []
+        unchanged: [],
+        all: []
     };
     for (const [name, repoRef] of Object.entries(currentData)) {
+        resultPayload.all.push(repoRef);
         if (!(name in baseData) || baseData[name] !== repoRef)
             resultPayload.changed.push(repoRef);
         else

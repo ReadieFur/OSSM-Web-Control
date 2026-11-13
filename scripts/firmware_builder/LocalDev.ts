@@ -6,7 +6,7 @@ import { compileFirmware } from "./CompileFirmware.js";
 
 async function main(): Promise<void> {
     const emulatedGitHubOutputPath = path.join(OS.tmpdir(),`${process.pid}-${Date.now()}`);
-    let firmwaresDiffResult: { changed: string[], unchanged: string[] } | null = null;
+    let firmwaresDiffResult: { changed: string[], unchanged: string[], all: string[] } | null = null;
     try {
         // Create a temp file to emulate GITHUB_OUTPUT locally
         FS.closeSync(FS.openSync(emulatedGitHubOutputPath, "w"));
@@ -29,7 +29,8 @@ async function main(): Promise<void> {
     if (firmwaresDiffResult === null) throw new Error("No firmware definitions found");
 
     // Concatenate all firmwares since the build script will use cached files if present when on localdev
-    const firmwareDefinitions = new Set([ ...firmwaresDiffResult.changed, ...firmwaresDiffResult.unchanged ]).values().toArray();
+    // const firmwareDefinitions = new Set([ ...firmwaresDiffResult.changed, ...firmwaresDiffResult.unchanged ]).values().toArray();
+    const firmwareDefinitions = firmwaresDiffResult.all;
     if (firmwareDefinitions.length === 0) throw new Error("No firmware definitions found");
     console.log(`Found the following firmwares to compile:\n`, firmwareDefinitions.join("\n  - "));
     
