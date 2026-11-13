@@ -1,0 +1,35 @@
+{
+	"version": "0.2.0",
+	"configurations": [
+		{
+			"name": "Debug Script (TSX Node)",
+			"type": "node",
+			"request": "launch",
+			"runtimeExecutable": "npx",
+			"runtimeArgs": ["tsx", "--tsconfig", "tsconfig.node.json"],
+			"program": "${file}",
+			"console": "integratedTerminal"
+		},
+		{
+			"name": "Debug Build Firmware",
+			"type": "node",
+			"request": "launch",
+			"runtimeExecutable": "npx",
+			"runtimeArgs": ["tsx", "--tsconfig", "tsconfig.node.json"],
+			"program": "${workspaceFolder}/scripts/firmware-builder/LocalDev.ts",
+			"console": "integratedTerminal"
+		},
+		{
+			"type": "chrome",
+			"request": "launch",
+			"name": "Debug Svelte App (Chrome)",
+			"url": "http://localhost:5173",
+			"webRoot": "${workspaceFolder}/src",
+			// "preLaunchTask": "npm: dev",
+			"sourceMapPathOverrides": {
+				"webpack:///./*": "${webRoot}/*",
+				"svelte:///*": "${workspaceFolder}/*"
+			}
+		}
+	]
+}

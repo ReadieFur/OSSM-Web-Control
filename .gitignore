@@ -1,5 +1,6 @@
-.vscode/
+.vscode/*
 node_modules
+!.vscode/launch.json
 
 # Output
 .output
@@ -9,6 +10,8 @@ node_modules
 /.svelte-kit
 /build
 .artifacts
+.act/artifacts
+.firmware-builder
 
 # OS
 .DS_Store
@@ -27,5 +30,4 @@ vite.config.ts.timestamp-*
 # Misc
 videos/
 line_count.sh
-.act/artifacts
 .act/workflows/test.yml
