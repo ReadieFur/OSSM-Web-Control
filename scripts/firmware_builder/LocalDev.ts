@@ -3,6 +3,7 @@ import * as OS from "os";
 import path from "path";
 import { main as diffChecker } from "./DiffChecker.js";
 import { compileFirmware } from "./CompileFirmware.js";
+import { generateManifest } from "./GenerateManifest.js";
 
 async function main(): Promise<void> {
     const emulatedGitHubOutputPath = path.join(OS.tmpdir(),`${process.pid}-${Date.now()}`);
@@ -34,6 +35,9 @@ async function main(): Promise<void> {
     if (firmwareDefinitions.length === 0) throw new Error("No firmware definitions found");
     console.log(`Found the following firmwares to compile:\n`, firmwareDefinitions.join("\n  - "));
     
+    const firmwaresDir = path.join(process.cwd(), "build/firmwares");
+    if (FS.existsSync(firmwaresDir)) FS.rmSync(firmwaresDir, { recursive: true });
+
     /* On localdev start each job sequentially since a single compilation job will likely saturate the CPU.
      * Github actions runs across various VMs so those can run in parallel.
      */
@@ -41,6 +45,8 @@ async function main(): Promise<void> {
         console.log(`Starting compilation job for: '${repoRef}'`);
         await compileFirmware(repoRef);
     }
+
+    generateManifest(firmwaresDir, false);
 }
 
 if (import.meta.main)

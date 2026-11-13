@@ -1,7 +1,23 @@
 import * as FS from "fs";
 import * as OS from "os";
 import path from "path";
+import * as Crypto from 'crypto';
 import { runCmd } from "./Common.js";
+
+function notNull<T>(obj: T | undefined): T {
+    if (obj === undefined || obj === null) throw new Error("Object was null");
+    return obj;
+}
+
+function translateFlasherFile(file: string): string {
+    // TODO: Figure out why these pio outputs mismatch
+    switch (file) {
+        case "bootloader/bootloader.bin": return "bootloader.bin";
+        case "Software.bin": return "firmware.bin";
+        case "partition_table/partition-table.bin": return "partitions.bin";
+        default: return file;
+    }
+}
 
 export async function compileFirmware(repoRef: string): Promise<void> {
     // Regex pattern for: [author]/[repo]#[sha]</path><#pio_environment>
@@ -53,12 +69,44 @@ export async function compileFirmware(repoRef: string): Promise<void> {
 
         if (FS.existsSync(artifactDir)) FS.rmSync(artifactDir, { recursive: true });
         FS.mkdirSync(artifactDir, { recursive: true });
-        
-        const binFiles = FS.globSync(".pio/build/**/*.bin");
-        if (binFiles.length === 0) throw new Error(`Build completed but no .bin files were found`);
 
+        const flasherArgsPaths = FS.globSync(".pio/build/**/flasher_args.json");
+        if (flasherArgsPaths.length === 0) throw new Error("Build completed but flasher_args.json was not found");
+        const binFiles = FS.globSync(".pio/build/**/*.bin");
+        if (binFiles.length === 0) throw new Error("Build completed but no .bin files were found");
+
+        const flasherArgsJson = JSON.parse(FS.readFileSync(flasherArgsPaths[0], "utf8")) as {
+            flash_settings?: {
+                flash_mode?: string,
+                flash_size?: string,
+                flash_freq?: string
+            };
+            flash_files?: Record<string, string>;
+        };
+
+        const manifestBinaries: Set<string> = new Set();
+        const manifest = {
+            flashMode: notNull(flasherArgsJson.flash_settings?.flash_mode),
+            flashSize: notNull(flasherArgsJson.flash_settings?.flash_size) !== "detect" ? flasherArgsJson.flash_settings!.flash_size! : "4m",
+            flashFreq: notNull(flasherArgsJson.flash_settings?.flash_freq),
+            flashFiles: Object.entries(notNull(flasherArgsJson.flash_files)).map(([offsetStr, filePath]) => {
+                const correctedFilePath = translateFlasherFile(filePath);
+                const fileName = path.basename(correctedFilePath);
+                manifestBinaries.add(fileName);
+                return {
+                    offset: parseInt(offsetStr, 16),
+                    file: fileName,
+                    sha256: Crypto.createHash('sha256')
+                        .update(FS.readFileSync(path.join(path.dirname(flasherArgsPaths[0]), correctedFilePath)))
+                        .digest('hex')
+                };
+            })
+        };
+
+        const collectedBinaries: Set<string> = new Set();
         for (const binPath of binFiles) {
             const fileName = path.basename(binPath);
+            collectedBinaries.add(fileName);
 
             // Skip the following file(s):
             if (fileName.includes("CMakeDetermineCompilerABI")) continue;
@@ -72,6 +120,12 @@ export async function compileFirmware(repoRef: string): Promise<void> {
 
             console.log(`Collected file for artifact: '${fileName}'`);
         }
+
+        if (collectedBinaries.size === manifestBinaries.size && [...collectedBinaries].every(i => manifestBinaries.has(i)))
+            throw new Error("Collected files did not match that of the manifest")
+
+        FS.writeFileSync(path.join(artifactDir, "manifest.json"), JSON.stringify(manifest), "utf-8");
+        console.log(`Manifest for ${repoRef}: ` + JSON.stringify(manifest, null, 2));
     } finally {
         process.chdir(rootDir);
     }
