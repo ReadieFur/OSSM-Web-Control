@@ -28,7 +28,9 @@ export async function compileFirmware(repoRef: string): Promise<void> {
     const repoUrl = `https://github.com/${repoSlug}.git`;
     const rootDir = process.cwd();
     const uriName = repoRef.replace(/[/#]/g, "_"); // Create a URI safe version of repoRef
-    const buildDir = path.join(OS.tmpdir(), uriName);
+    const buildDir = process.env.GITHUB_ACTIONS === "true"
+        ? path.join(OS.tmpdir(), uriName)
+        : path.join(rootDir, ".output", "firmware-builder", uriName);
 
     // Check if the build directory already exists (for localdev speedup)
     let gitInitialized = false;
