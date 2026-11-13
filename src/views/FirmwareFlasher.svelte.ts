@@ -1,7 +1,6 @@
 import type { ViewManager, ViewManagerProps } from "$lib/services/ViewManager.svelte";
 import { isDevMode } from "$lib/utils/Helpers.svelte";
 import { ESPLoader, Transport, type LoaderOptions, type FlashOptions, type FlashModeValues, type FlashFreqValues, type FlashSizeValues, type IEspLoaderTerminal, } from "esptool-js";
-import { firmwares } from "$lib/assets/firmwares";
 
 // const FirmwareMap: FirmwareOptions[] = [
 //     {
