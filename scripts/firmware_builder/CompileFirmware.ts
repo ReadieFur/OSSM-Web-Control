@@ -23,19 +23,19 @@ export async function compileFirmware(repoRef: string): Promise<void> {
 
     if (gitInitialized) {
         console.log(`Using cached repository at ${buildDir}`);
-        runCmd(["git", "-C", buildDir, "fetch", "origin"], true);
+        await runCmd(["git", "-C", buildDir, "fetch", "origin"], true);
     } else {
         if (FS.existsSync(buildDir)) throw new Error(`Target build directory is not empty: '${buildDir}'`)
         console.log(`Cloning repository recursively to ${buildDir}`);
-        runCmd(["git", "clone", "--recursive", repoUrl, buildDir], true);
+        await runCmd(["git", "clone", "--recursive", repoUrl, buildDir], true);
     }
 
     process.chdir(buildDir);
 
     try {
         // Checkout the specific commit SHA or ref and update submodules
-        runCmd(["git", "checkout", ref], true);
-        runCmd(["git", "submodule", "update", "--init", "--recursive"], true);
+        await runCmd(["git", "checkout", ref], true);
+        await runCmd(["git", "submodule", "update", "--init", "--recursive"], true);
 
         if (subpath) {
             const targetWorkDir = path.join(buildDir, subpath);

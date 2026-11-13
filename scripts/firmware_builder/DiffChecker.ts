@@ -9,7 +9,7 @@ async function getBaseJson(): Promise<Record<string, string>> {
 
     if (process.env.GITHUB_ACTIONS === "true") {
         if (process.env.GITHUB_EVENT_NAME === "pull_request") {
-            runCmd(["git", "fetch", "origin", "main"], false);
+            await runCmd(["git", "fetch", "origin", "main"], false);
             baseRev = "origin/main";
         } else if (process.env.GITHUB_EVENT_NAME === "push" && process.env.GITHUB_EVENT_PATH && FS.existsSync(process.env.GITHUB_EVENT_PATH)) {
             const beforeSha = JSON.parse(FS.readFileSync(process.env.GITHUB_EVENT_PATH, "utf-8"))?.before;
@@ -39,10 +39,9 @@ export async function main(): Promise<void> {
     } = {
         changed: [],
         unchanged: [],
-        all: []
+        all: Object.values(currentData)
     };
     for (const [name, repoRef] of Object.entries(currentData)) {
-        resultPayload.all.push(repoRef);
         if (!(name in baseData) || baseData[name] !== repoRef)
             resultPayload.changed.push(repoRef);
         else
