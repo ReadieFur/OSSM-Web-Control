@@ -5,11 +5,10 @@
   "type": "module",
   "scripts": {
     "bump:patch": "node bump-patch.js",
-    "postinstall": "npm --prefix ./src/lib/ossm-ble-web install --no-save",
+    "postinstall": "npm --prefix ./src/lib/ossm-ble-web install --no-save && npm --prefix ./src/lib/ossm-ble-web run build",
     "dev": "concurrently \"npm run dev:ble\" \"vite dev\"",
     "dev:ble": "npm --prefix ./src/lib/ossm-ble-web run dev",
-    "build": "npm run build:ble && vite build",
-    "build:ble": "npm --prefix ./src/lib/ossm-ble-web run build",
+    "build": "vite build",
     "preview": "vite preview",
     "prepare": "svelte-kit sync || echo ''",
     "check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
