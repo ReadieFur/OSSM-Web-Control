@@ -30,7 +30,7 @@ export async function compileFirmware(repoRef: string): Promise<void> {
     const uriName = repoRef.replace(/[/#]/g, "_"); // Create a URI safe version of repoRef
     const buildDir = process.env.GITHUB_ACTIONS === "true"
         ? path.join(OS.tmpdir(), uriName)
-        : path.join(rootDir, ".output", "firmware-builder", uriName);
+        : path.join(rootDir, ".output", "firmware-builder", Crypto.createHash('sha1').update(uriName).digest('hex').substring(0, 8)); // Short hash for localdev because windows 260 char limit :/
 
     // Check if the build directory already exists (for localdev speedup)
     let gitInitialized = false;
