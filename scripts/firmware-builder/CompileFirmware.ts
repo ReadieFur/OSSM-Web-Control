@@ -126,7 +126,11 @@ export async function compileFirmware(repoRef: string): Promise<void> {
         if (collectedBinaries.size === manifestBinaries.size && [...collectedBinaries].every(i => manifestBinaries.has(i)))
             throw new Error("Collected files did not match that of the manifest")
 
-        FS.writeFileSync(path.join(artifactDir, "manifest.json"), JSON.stringify(manifest), "utf-8");
+        FS.writeFileSync(
+            path.join(artifactDir, "manifest.json"),
+            process.env.GITHUB_ACTIONS === "true" ? JSON.stringify(manifest) : JSON.stringify(manifest, null, 4),
+            "utf-8"
+        );
         console.log(`Manifest for ${repoRef}: ` + JSON.stringify(manifest, null, 2));
     } finally {
         process.chdir(rootDir);

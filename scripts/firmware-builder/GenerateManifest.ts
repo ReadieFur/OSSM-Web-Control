@@ -20,7 +20,11 @@ export function generateManifest(firmwaresDir: string, deleteSource: boolean): v
         console.log(`Processed manifest for "${firmware}"`);
     }
 
-    FS.writeFileSync(path.join(firmwaresDir, "manifest.json"), JSON.stringify(combinedManifest), "utf8");
+    FS.writeFileSync(
+        path.join(firmwaresDir, "manifest.json"),
+        process.env.GITHUB_ACTIONS === "true" ? JSON.stringify(combinedManifest) : JSON.stringify(combinedManifest, null, 4),
+        "utf8"
+    );
     console.log("Firmwares manifest: " + JSON.stringify(combinedManifest, null, 2));
 }
 
