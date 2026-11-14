@@ -12,6 +12,7 @@ node_modules
 .artifacts
 .act/artifacts
 .firmware-builder
+static/firmwares
 
 # OS
 .DS_Store

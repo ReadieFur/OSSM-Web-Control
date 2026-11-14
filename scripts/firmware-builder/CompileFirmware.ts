@@ -67,7 +67,7 @@ export async function compileFirmware(repoRef: string): Promise<void> {
 
         const artifactDir = process.env.GITHUB_ACTIONS === "true"
             ? path.join(rootDir, "build")
-            : path.join(rootDir, "build", "firmwares", uriName);
+            : path.join(rootDir, "static", "firmwares", uriName);
 
         if (FS.existsSync(artifactDir)) FS.rmSync(artifactDir, { recursive: true });
         FS.mkdirSync(artifactDir, { recursive: true });

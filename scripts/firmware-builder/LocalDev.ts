@@ -35,7 +35,7 @@ async function main(): Promise<void> {
     if (firmwareDefinitions.length === 0) throw new Error("No firmware definitions found");
     console.log(`Found the following firmwares to compile:\n`, firmwareDefinitions.join("\n  - "));
     
-    const firmwaresDir = path.join(process.cwd(), "build/firmwares");
+    const firmwaresDir = path.join(process.cwd(), "static/firmwares");
     if (FS.existsSync(firmwaresDir)) FS.rmSync(firmwaresDir, { recursive: true });
 
     /* On localdev start each job sequentially since a single compilation job will likely saturate the CPU.
