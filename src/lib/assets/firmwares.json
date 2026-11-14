@@ -1,4 +1,8 @@
 {
-    "OSSM Official": "researchanddesire/OSSM#11df63cfd4a0425131acb203da9f0e1db5168c7e/software/firmware#production",
-    "OSSM Lite": "fray-d/OSSM-Lite#e1ff45d8eafbf43e1d6b7f5f9a35a8277faa9b9b/Software#production"
+    "researchanddesire/OSSM#11df63cfd4a0425131acb203da9f0e1db5168c7e/software/firmware#production": {
+        "friendlyName": "OSSM Official"
+    },
+    "fray-d/OSSM-Lite#e1ff45d8eafbf43e1d6b7f5f9a35a8277faa9b9b/Software#production": {
+        "friendlyName": "OSSM Lite"
+    }
 }

@@ -28,7 +28,7 @@ export async function main(): Promise<void> {
         process.exit(1);
     }
 
-    const currentData: Record<string, string> = JSON.parse(FS.readFileSync(JSON_PATH, "utf-8"));
+    const currentData: Record<string, unknown> = JSON.parse(FS.readFileSync(JSON_PATH, "utf-8"));
     let baseData: Record<string, string> = {};
     try { baseData = await getBaseJson(); } catch { /* Ignore */ }
 
@@ -39,10 +39,10 @@ export async function main(): Promise<void> {
     } = {
         changed: [],
         unchanged: [],
-        all: Object.values(currentData)
+        all: Object.keys(currentData)
     };
-    for (const [name, repoRef] of Object.entries(currentData)) {
-        if (!(name in baseData) || baseData[name] !== repoRef)
+    for (const repoRef of Object.keys(currentData)) {
+        if (!(repoRef in baseData))
             resultPayload.changed.push(repoRef);
         else
             resultPayload.unchanged.push(repoRef);
