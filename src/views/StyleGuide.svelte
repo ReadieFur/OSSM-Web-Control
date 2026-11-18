@@ -9,6 +9,7 @@
 	import Button from "$component/Button.svelte";
 
     import type { ViewManagerProps } from "$lib/services/ViewManager.svelte";
+	import Select from "$component/Select.svelte";
 
     let { viewManager }: ViewManagerProps = $props();
 </script>
@@ -55,6 +56,20 @@
         <SliderInput orientation="vertical" min={0} max={100} value={75}/>
         <SliderDoubleInput from={20} to={80}/>
         <SliderDoubleInput orientation="vertical" from={20} to={80} minGap={20}/>
+    </div>
+
+    <div>
+        <h3>Select</h3>
+        <Select>
+            <option>One</option>
+            <option>Two</option>
+            <option>Three</option>
+        </Select>
+        <Select iconPosition="left">
+            <option>One</option>
+            <option>Two</option>
+            <option>Three</option>
+        </Select>
     </div>
 
     <div>

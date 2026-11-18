@@ -260,6 +260,120 @@ input {
     }
 }
 
+.select-container {
+    position: relative;
+    display: inline-block;
+
+    select {
+        appearance: none;
+        -webkit-appearance: none;
+        -moz-appearance: none;
+
+        width: 100%;
+        padding: 0.5rem 0.75rem;
+        font-size: 1rem;
+        font-family: inherit;
+        line-height: 1.5;
+        color: inherit;
+
+        background-color: hsl(from $surface-1 h s l / 0.5);
+        border: none;
+        border-radius: $radius-600;
+        cursor: pointer;
+        transition: background-color 0.2s ease, border-color 0.2s ease;
+
+        &:not(:first-child) {
+            padding-left: 2.25rem;
+        }
+
+        &:not(:last-child) {
+            padding-right: 2.25rem;
+        }
+
+        &:hover:not([disabled]) {
+            background-color: hsl(from $surface-2 h s l / 0.5);
+        }
+
+        &:focus {
+            outline: none;
+        }
+
+        &:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        // Hide default dropdown arrow
+        &::-ms-appearance,
+        &::-ms-expand {
+            display: none;
+        }
+
+        @supports selector(select::picker(select)) {
+            &, &::picker(select) {
+                appearance: base-select;
+                -webkit-appearance: base-select;
+            }
+
+            &::picker-icon {
+                display: none;
+            }
+
+            // Style the dropdown picker container for supported browsers
+            &::picker(select) {
+                background-color: hsl(from $surface-1 h s l / 0.5);
+                backdrop-filter: blur($blur);
+                border-radius: $radius-600;
+                padding: 0.5rem;
+                border: none;
+                box-shadow: 0 10px 25px -5px hsl(from $surface-3 h s l / 0.3);
+            }
+        }
+    }
+
+    option {
+        padding: 0.375rem 0.75rem;
+        border-radius: $radius-200;
+        cursor: pointer;
+
+        &::checkmark {
+            display: none; // Hides the default check-mark
+        }
+
+        &:hover {
+            background-color: hsl(from $surface-2 h s l / 0.5);
+        }
+
+        &:checked {
+            background-color: hsl(from $accent-1 h s l / 0.3);
+        }
+    }
+
+    > span.material-symbol {
+        position: absolute;
+        top: 50%;
+        transform: translateY(-50%);
+        pointer-events: none;
+        opacity: 0.75;
+
+        width: auto;
+        height: auto;
+        line-height: 1;
+
+        &::before {
+            transform: none; // Removes the default offset we set for text inlined icons
+        }
+
+        &:first-child {
+            left: 0.5rem;
+        }
+
+        &:last-child {
+            right: 0.5rem;
+        }
+    }
+}
+
 section {
     display: flex;
     flex-direction: column;
