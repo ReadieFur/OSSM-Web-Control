@@ -1,3 +1,4 @@
+import { CancellationToken, type ICancellationToken } from "$lib/ossm-ble-web/dist/ossm-ble-web";
 import { SvelteURLSearchParams } from "svelte/reactivity";
 
 export const isDevMode = Boolean(
@@ -49,4 +50,60 @@ export type ResolveReject<T = unknown> = {
 
 export function clamp(value: number, min: number, max: number): number {
     return Math.min(Math.max(value, min), max);
+}
+
+export async function *streamedFetch(
+    url: string,
+    onProgress: (((total: number, received: number) => void) | undefined) = undefined,
+    cancellationToken: ICancellationToken = CancellationToken.None
+): AsyncGenerator<Uint8Array, void, unknown> {
+    const response = await fetch(url); // Only initiates the request, doesn't actually wait for all data to be received
+    if (!response.ok) throw new DOMException(`HTTP error: ${response.status}`, "NetworkError");
+
+    const reader = response.body?.getReader();
+    if (!reader) throw new DOMException("Response body reader not available", "NetworkError");
+
+    const contentLength = response.headers.has("content-length") ? parseInt(response.headers.get("content-length")!, 10) : Number.NaN;
+    let receivedLength = 0;
+
+    try {
+        while (true) {
+            cancellationToken.throwIfCancellationRequested();
+    
+            const { done, value } = await reader.read();
+            if (done) break;
+    
+            yield value;
+            receivedLength += value.length;
+    
+            if (onProgress) {
+                try { onProgress(contentLength, receivedLength); }
+                catch { /* Ignore */ }
+            }
+        }
+    } catch (error) {
+        await reader.cancel();
+        throw error;
+    }
+}
+
+export async function fetchWithProgress(...args: Parameters<typeof streamedFetch>): Promise<Uint8Array> {
+    const chunks: Uint8Array[] = [];
+    let totalLength = 0;
+
+    // Fetch chunks
+    for await (const chunk of streamedFetch(...args)) {
+        chunks.push(chunk);
+        totalLength += chunk.length;
+    }
+
+    // Combine all chunks into one
+    const result = new Uint8Array(totalLength);
+    let offset = 0;
+    for (const chunk of chunks) {
+        result.set(chunk, offset);
+        offset += chunk.length;
+    }
+
+    return result;
 }
