@@ -122,6 +122,7 @@ export class OssmRadProvider implements OssmProvider, Disposable {
                     });
                 }
             }
+            // TODO: Inject a pattern here for emulating absolute position by using streaming mode, where sensation value is the target position
 
             // Manual trigger of the connect callback for the setup so things run in the right order
             await this.#onBleConnect();
