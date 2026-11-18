@@ -18,6 +18,8 @@ $mobile-height-threshold: 1000;
 $small-width-threshold: 380;
 $small-height-threshold: 720;
 
+$page-bounds-offset: 100px;
+
 $material-symbols: (
     "arrow_range",
     "bluetooth_searching",
@@ -26,6 +28,7 @@ $material-symbols: (
     "dangerous",
     "dashboard",
     "deployed_code_update",
+    "developer_board",
     "flip",
     "logout",
     "linear_scale",
