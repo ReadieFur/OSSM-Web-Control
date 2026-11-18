@@ -27,10 +27,10 @@ export async function compileFirmware(repoRef: string): Promise<void> {
 
     const repoUrl = `https://github.com/${repoSlug}.git`;
     const rootDir = process.cwd();
-    const uriName = repoRef.replace(/[/#]/g, "_"); // Create a URI safe version of repoRef
+    const uriName = encodeURIComponent(repoRef);
     const buildDir = process.env.GITHUB_ACTIONS === "true"
         ? path.join(OS.tmpdir(), uriName)
-        : path.join(rootDir, ".output", "firmware-builder", Crypto.createHash('sha1').update(uriName).digest('hex').substring(0, 8)); // Short hash for localdev because windows 260 char limit :/
+        : path.join(rootDir, ".firmware-builder", Crypto.createHash('sha1').update(uriName).digest('hex').substring(0, 8)); // Short hash for localdev because windows 260 char limit :/
 
     // Check if the build directory already exists (for localdev speedup)
     let gitInitialized = false;
@@ -91,18 +91,17 @@ export async function compileFirmware(repoRef: string): Promise<void> {
             flashMode: notNull(flasherArgsJson.flash_settings?.flash_mode),
             flashSize: notNull(flasherArgsJson.flash_settings?.flash_size) !== "detect" ? flasherArgsJson.flash_settings!.flash_size! : "4m",
             flashFreq: notNull(flasherArgsJson.flash_settings?.flash_freq),
-            flashFiles: Object.entries(notNull(flasherArgsJson.flash_files)).map(([offsetStr, filePath]) => {
+            binaries: Object.fromEntries(Object.entries(notNull(flasherArgsJson.flash_files)).map(([offsetStr, filePath]) => {
                 const correctedFilePath = translateFlasherFile(filePath);
                 const fileName = path.basename(correctedFilePath);
                 manifestBinaries.add(fileName);
-                return {
+                const fileData = FS.readFileSync(path.join(path.dirname(flasherArgsPaths[0]), correctedFilePath));
+                return [fileName, {
                     offset: parseInt(offsetStr, 16),
-                    file: fileName,
-                    sha256: Crypto.createHash('sha256')
-                        .update(FS.readFileSync(path.join(path.dirname(flasherArgsPaths[0]), correctedFilePath)))
-                        .digest('hex')
-                };
-            })
+                    sha256: Crypto.createHash("sha256").update(fileData).digest("hex"),
+                    md5: Crypto.createHash("md5").update(fileData).digest("hex")
+                }];
+            }))
         };
 
         const collectedBinaries: Set<string> = new Set();

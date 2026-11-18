@@ -1,28 +1,23 @@
 import { base } from '$app/paths';
 import _firmwaresJson from "$lib/assets/firmwares.json";
-import { type LoaderOptions, type FlashOptions, type FlashModeValues, type FlashFreqValues, type FlashSizeValues, type IEspLoaderTerminal, } from "esptool-js";
+import { type FlashModeValues, type FlashFreqValues, type FlashSizeValues } from "esptool-js";
 
-type SimpleFirmwares = Record<string, {
-    friendlyName: string
-}>;
+type TSimpleFirmwaresJson = ReadonlyArray<string>;
+const simpleFirmwares: ReadonlySet<TSimpleFirmwaresJson[number]> = new Set(_firmwaresJson satisfies TSimpleFirmwaresJson);
 
-const simpleFirmwares: SimpleFirmwares = _firmwaresJson satisfies SimpleFirmwares;
-const simpleFirmwaresUriSafeToKey = new Map(Object.keys(simpleFirmwares).map(k => [k.replace(/[/#]/g, "_"), k]));
-
-type NodeFirmwaresManifest = Record<string, {
+type TNodeFirmwaresManifest = Record<string, {
     flashMode: FlashModeValues,
     flashSize: FlashSizeValues,
     flashFreq: FlashFreqValues,
-    flashFiles: [{
+    binaries: Record<string, {
         offset: number,
-        file: string,
-        sha256: string
-    }]
+        sha256: string,
+        md5: string
+    }>
 }>;
 
 export type FirmwaresManifest = Record<string,
-    SimpleFirmwares[string]
-    & {
+    {
         source: {
             author: string,
             repo: string,
@@ -31,12 +26,14 @@ export type FirmwaresManifest = Record<string,
             pioEnv?: string
         }
     }
-    & NodeFirmwaresManifest[string]
+    & TNodeFirmwaresManifest[string]
 >;
 
 export class Firmwares {
+    static readonly #basePath = `${base}/firmwares`;
+
     static async fetchManifest(): Promise<FirmwaresManifest> {
-        const response = await fetch(`${base}/firmwares/manifest.json`);
+        const response = await fetch(`${Firmwares.#basePath}/manifest.json`);
 
         if (!response.ok) {
             switch (response.status) {
@@ -49,18 +46,19 @@ export class Firmwares {
         }
 
         const firmwares: FirmwaresManifest = {};
-        for (const [sourceUriSafe, manifest] of Object.entries(await response.json() as NodeFirmwaresManifest)) {
-            const sourceStr = simpleFirmwaresUriSafeToKey.get(sourceUriSafe);
+        const nodeManifest = await response.json() as TNodeFirmwaresManifest;
 
-            if (!sourceStr) {
-                console.warn(`Node firmwares had an entry that was not in simpleFirmwares, skipping...`, sourceStr);
-                continue;
-            }
+        // Retains order that is defined in firmwares.json (due to how firmware builder pipeline works this order is lost)
+        const orderedSources = [
+            ...[...simpleFirmwares].filter(source => source in nodeManifest),
+            ...Object.keys(nodeManifest).filter(source => !simpleFirmwares.has(source)) // Should always return nothing
+        ];
 
-            const [, author, repo, tag, subPath = undefined, pioEnv = undefined] = sourceStr.match(/^([^/#]+)\/([^#]+)#([^/#]+)(?:\/([^#]+))?(?:#(.+))?$/)!;
+        for (const source of orderedSources) {
+            const manifest = nodeManifest[source];
+            const [, author, repo, tag, subPath = undefined, pioEnv = undefined] = source.match(/^([^/#]+)\/([^#]+)#([^/#]+)(?:\/([^#]+))?(?:#(.+))?$/)!;
 
-            firmwares[sourceUriSafe] = {
-                ...simpleFirmwares[sourceUriSafe],
+            firmwares[source] = {
                 source: {
                     author,
                     repo,
@@ -69,8 +67,20 @@ export class Firmwares {
                     pioEnv
                 },
                 ...manifest
-            }
+            };
         }
+
         return firmwares;
+    }
+
+    static sourceToString(sourceObj: FirmwaresManifest[string]["source"]): string {
+        let str = `${sourceObj.author}/${sourceObj.repo}#${sourceObj.tag}`;
+        if (sourceObj.subPath) str += `/${sourceObj.subPath}`;
+        if (sourceObj.pioEnv) str += `#${sourceObj.pioEnv}`;
+        return str;
+    }
+
+    static getBinaryUri(sourceKey: keyof FirmwaresManifest, fileName: keyof FirmwaresManifest[string]["binaries"]): string {
+        return `${this.#basePath}/${encodeURIComponent(sourceKey)}/${fileName}`;
     }
 }

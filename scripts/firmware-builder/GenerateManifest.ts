@@ -14,7 +14,7 @@ export function generateManifest(firmwaresDir: string, deleteSource: boolean): v
         const manifestPath = path.join(firmwarePath, "manifest.json");
         if (!FS.existsSync(manifestPath)) continue;
 
-        combinedManifest[firmware] = JSON.parse(FS.readFileSync(manifestPath, "utf8"));
+        combinedManifest[decodeURIComponent(firmware)] = JSON.parse(FS.readFileSync(manifestPath, "utf8"));
         if (deleteSource) FS.rmSync(manifestPath, { force: true });
 
         console.log(`Processed manifest for "${firmware}"`);

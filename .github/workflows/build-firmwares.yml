@@ -89,7 +89,9 @@ jobs:
 
       - name: Sanitize Artifact Name
         id: sanitize
-        run: echo "safe_name=$(echo '${{ matrix.firmware }}' | tr '/' '_' | tr '#' '_')" >> $GITHUB_OUTPUT
+        run: |
+          SAFE_NAME=$(node -e "console.log(encodeURIComponent('${{ matrix.firmware }}'))")
+          echo "safe_name=$SAFE_NAME" >> $GITHUB_OUTPUT
 
       - name: Upload Firmware Artifact
         if: ${{ inputs.upload-artifact }}

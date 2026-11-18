@@ -3,8 +3,9 @@ import * as FS from "fs";
 import { runCmd } from "./Common.js";
 
 const JSON_PATH = "src/lib/assets/firmwares.json";
+type TSimpleFirmwaresJson = ReadonlyArray<string>;
 
-async function getBaseJson(): Promise<Record<string, string>> {
+async function getBaseJson(): Promise<TSimpleFirmwaresJson> {
     let baseRev = process.env.ACT ? "HEAD" : "HEAD~1"; // Use uncommitted changes on ACT (HEAD)
 
     if (process.env.GITHUB_ACTIONS === "true") {
@@ -28,9 +29,9 @@ export async function main(): Promise<void> {
         process.exit(1);
     }
 
-    const currentData: Record<string, unknown> = JSON.parse(FS.readFileSync(JSON_PATH, "utf-8"));
-    let baseData: Record<string, string> = {};
-    try { baseData = await getBaseJson(); } catch { /* Ignore */ }
+    const currentData: Set<TSimpleFirmwaresJson[number]> = new Set(JSON.parse(FS.readFileSync(JSON_PATH, "utf-8")) as TSimpleFirmwaresJson);
+    let baseData: Set<TSimpleFirmwaresJson[number]> = new Set();
+    try { baseData = new Set(await getBaseJson()); } catch { /* Ignore */ }
 
     const resultPayload: {
         changed: string[],
@@ -39,9 +40,10 @@ export async function main(): Promise<void> {
     } = {
         changed: [],
         unchanged: [],
-        all: Object.keys(currentData)
+        all: []
     };
-    for (const repoRef of Object.keys(currentData)) {
+    for (const repoRef of currentData) {
+        resultPayload.all.push(repoRef);
         if (!(repoRef in baseData))
             resultPayload.changed.push(repoRef);
         else
