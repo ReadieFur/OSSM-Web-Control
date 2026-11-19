@@ -57,7 +57,8 @@
                     disabled={self.isPwaInstalling}
                     onclick={self.installPWA.bind(self)}
                     out:svelteFade>
-                    <span class="material-symbol" data-icon="deployed_code_update"></span>Install PWA
+                    <span class="material-symbol" data-icon-position="left" data-icon="deployed_code_update"></span>
+                    Install PWA
                 </button>
             {/if}
 
@@ -65,8 +66,9 @@
                 <Button
                     class="space-between"
                     disabled={self.isConnecting}
-                    onclick={self.flashFirmware.bind(self)}>
-                    <span class="material-symbol" data-icon="usb"></span>Flash Firmware
+                    onclick={self.flashFirmware.bind(self)}
+                    icon="usb">
+                    Flash Firmware
                 </Button>
             {/if}
 

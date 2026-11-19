@@ -135,6 +135,16 @@ button, a.button {
         opacity: 0.5;
         cursor: not-allowed;
     }
+
+    > span.material-symbol {
+        &[data-icon-position="left"] {
+            margin-left: -0.25rem;
+        }
+
+        &[data-icon-position="right"] {
+            margin-right: -0.25rem;
+        }
+    }
 }
 
 input {

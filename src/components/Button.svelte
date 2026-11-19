@@ -4,7 +4,7 @@
 
     interface Props extends HTMLButtonAttributes {
         icon?: string;
-        iconPosition?: "left" | "right" | "both";
+        iconPosition?: "left" | "right";
         children?: Snippet;
     }
 
@@ -18,13 +18,17 @@
 </script>
 
 <button class={className} {...restProps}>
-    {#if icon && iconPosition === "left"}
-        <span class="material-symbol" data-icon={icon}></span>
-    {/if}
-    {#if children}
+    {#if !children}
+        {#if icon}
+            <span class="material-symbol" data-icon-position="both" data-icon={icon}></span>
+        {/if}
+    {:else}
+        {#if icon && iconPosition === "left"}
+            <span class="material-symbol" data-icon-position={iconPosition} data-icon={icon}></span>
+        {/if}
         {@render children()}
-    {/if}
-    {#if icon && iconPosition === "right"}
-        <span class="material-symbol" data-icon={icon}></span>
+        {#if icon && iconPosition === "right"}
+            <span class="material-symbol" data-icon-position={iconPosition} data-icon={icon}></span>
+        {/if}
     {/if}
 </button>
