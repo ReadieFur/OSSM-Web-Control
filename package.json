@@ -42,6 +42,7 @@
     "vite": "^8.0.16"
   },
   "dependencies": {
+    "fflate": "^0.8.3",
     "ossm-ble-web": "file:./src/lib/ossm-ble-web"
   }
 }

@@ -35,12 +35,14 @@
     }
 
     > :nth-child(2) {
-        flex: 0 0 70%;
+        // flex: 0 0 70%;
+        flex: 1 1 auto;
         min-height: 0;
     }
 
     > :nth-child(3) {
-        flex: 1 1 auto;
+        // flex: 1 1 auto;
+        flex: 0 0 auto;
     }
 }
 
@@ -51,7 +53,7 @@
     align-items: center;
 
     button {
-        padding: 0.75rem 0.5rem;
+        padding: 0.75rem 0.35rem;
         background-color: transparent;
 
         &.exit-button {
@@ -74,5 +76,77 @@
 
     @media #{$small-media-query} {
         padding: 0.75rem 1rem;
+    }
+}
+
+.firmware-options {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem 0rem;
+
+    .save_files {
+        margin-left: -0.5rem;
+        padding: 0.75rem 0.25rem;
+        background-color: transparent;
+    }
+
+
+    > :nth-child(1) {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-direction: row;
+
+        > :nth-child(1) {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        > :nth-child(2) {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+    }
+
+    > :nth-child(2) {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 0.25rem 0rem;
+
+        > * {
+            display: flex;
+            gap: 0.25rem;
+            min-width: 0;
+            margin: 0;
+            text-align: left;
+            font-size: 0.9em;
+
+            &[data-span="full"] {
+                grid-column: 1 / -1;
+            }
+
+            > span, > a {
+                min-width: 0;
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
+                font-weight: normal;
+                user-select: text;
+            }
+
+            > span {
+                color: $text-2;
+
+                &.na {
+                    color: $text-3;
+                }
+            }
+
+            > a {
+                color: $accent-2;
+            }
+        }
     }
 }
