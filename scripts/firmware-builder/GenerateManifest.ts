@@ -4,7 +4,10 @@ import path from "path";
 export function generateManifest(firmwaresDir: string, deleteSource: boolean): void {
     if (!FS.existsSync(firmwaresDir)) throw new Error(`Directory "${firmwaresDir}" does not exist.`);
 
-    const combinedManifest: Record<string, unknown> = {};
+    const combinedManifest = {
+        job: process.env.GITHUB_ACTIONS === "true" ? `${process.env.GITHUB_SERVER_URL}/${process.env.GITHUB_REPOSITORY}/actions/runs/${process.env.GITHUB_RUN_ID}` : "",
+        firmwares: {} as Record<string, unknown>
+    };
 
     for (const firmware of FS.readdirSync(firmwaresDir)) {
         const firmwarePath: string = path.join(firmwaresDir, firmware);
@@ -14,7 +17,7 @@ export function generateManifest(firmwaresDir: string, deleteSource: boolean): v
         const manifestPath = path.join(firmwarePath, "manifest.json");
         if (!FS.existsSync(manifestPath)) continue;
 
-        combinedManifest[decodeURIComponent(firmware)] = JSON.parse(FS.readFileSync(manifestPath, "utf8"));
+        combinedManifest.firmwares[decodeURIComponent(firmware)] = JSON.parse(FS.readFileSync(manifestPath, "utf8"));
         if (deleteSource) FS.rmSync(manifestPath, { force: true });
 
         console.log(`Processed manifest for "${firmware}"`);
