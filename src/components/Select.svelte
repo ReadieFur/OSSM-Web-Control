@@ -24,7 +24,7 @@
         <span class="material-symbol" data-icon={icon}></span>
     {/if}
     
-    <select {...restProps}>
+    <select bind:value {...restProps}>
         {#if children}
             {@render children()}
         {/if}
